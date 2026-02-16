@@ -1,0 +1,39 @@
+# Reference genome (3GB+)
+reference/
+
+# WGS pipeline working directory
+wgs_work/
+
+# Personal genome data
+data/genome*.txt
+*.fastq
+*.fastq.gz
+*.bam
+*.bam.bai
+*.vcf
+*.vcf.gz
+
+# Large reference databases (downloadable, see CLAUDE.md)
+data/clinvar_alleles.tsv
+data/clinvar_alleles.tsv.gz
+data/clinical_ann_alleles.tsv
+data/clinical_ann_evidence.tsv
+data/clinical_ann_history.tsv
+data/clinical_annotations.tsv
+data/pharmgkb_annotations.zip
+
+# Generated reports
+reports/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS
+.DS_Store
+.tmp/
+
+# Nix
+result
