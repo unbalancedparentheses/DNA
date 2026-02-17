@@ -4,33 +4,14 @@ reference/
 # WGS pipeline working directory
 wgs_work/
 
-# Personal genome data
-data/genome*.txt
-data/adn_*.gz
-data/snpedia.gff
+# Personal genome data and downloaded databases
+data/
 *.fastq
 *.fastq.gz
 *.bam
 *.bam.bai
 *.vcf
 *.vcf.gz
-
-# Large reference databases (downloadable, see CLAUDE.md)
-data/clinvar_alleles.tsv
-data/clinvar_alleles.tsv.gz
-data/clinical_ann_alleles.tsv
-data/clinical_ann_evidence.tsv
-data/clinical_ann_history.tsv
-data/clinical_annotations.tsv
-data/pharmgkb_annotations.zip
-
-# Generated data
-data/rsid_positions_grch37.json
-
-# PharmGKB metadata
-data/CREATED_*.txt
-data/LICENSE.txt
-data/README.pdf
 
 # Generated reports
 reports/
