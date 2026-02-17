@@ -1,7 +1,11 @@
 """Tests for disease risk analysis (ClinVar logic) and disease report generation."""
 
 from genetic_health.analysis import load_clinvar_and_analyze
-from genetic_health.reports import classify_zygosity, generate_disease_risk_report
+from genetic_health.reports import (
+    classify_zygosity,
+    generate_disease_risk_report,
+    generate_actionable_protocol,
+)
 
 
 class TestZygosityClassification:
@@ -225,3 +229,42 @@ class TestDiseaseReportFormatting:
         # The header should have trimmed trait, not "  Cystic fibrosis "
         assert "### CFTR - Cystic fibrosis" in content
         assert "  Cystic fibrosis " not in content
+
+    def test_actionable_protocol_with_none_disease_findings(self, tmp_path):
+        """Protocol should generate without crashing when ClinVar is missing."""
+        health_results = {
+            "findings": [
+                {"gene": "CYP1A2", "category": "Caffeine", "genotype": "AA",
+                 "status": "fast", "description": "Fast metabolizer",
+                 "magnitude": 2, "note": "", "rsid": "rs762551"},
+            ],
+            "pharmgkb_findings": [],
+            "summary": {"total_snps": 1, "analyzed_snps": 1,
+                         "high_impact": 0, "moderate_impact": 1, "low_impact": 0},
+        }
+        output = tmp_path / "protocol.md"
+        generate_actionable_protocol(health_results, None, output)
+        content = output.read_text()
+        assert "Actionable Health Protocol" in content
+        assert "None detected" in content
+
+    def test_findings_dict_keeps_highest_magnitude(self, tmp_path):
+        """When a gene has multiple rsIDs, the highest magnitude finding should be used."""
+        health_results = {
+            "findings": [
+                {"gene": "MTHFR", "category": "Methylation", "genotype": "CT",
+                 "status": "reduced", "description": "Reduced activity",
+                 "magnitude": 1, "note": "", "rsid": "rs1801131"},
+                {"gene": "MTHFR", "category": "Methylation", "genotype": "CT",
+                 "status": "reduced", "description": "C677T heterozygous",
+                 "magnitude": 3, "note": "", "rsid": "rs1801133"},
+            ],
+            "pharmgkb_findings": [],
+            "summary": {"total_snps": 2, "analyzed_snps": 2,
+                         "high_impact": 1, "moderate_impact": 0, "low_impact": 1},
+        }
+        output = tmp_path / "protocol.md"
+        generate_actionable_protocol(health_results, None, output)
+        content = output.read_text()
+        # With magnitude 3, MTHFR should trigger supplement recommendations
+        assert "Methylfolate" in content

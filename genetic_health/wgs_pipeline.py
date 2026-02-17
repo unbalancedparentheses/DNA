@@ -58,7 +58,7 @@ def cpu_count():
     """Get available CPU count."""
     try:
         return os.cpu_count() or 4
-    except Exception:
+    except (AttributeError, NotImplementedError):
         return 4
 
 
@@ -231,6 +231,7 @@ def step_rsid_lookup():
     log(f"  Querying Ensembl GRCh37 API for {len(rsids)} rsIDs...")
 
     import urllib.request
+    import urllib.error
 
     lookup = {}
     batch_size = 50
@@ -261,7 +262,7 @@ def step_rsid_lookup():
                             'pos': str(m['start']),
                         }
                         break
-        except Exception as e:
+        except (urllib.error.URLError, json.JSONDecodeError, KeyError, ValueError) as e:
             log(f"  Warning: API batch {i//batch_size + 1} failed: {e}")
 
     with open(RSID_LOOKUP, 'w') as f:

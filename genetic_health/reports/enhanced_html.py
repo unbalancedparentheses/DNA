@@ -147,6 +147,8 @@ def paper_refs_html(rsid):
 # =============================================================================
 
 def load_json(path):
+    if not path.exists():
+        return {}
     with open(path, "r") as f:
         return json.load(f)
 

@@ -227,7 +227,13 @@ def generate_actionable_protocol(health_results: dict, disease_findings: dict,
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     subject_line = f"\n**Subject:** {subject_name}" if subject_name else ""
 
-    findings_dict = {f['gene']: f for f in health_results['findings']}
+    # Build gene->finding dict keeping highest-magnitude finding per gene
+    # (some genes like MTHFR, CYP2C9 have multiple rsIDs)
+    findings_dict = {}
+    for f in health_results['findings']:
+        gene = f['gene']
+        if gene not in findings_dict or f['magnitude'] > findings_dict[gene]['magnitude']:
+            findings_dict[gene] = f
 
     affected = []
     carriers = []
