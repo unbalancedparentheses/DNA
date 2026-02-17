@@ -1,6 +1,6 @@
 """Tests for Markdown-to-HTML report conversion."""
 
-from report_generators import _md_to_html, _write_html, _inline
+from genetic_health.reports.html_converter import _md_to_html, _write_html, _inline
 
 
 class TestInlineFormatting:

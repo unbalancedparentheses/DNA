@@ -9,7 +9,7 @@ dependencies = []
 test = ["pytest"]
 
 [project.scripts]
-genetic-health = "scripts.run_full_analysis:main"
+genetic-health = "genetic_health.pipeline:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

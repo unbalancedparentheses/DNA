@@ -1,7 +1,7 @@
-"""Tests for disease risk analysis (ClinVar logic in run_full_analysis.py)."""
+"""Tests for disease risk analysis (ClinVar logic)."""
 
-import run_full_analysis as mod
-from report_generators import classify_zygosity
+from genetic_health.analysis import load_clinvar_and_analyze
+from genetic_health.reports import classify_zygosity
 
 
 class TestZygosityClassification:
@@ -39,12 +39,9 @@ class TestVariantDetection:
 
     def _run_analysis(self, clinvar_file, clinvar_rows, genome_positions):
         clinvar_path = clinvar_file(clinvar_rows)
-        orig = mod.DATA_DIR
-        mod.DATA_DIR = clinvar_path.parent
-        try:
-            findings, stats = mod.load_clinvar_and_analyze(genome_positions)
-        finally:
-            mod.DATA_DIR = orig
+        findings, stats = load_clinvar_and_analyze(
+            genome_positions, data_dir=clinvar_path.parent
+        )
         return findings, stats
 
     def test_pathogenic_snp_detected(self, clinvar_file):

@@ -1,11 +1,7 @@
 """Tests for SNP database structure and lifestyle/health analysis logic."""
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
-from comprehensive_snp_database import COMPREHENSIVE_SNPS
-from run_full_analysis import analyze_lifestyle_health
+from genetic_health.snp_database import COMPREHENSIVE_SNPS
+from genetic_health.analysis import analyze_lifestyle_health
 
 
 class TestSNPDatabase:

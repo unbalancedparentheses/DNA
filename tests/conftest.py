@@ -3,14 +3,10 @@
 import csv
 import gzip
 import json
-import sys
 import tempfile
 from pathlib import Path
 
 import pytest
-
-# Add scripts/ to path once for all tests
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 PROJECT_ROOT = Path(__file__).parent.parent
 

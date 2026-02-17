@@ -1,6 +1,6 @@
-"""Tests for VCF-to-23andMe conversion (step_convert in wgs_pipeline.py)."""
+"""Tests for VCF-to-23andMe conversion (step_convert in wgs_pipeline)."""
 
-import wgs_pipeline
+from genetic_health import wgs_pipeline
 
 
 def _run_convert(vcf_file, vcf_lines, rsid_lookup_file, rsid_lookup=None):

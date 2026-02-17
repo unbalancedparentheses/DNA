@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-"""
-WGS Pipeline: FASTQ -> Genetic Health Reports
+"""WGS Pipeline: FASTQ -> Genetic Health Reports
 
 Processes whole genome sequencing data through:
   1. Quality control (fastp)
@@ -12,9 +10,9 @@ Processes whole genome sequencing data through:
   7. Full genetic health analysis
 
 Usage:
-    python scripts/wgs_pipeline.py /path/to/reads.fastq
-    python scripts/wgs_pipeline.py /path/to/reads.fastq --name "Subject Name"
-    python scripts/wgs_pipeline.py /path/to/reads.fastq --keep-intermediates
+    python -m genetic_health.wgs_pipeline /path/to/reads.fastq
+    python -m genetic_health.wgs_pipeline /path/to/reads.fastq --name "Subject Name"
+    python -m genetic_health.wgs_pipeline /path/to/reads.fastq --keep-intermediates
 """
 
 import subprocess
@@ -24,16 +22,15 @@ import gzip
 import json
 import shutil
 import argparse
+import concurrent.futures
 from pathlib import Path
 from datetime import datetime
 
-# Directory layout
-SCRIPT_DIR = Path(__file__).parent.resolve()
-PROJECT_DIR = SCRIPT_DIR.parent.resolve()
-DATA_DIR = PROJECT_DIR / "data"
-REPORTS_DIR = PROJECT_DIR / "reports"
-REF_DIR = PROJECT_DIR / "reference"
-WORK_DIR = PROJECT_DIR / "wgs_work"
+from .config import BASE_DIR, DATA_DIR, REPORTS_DIR
+
+# Additional directories for WGS
+REF_DIR = BASE_DIR / "reference"
+WORK_DIR = BASE_DIR / "wgs_work"
 
 # Reference files
 REF_GENOME = REF_DIR / "human_g1k_v37.fasta"
@@ -55,6 +52,14 @@ def run(cmd, desc=None):
         print(f"STDERR: {result.stderr[:3000]}")
         sys.exit(1)
     return result
+
+
+def cpu_count():
+    """Get available CPU count."""
+    try:
+        return os.cpu_count() or 4
+    except Exception:
+        return 4
 
 
 def check_prereqs():
@@ -85,7 +90,7 @@ def step_qc(fastq_in, threads):
         f"fastp -i {fastq_in} -o {out} "
         f"-j {json_out} -h {WORK_DIR}/fastp.html "
         f"-w {min(threads, 16)} --length_required 50",
-        "Step 1/6: Quality control (fastp)"
+        "Quality control (fastp)"
     )
 
     with open(json_out) as f:
@@ -103,16 +108,21 @@ def step_align(fastq_in, threads):
     bam = WORK_DIR / "aligned.bam"
 
     ref = str(REF_MMI) if REF_MMI.exists() else str(REF_GENOME)
-    align_threads = max(1, threads - 2)
-    sort_threads = min(4, threads)
+    if REF_MMI.exists():
+        log(f"  Using pre-built index: {REF_MMI.name}")
+
+    # Give minimap2 most threads; samtools sort needs fewer
+    align_threads = max(1, threads - 4)
+    sort_threads = min(4, max(1, threads // 3))
+    sort_mem = "4G"
 
     run(
         f"minimap2 -a -x sr -t {align_threads} --secondary=no {ref} {fastq_in} "
-        f"| samtools sort -@ {sort_threads} -m 2G -o {bam}",
-        "Step 2/6: Alignment + sorting (minimap2 -> samtools sort)"
+        f"| samtools sort -@ {sort_threads} -m {sort_mem} -o {bam}",
+        "Step 1/5: Alignment + sorting (minimap2 -> samtools sort)"
     )
 
-    run(f"samtools index -@ {sort_threads} {bam}", "  Indexing BAM")
+    run(f"samtools index -@ {threads} {bam}", "  Indexing BAM")
 
     result = run(f"samtools flagstat {bam}")
     for line in result.stdout.strip().split('\n')[:5]:
@@ -121,16 +131,76 @@ def step_align(fastq_in, threads):
     return bam
 
 
-def step_call(bam_in, threads):
-    """Call variants with bcftools mpileup + call."""
+def _build_target_regions():
+    """Build a BED file of regions we care about (ClinVar + SNP database).
+
+    Calling variants only at these positions is dramatically faster than
+    whole-genome calling.
+    """
+    bed_path = WORK_DIR / "target_regions.bed"
+    if bed_path.exists():
+        return bed_path
+
+    positions = set()
+
+    # Collect ClinVar positions
+    clinvar_path = DATA_DIR / "clinvar_alleles.tsv"
+    if clinvar_path.exists():
+        import csv
+        with open(clinvar_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+                chrom = row.get('chrom', '')
+                pos = row.get('pos', '')
+                if chrom and pos and pos.isdigit():
+                    positions.add((chrom, int(pos)))
+
+    # Collect SNP database positions from rsID lookup
+    if RSID_LOOKUP.exists():
+        with open(RSID_LOOKUP) as f:
+            lookup = json.load(f)
+        for info in lookup.values():
+            chrom = info.get('chrom', '')
+            pos = info.get('pos', '')
+            if chrom and pos and pos.isdigit():
+                positions.add((chrom, int(pos)))
+
+    if not positions:
+        return None
+
+    # Write BED (0-based start, 1-based end; pos is 1-based VCF, so start = pos-1)
+    with open(bed_path, 'w') as f:
+        for chrom, pos in sorted(positions, key=lambda x: (x[0].zfill(2), x[1])):
+            f.write(f"{chrom}\t{pos - 1}\t{pos}\n")
+
+    log(f"  Built target regions: {len(positions):,} positions")
+    return bed_path
+
+
+def step_call(bam_in, threads, targeted=True):
+    """Call variants with bcftools mpileup + call.
+
+    If targeted=True, only call at ClinVar + SNP database positions
+    (much faster than whole-genome calling).
+    """
     vcf = WORK_DIR / "variants.vcf.gz"
+
+    region_arg = ""
+    if targeted:
+        bed = _build_target_regions()
+        if bed:
+            region_arg = f"-T {bed}"
+            log("  Using targeted calling (ClinVar + SNP positions only)")
+
+    mpileup_threads = max(1, threads // 2)
+    call_threads = max(1, threads // 4)
 
     run(
         f"bcftools mpileup -f {REF_GENOME} -q 20 -Q 20 "
-        f"--threads {max(1, threads//2)} -a FORMAT/DP {bam_in} "
+        f"--threads {mpileup_threads} -a FORMAT/DP {region_arg} {bam_in} "
         f"| bcftools call -m -v --ploidy GRCh37 "
-        f"--threads {max(1, threads//4)} -Oz -o {vcf}",
-        "Step 3/6: Variant calling (bcftools mpileup + call)"
+        f"--threads {call_threads} -Oz -o {vcf}",
+        "Step 3/5: Variant calling (bcftools mpileup + call)"
     )
 
     run(f"bcftools index {vcf}")
@@ -147,7 +217,7 @@ def step_call(bam_in, threads):
 
 def step_rsid_lookup():
     """Build rsID -> GRCh37 position lookup by querying Ensembl API."""
-    log("Step 4/6: Building rsID position lookup")
+    log("Step 2/5: Building rsID position lookup (parallel with alignment)")
 
     if RSID_LOOKUP.exists():
         with open(RSID_LOOKUP) as f:
@@ -155,8 +225,7 @@ def step_rsid_lookup():
         log(f"  Lookup already exists ({len(lookup)} rsIDs)")
         return
 
-    sys.path.insert(0, str(SCRIPT_DIR))
-    from comprehensive_snp_database import COMPREHENSIVE_SNPS
+    from .snp_database import COMPREHENSIVE_SNPS
 
     rsids = list(COMPREHENSIVE_SNPS.keys())
     log(f"  Querying Ensembl GRCh37 API for {len(rsids)} rsIDs...")
@@ -203,7 +272,7 @@ def step_rsid_lookup():
 
 def step_convert(vcf_in, genome_out):
     """Convert VCF to 23andMe tab-separated format."""
-    log("Step 5/6: Converting VCF to 23andMe format")
+    log("Step 4/5: Converting VCF to 23andMe format")
 
     # Load rsID position lookup (position -> rsid)
     pos_to_rsid = {}
@@ -273,10 +342,9 @@ def step_convert(vcf_in, genome_out):
 
 def step_analyze(genome_path, subject_name):
     """Run the existing genetic health analysis pipeline."""
-    log("Step 6/6: Running genetic health analysis")
+    log("Step 5/5: Running genetic health analysis")
 
-    sys.path.insert(0, str(SCRIPT_DIR))
-    from run_full_analysis import run_full_analysis
+    from .pipeline import run_full_analysis
     run_full_analysis(Path(genome_path), subject_name)
 
 
@@ -286,20 +354,23 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/wgs_pipeline.py ../22374_1.fastq
-  python scripts/wgs_pipeline.py ../22374_1.fastq --name "John Doe"
-  python scripts/wgs_pipeline.py ../22374_1.fastq.gz --threads 8
-  python scripts/wgs_pipeline.py ../22374_1.fastq --skip-analysis
+  python -m genetic_health.wgs_pipeline ../22374_1.fastq
+  python -m genetic_health.wgs_pipeline ../22374_1.fastq --name "John Doe"
+  python -m genetic_health.wgs_pipeline ../22374_1.fastq.gz --threads 8
+  python -m genetic_health.wgs_pipeline ../22374_1.fastq --skip-analysis
         """
     )
     parser.add_argument('fastq', type=Path, help='Input FASTQ file (.fastq or .fastq.gz)')
     parser.add_argument('--name', '-n', type=str, default=None, help='Subject name for reports')
-    parser.add_argument('--threads', '-t', type=int, default=12, help='CPU threads (default: 12)')
+    parser.add_argument('--threads', '-t', type=int, default=0,
+                        help='CPU threads (default: all available)')
     parser.add_argument('--keep-intermediates', action='store_true',
                         help='Keep BAM and intermediate files')
     parser.add_argument('--skip-qc', action='store_true', help='Skip fastp QC step')
     parser.add_argument('--skip-analysis', action='store_true',
                         help='Stop after VCF conversion (no health analysis)')
+    parser.add_argument('--full', action='store_true',
+                        help='Call variants genome-wide (slower, default is targeted)')
     parser.add_argument('--output', '-o', type=Path, default=None,
                         help='Output genome.txt path (default: data/genome.txt)')
 
@@ -310,13 +381,19 @@ Examples:
         print(f"FASTQ file not found: {fastq}")
         sys.exit(1)
 
+    threads = args.threads or cpu_count()
     size_gb = fastq.stat().st_size / 1e9
+    targeted = not args.full
 
     print("=" * 60)
     print("WGS Pipeline: FASTQ -> Genetic Health Reports")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Input:   {fastq.name} ({size_gb:.1f} GB)")
-    print(f"Threads: {args.threads}")
+    print(f"Threads: {threads}")
+    if targeted:
+        print("Mode:    Targeted (ClinVar + SNP db positions only)")
+    else:
+        print("Mode:    Full genome-wide variant calling")
     print("=" * 60)
 
     check_prereqs()
@@ -331,27 +408,32 @@ Examples:
         shutil.copy2(genome_out, backup)
         log(f"Backed up existing genome.txt -> {backup.name}")
 
-    # Step 1: QC
-    if args.skip_qc or not shutil.which('fastp'):
-        if not shutil.which('fastp'):
-            log("Skipping QC (fastp not installed)")
-        trimmed = fastq
-    else:
-        trimmed = step_qc(fastq, args.threads)
+    # Start rsID lookup in background (I/O-bound, overlaps with alignment)
+    rsid_future = None
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        rsid_future = executor.submit(step_rsid_lookup)
 
-    # Step 2: Align + sort
-    bam = step_align(trimmed, args.threads)
+        # Step 1: QC
+        if args.skip_qc or not shutil.which('fastp'):
+            if not shutil.which('fastp'):
+                log("Skipping QC (fastp not installed)")
+            trimmed = fastq
+        else:
+            trimmed = step_qc(fastq, threads)
 
-    # Step 3: Call variants
-    vcf = step_call(bam, args.threads)
+        # Step 2: Align + sort
+        bam = step_align(trimmed, threads)
 
-    # Step 4: Build rsID lookup
-    step_rsid_lookup()
+        # Wait for rsID lookup to finish (should be done by now)
+        rsid_future.result()
 
-    # Step 5: Convert to 23andMe format
+    # Step 3: Call variants (targeted by default for speed)
+    vcf = step_call(bam, threads, targeted=targeted)
+
+    # Step 4: Convert to 23andMe format
     variant_count = step_convert(vcf, genome_out)
 
-    # Step 6: Run analysis
+    # Step 5: Run analysis
     if not args.skip_analysis:
         step_analyze(genome_out, args.name)
 

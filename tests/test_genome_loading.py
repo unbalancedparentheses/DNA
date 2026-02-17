@@ -1,6 +1,6 @@
-"""Tests for 23andMe genome file parsing (load_genome in run_full_analysis.py)."""
+"""Tests for 23andMe genome file parsing (load_genome)."""
 
-from run_full_analysis import load_genome
+from genetic_health.loading import load_genome
 
 
 class TestGenomeLoading:

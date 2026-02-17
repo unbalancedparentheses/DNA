@@ -98,7 +98,7 @@ $(REF_MMI): $(REF_FASTA)
 ## Full pipeline: FASTQ -> QC -> align -> call -> convert -> analyze
 pipeline: $(REF_MMI)
 	@test -f "$(FASTQ)" || { echo "FASTQ not found: $(FASTQ)"; echo "Usage: make pipeline FASTQ=/path/to/reads.fastq"; exit 1; }
-	$(NIX) develop --command python scripts/wgs_pipeline.py \
+	$(NIX) develop --command python -m genetic_health.wgs_pipeline \
 		"$(FASTQ)" \
 		--threads $(THREADS) \
 		$(NAME_FLAG)
@@ -106,7 +106,7 @@ pipeline: $(REF_MMI)
 ## Run analysis only on existing genome.txt
 analysis:
 	@test -f "$(GENOME)" || { echo "genome.txt not found. Run 'make pipeline' first."; exit 1; }
-	$(NIX) develop --command python scripts/run_full_analysis.py \
+	$(NIX) develop --command python -m genetic_health \
 		$(GENOME) \
 		$(NAME_FLAG)
 

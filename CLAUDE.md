@@ -7,14 +7,14 @@ This workspace contains a comprehensive genetic health analysis pipeline that pr
 ```bash
 # Run full analysis with default genome file (data/genome.txt)
 cd /path/to/DNA
-python scripts/run_full_analysis.py
+python -m genetic_health
 
 # Run with a custom genome file
-python scripts/run_full_analysis.py /path/to/genome.txt
+python -m genetic_health /path/to/genome.txt
 
 # Run with subject name included in reports
-python scripts/run_full_analysis.py --name "John Doe"
-python scripts/run_full_analysis.py /path/to/genome.txt --name "Jane Doe"
+python -m genetic_health --name "John Doe"
+python -m genetic_health /path/to/genome.txt --name "Jane Doe"
 
 # Run tests
 python -m pytest tests/ -v
@@ -22,7 +22,7 @@ python -m pytest tests/ -v
 
 ## Output
 
-The pipeline generates three reports in the `reports/` directory:
+The pipeline generates four reports in the `reports/` directory:
 
 1. **EXHAUSTIVE_GENETIC_REPORT.md** - Lifestyle/health genetics analysis
    - Drug metabolism (CYP enzymes, warfarin sensitivity)
@@ -52,6 +52,12 @@ The pipeline generates three reports in the `reports/` directory:
    - 90-day implementation checklist
    - Quick reference cards
 
+4. **ENHANCED_HEALTH_REPORT.html** - All-in-one interactive HTML report
+   - SVG charts and dashboards
+   - Collapsible sections
+   - Print-optimized doctor card
+   - Database links for every rsID
+
 ## Directory Structure
 
 ```
@@ -61,6 +67,33 @@ DNA/
 ├── flake.nix
 ├── flake.lock
 ├── Makefile
+├── pyproject.toml
+├── genetic_health/               # Python package
+│   ├── __init__.py               # Public API
+│   ├── __main__.py               # python -m genetic_health
+│   ├── config.py                 # Centralized paths (BASE_DIR, DATA_DIR, etc.)
+│   ├── loading.py                # load_genome(), load_pharmgkb()
+│   ├── analysis.py               # analyze_lifestyle_health(), load_clinvar_and_analyze()
+│   ├── snp_database.py           # COMPREHENSIVE_SNPS (~200 curated variants)
+│   ├── clinical_context.py       # CLINICAL_CONTEXT + PATHWAYS data
+│   ├── pipeline.py               # run_full_analysis() orchestrator + CLI
+│   ├── wgs_pipeline.py           # WGS FASTQ→reports pipeline
+│   └── reports/
+│       ├── __init__.py            # Re-exports generators
+│       ├── html_converter.py      # Markdown→HTML converter
+│       ├── section_builders.py    # Section generators for exhaustive report
+│       ├── markdown_reports.py    # 3 Markdown report generators
+│       └── enhanced_html.py       # All-in-one interactive HTML report
+├── scripts/
+│   └── setup_reference.sh        # Reference genome setup (shell script)
+├── tests/
+│   ├── conftest.py
+│   ├── test_genome_loading.py
+│   ├── test_snp_analysis.py
+│   ├── test_vcf_conversion.py
+│   ├── test_disease_analysis.py
+│   ├── test_path_resolution.py
+│   └── test_html_reports.py
 ├── data/
 │   ├── genome.txt                 # 23andMe raw data file
 │   ├── clinvar_alleles.tsv        # ClinVar database (~341K variants)
@@ -68,22 +101,11 @@ DNA/
 │   └── clinical_ann_alleles.tsv   # PharmGKB allele data
 ├── reference/
 │   └── human_g1k_v37.fasta.gz    # Reference genome (for WGS pipeline)
-├── scripts/
-│   ├── run_full_analysis.py       # MAIN ENTRY POINT - runs everything
-│   ├── comprehensive_snp_database.py  # Curated SNP database
-│   ├── generate_exhaustive_report.py  # Report generator
-│   ├── wgs_pipeline.py           # Whole-genome sequencing pipeline
-│   └── setup_reference.sh        # Reference genome setup
-├── tests/
-│   ├── test_genome_loading.py
-│   ├── test_snp_analysis.py
-│   ├── test_vcf_conversion.py
-│   ├── test_disease_analysis.py
-│   └── test_path_resolution.py
 └── reports/                       # Generated output (gitignored)
     ├── EXHAUSTIVE_GENETIC_REPORT.md
     ├── EXHAUSTIVE_DISEASE_RISK_REPORT.md
-    └── ACTIONABLE_HEALTH_PROTOCOL_V3.md
+    ├── ACTIONABLE_HEALTH_PROTOCOL_V3.md
+    └── ENHANCED_HEALTH_REPORT.html
 ```
 
 ## Data Requirements
@@ -118,25 +140,25 @@ To run analysis for different people:
 cp ~/Downloads/genome_mom.txt data/genome_mom.txt
 
 # Run analysis
-python scripts/run_full_analysis.py data/genome_mom.txt --name "Mom"
+python -m genetic_health data/genome_mom.txt --name "Mom"
 
 # Rename outputs to preserve them
 mv reports/EXHAUSTIVE_GENETIC_REPORT.md reports/EXHAUSTIVE_GENETIC_REPORT_MOM.md
 mv reports/EXHAUSTIVE_DISEASE_RISK_REPORT.md reports/EXHAUSTIVE_DISEASE_RISK_REPORT_MOM.md
-mv reports/ACTIONABLE_HEALTH_PROTOCOL.md reports/ACTIONABLE_HEALTH_PROTOCOL_MOM.md
+mv reports/ACTIONABLE_HEALTH_PROTOCOL_V3.md reports/ACTIONABLE_HEALTH_PROTOCOL_MOM.md
 ```
 
-## Script Details
+## Module Details
 
-### run_full_analysis.py
-**Main entry point** - orchestrates the entire pipeline.
+### genetic_health.pipeline
+**Main entry point** — orchestrates the entire pipeline.
 
 ```python
-from scripts.run_full_analysis import run_full_analysis
+from genetic_health.pipeline import run_full_analysis
 results = run_full_analysis(genome_path, subject_name)
 ```
 
-### comprehensive_snp_database.py
+### genetic_health.snp_database
 Contains curated SNP interpretations for ~200 health-relevant variants organized by category:
 - Drug Metabolism
 - Methylation
@@ -155,8 +177,8 @@ Each SNP entry includes:
 - Status descriptions
 - Impact magnitude (0-6 scale)
 
-### run_full_analysis.py — Disease Risk Analysis
-The disease risk analysis (integrated into `run_full_analysis.py`) scans the genome against ClinVar. Important implementation detail:
+### genetic_health.analysis — Disease Risk Analysis
+The disease risk analysis scans the genome against ClinVar. Important implementation detail:
 
 **Only true SNPs are analyzed** — indels (insertions/deletions) are filtered out because 23andMe data cannot reliably represent them. This prevents false positives.
 
@@ -166,7 +188,7 @@ if len(ref_allele) != 1 or len(alt_allele) != 1:
     continue  # Skip indels
 ```
 
-### generate_exhaustive_report.py
+### genetic_health.clinical_context
 Contains clinical context database with detailed interpretations, mechanisms, and recommendations for each gene/status combination.
 
 ## Interpretation Guide
@@ -226,7 +248,7 @@ The indel filter should prevent this. If you see suspicious findings (especially
 
 ## Adding Custom SNPs
 
-To add new SNPs to the lifestyle/health analysis, edit `scripts/comprehensive_snp_database.py`:
+To add new SNPs to the lifestyle/health analysis, edit `genetic_health/snp_database.py`:
 
 ```python
 "rs12345": {
