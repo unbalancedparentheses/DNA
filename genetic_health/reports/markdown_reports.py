@@ -20,9 +20,30 @@ from .section_builders import (
     generate_disclaimer,
 )
 
+# Display limits for report sections
+MAX_RISK_FACTORS = 30
+MAX_DRUG_RESPONSES = 30
+MAX_LEVEL2_INTERACTIONS = 15
+MAX_CLINVAR_DRUG_RESPONSES = 20
+
 
 def _print_step(text):
     print(f"\n>>> {text}")
+
+
+def _first_trait(traits, fallback='Unknown'):
+    """Extract first trait from semicolon-separated list, stripped."""
+    if not traits:
+        return fallback
+    return traits.split(';')[0].strip() or fallback
+
+
+def _truncate(text, limit=80):
+    """Truncate text to limit, adding ellipsis if needed."""
+    text = text.strip()
+    if len(text) > limit:
+        return text[:limit] + '...'
+    return text
 
 
 def classify_zygosity(finding):
@@ -137,14 +158,14 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
         report += "## Pathogenic Variants - Affected Status\n\n"
         for f in affected:
             stars = '*' * f['gold_stars'] + '.' * (4 - f['gold_stars'])
-            report += f"""### {f['gene']} - {f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown'}
+            report += f"""### {f['gene']} - {_first_trait(f['traits'])}
 
 - **Position:** chr{f['chromosome']}:{f['position']}
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}` ({'Homozygous' if f['is_homozygous'] else 'Heterozygous'})
 - **Variant:** {f['ref']} -> {f['alt']}
 - **Confidence:** {stars} ({f['gold_stars']}/4)
-- **Condition:** {f['traits'].strip() if f['traits'] else 'Not specified'}
+- **Condition:** {(f['traits'].strip() if f['traits'] else 'Not specified')}
 
 ---
 
@@ -155,12 +176,12 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
         report += "**You are a carrier - no personal symptoms expected, but reproductive implications.**\n\n"
         for f in carriers:
             stars = '*' * f['gold_stars'] + '.' * (4 - f['gold_stars'])
-            report += f"""### {f['gene']} - {f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown'}
+            report += f"""### {f['gene']} - {_first_trait(f['traits'])}
 
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}` (Carrier)
 - **Confidence:** {stars} ({f['gold_stars']}/4)
-- **Condition:** {f['traits'].strip() if f['traits'] else 'Not specified'}
+- **Condition:** {(f['traits'].strip() if f['traits'] else 'Not specified')}
 
 ---
 
@@ -170,12 +191,12 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
         report += "## Pathogenic/Likely Pathogenic - Inheritance Unclear\n\n"
         for f in het_unknown:
             stars = '*' * f['gold_stars'] + '.' * (4 - f['gold_stars'])
-            report += f"""### {f['gene']} - {f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown'}
+            report += f"""### {f['gene']} - {_first_trait(f['traits'])}
 
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}`
 - **Confidence:** {stars} ({f['gold_stars']}/4)
-- **Condition:** {f['traits'].strip() if f['traits'] else 'Not specified'}
+- **Condition:** {(f['traits'].strip() if f['traits'] else 'Not specified')}
 
 ---
 
@@ -183,20 +204,20 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
 
     if findings['risk_factor']:
         report += "## Risk Factor Variants\n\n"
-        for f in findings['risk_factor'][:30]:
-            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'].strip()[:80] if f['traits'] else 'Risk factor'}...\n"
+        for f in findings['risk_factor'][:MAX_RISK_FACTORS]:
+            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {_truncate(f['traits']) if f['traits'] else 'Risk factor'}...\n"
         report += "\n---\n\n"
 
     if findings['drug_response']:
         report += "## Drug Response Variants\n\n"
-        for f in findings['drug_response'][:30]:
-            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'].strip()[:80] if f['traits'] else 'Drug response'}...\n"
+        for f in findings['drug_response'][:MAX_DRUG_RESPONSES]:
+            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {_truncate(f['traits']) if f['traits'] else 'Drug response'}...\n"
         report += "\n---\n\n"
 
     if findings['protective']:
         report += "## Protective Variants\n\n"
         for f in findings['protective']:
-            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'].strip()[:80] if f['traits'] else 'Protective'}...\n"
+            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {_truncate(f['traits']) if f['traits'] else 'Protective'}...\n"
         report += "\n---\n\n"
 
     report += """## Disclaimer
@@ -290,7 +311,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if affected:
         report += "**Affected Status:**\n"
         for f in affected:
-            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown condition'
+            condition = _first_trait(f['traits'], 'Unknown condition')
             stars = f['gold_stars']
             confidence = f"({stars}/4 stars)" if stars > 0 else "(low confidence)"
             report += f"- **{f['gene']}**: {condition} {confidence}\n"
@@ -299,7 +320,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if carriers:
         report += "**Carrier Status (Recessive):**\n"
         for f in carriers:
-            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown condition'
+            condition = _first_trait(f['traits'], 'Unknown condition')
             stars = f['gold_stars']
             confidence = f"({stars}/4 stars)" if stars > 0 else "(low confidence)"
             report += f"- **{f['gene']}**: {condition} {confidence}\n"
@@ -308,7 +329,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if het_unknown:
         report += "**Heterozygous (Inheritance Unclear):**\n"
         for f in het_unknown:
-            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown condition'
+            condition = _first_trait(f['traits'], 'Unknown condition')
             stars = f['gold_stars']
             confidence = f"({stars}/4 stars)" if stars > 0 else "(low confidence)"
             report += f"- **{f['gene']}**: {condition} {confidence}\n"
@@ -320,7 +341,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     report += "### Protective Variants\n\n"
     if disease_findings and disease_findings.get('protective'):
         for f in disease_findings['protective']:
-            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Protective effect'
+            condition = _first_trait(f['traits'], 'Protective effect')
             report += f"- **{f['gene']}**: {condition}\n"
     else:
         report += "None detected.\n"
@@ -588,7 +609,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
         report += "| Gene | Level | Drugs | Your Genotype |\n"
         report += "|------|-------|-------|---------------|\n"
         for f in level_1:
-            drugs = f['drugs'][:50] + '...' if len(f['drugs']) > 50 else f['drugs']
+            drugs = _truncate(f['drugs'], 50)
             report += f"| {f['gene']} | {f['level']} | {drugs} | `{f['genotype']}` |\n"
     else:
         report += "None detected.\n"
@@ -599,11 +620,11 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if level_2:
         report += "| Gene | Level | Drugs | Your Genotype |\n"
         report += "|------|-------|-------|---------------|\n"
-        for f in level_2[:15]:
-            drugs = f['drugs'][:50] + '...' if len(f['drugs']) > 50 else f['drugs']
+        for f in level_2[:MAX_LEVEL2_INTERACTIONS]:
+            drugs = _truncate(f['drugs'], 50)
             report += f"| {f['gene']} | {f['level']} | {drugs} | `{f['genotype']}` |\n"
-        if len(level_2) > 15:
-            report += f"\n*...and {len(level_2) - 15} more Level 2 interactions*\n"
+        if len(level_2) > MAX_LEVEL2_INTERACTIONS:
+            report += f"\n*...and {len(level_2) - MAX_LEVEL2_INTERACTIONS} more Level 2 interactions*\n"
     else:
         report += "None detected.\n"
 
@@ -613,12 +634,12 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
         drug_resp = disease_findings['drug_response']
         report += "| Gene | RSID | Genotype | Drug/Response |\n"
         report += "|------|------|----------|---------------|\n"
-        for f in drug_resp[:20]:
-            traits = f['traits'].strip()[:60] + '...' if len(f['traits'].strip()) > 60 else f['traits'].strip()
+        for f in drug_resp[:MAX_CLINVAR_DRUG_RESPONSES]:
+            traits = _truncate(f['traits'], 60)
             gene = f['gene'] if f['gene'] else '\u2014'
             report += f"| {gene} | {f['rsid']} | `{f['user_genotype']}` | {traits} |\n"
-        if len(drug_resp) > 20:
-            report += f"\n*...and {len(drug_resp) - 20} more drug response variants*\n"
+        if len(drug_resp) > MAX_CLINVAR_DRUG_RESPONSES:
+            report += f"\n*...and {len(drug_resp) - MAX_CLINVAR_DRUG_RESPONSES} more drug response variants*\n"
     else:
         report += "None detected.\n"
 
