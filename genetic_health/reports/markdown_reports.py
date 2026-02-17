@@ -9,6 +9,8 @@ from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 
+from ..ancestry import get_population_warnings
+
 from .html_converter import _write_html
 from .section_builders import (
     generate_executive_summary,
@@ -167,9 +169,15 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
 - **Confidence:** {stars} ({f['gold_stars']}/4)
 - **Condition:** {(f['traits'].strip() if f['traits'] else 'Not specified')}
 
----
-
 """
+            pw = get_population_warnings(f['gene'], 'pathogenic')
+            if not pw and f['is_homozygous']:
+                pw = get_population_warnings(f['gene'], 'homozygous')
+            if pw:
+                for w in pw:
+                    report += f"> **Population Note:** {w}\n\n"
+
+            report += "---\n\n"
 
     if carriers:
         report += "## Carrier Status - Recessive Conditions\n\n"
@@ -183,9 +191,13 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
 - **Confidence:** {stars} ({f['gold_stars']}/4)
 - **Condition:** {(f['traits'].strip() if f['traits'] else 'Not specified')}
 
----
-
 """
+            pw = get_population_warnings(f['gene'], 'carrier')
+            if pw:
+                for w in pw:
+                    report += f"> **Population Note:** {w}\n\n"
+
+            report += "---\n\n"
 
     if het_unknown:
         report += "## Pathogenic/Likely Pathogenic - Inheritance Unclear\n\n"
@@ -242,7 +254,8 @@ This report is for **informational purposes only**. It is NOT a clinical diagnos
 
 def generate_actionable_protocol(health_results: dict, disease_findings: dict,
                                   output_path: Path, subject_name: str = None,
-                                  ancestry_results: dict = None, prs_results: dict = None):
+                                  ancestry_results: dict = None, prs_results: dict = None,
+                                  epistasis_results: list = None):
     """Generate comprehensive actionable health protocol combining ALL sources."""
     _print_step("Generating actionable health protocol (comprehensive)")
 
@@ -405,6 +418,28 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
                 report += "\n"
     else:
         report += "PRS calculation not available.\n"
+
+    # --- Epistasis Section ---
+    report += "\n\n---\n\n## Gene-Gene Interactions (Epistasis)\n\n"
+
+    if epistasis_results:
+        report += ("*These interactions occur when the combined effect of multiple "
+                   "gene variants differs from each individual effect.*\n\n")
+
+        for interaction in epistasis_results:
+            risk_icon = {"high": "!!!", "moderate": "!!", "low": "!"}.get(
+                interaction['risk_level'], "")
+            report += f"### {interaction['name']} {risk_icon}\n\n"
+            report += f"**Risk Level:** {interaction['risk_level'].title()}\n\n"
+            report += f"**Genes:** {', '.join(interaction['genes_involved'].keys())}\n\n"
+            report += f"**Effect:** {interaction['effect']}\n\n"
+            report += f"**Mechanism:** {interaction['mechanism']}\n\n"
+            report += "**Recommended Actions:**\n"
+            for action in interaction['actions']:
+                report += f"- {action}\n"
+            report += "\n---\n\n"
+    else:
+        report += "No significant gene-gene interactions detected.\n"
 
     report += """
 

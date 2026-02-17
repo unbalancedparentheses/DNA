@@ -10,6 +10,7 @@ from .loading import load_genome, load_pharmgkb
 from .analysis import analyze_lifestyle_health, load_clinvar_and_analyze
 from .ancestry import estimate_ancestry
 from .prs import calculate_prs
+from .epistasis import evaluate_epistasis
 from .reports import (
     generate_exhaustive_genetic_report,
     generate_disease_risk_report,
@@ -30,7 +31,9 @@ def print_step(text):
     print(f"\n>>> {text}")
 
 
-def run_full_analysis(genome_path: Path = None, subject_name: str = None):
+def run_full_analysis(genome_path: Path = None, subject_name: str = None,
+                      skip_ancestry: bool = False, skip_prs: bool = False,
+                      export_pdf: bool = False):
     """Run the complete genetic analysis pipeline."""
 
     print_header("FULL GENETIC HEALTH ANALYSIS")
@@ -58,18 +61,37 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
     health_results = analyze_lifestyle_health(genome_by_rsid, pharmgkb)
 
     # Run ancestry estimation
-    print_step("Estimating ancestry from AIMs")
-    ancestry_results = estimate_ancestry(genome_by_rsid)
-    print(f"    Top ancestry: {ancestry_results['top_ancestry']} "
-          f"({ancestry_results['markers_found']} markers, "
-          f"{ancestry_results['confidence']} confidence)")
+    if skip_ancestry:
+        print_step("Skipping ancestry estimation (--no-ancestry)")
+        ancestry_results = None
+    else:
+        print_step("Estimating ancestry from AIMs")
+        ancestry_results = estimate_ancestry(genome_by_rsid)
+        print(f"    Top ancestry: {ancestry_results['top_ancestry']} "
+              f"({ancestry_results['markers_found']} markers, "
+              f"{ancestry_results['confidence']} confidence)")
 
     # Run polygenic risk scores
-    print_step("Calculating polygenic risk scores")
-    prs_results = calculate_prs(genome_by_rsid, ancestry_results['proportions'])
-    for cid, r in prs_results.items():
-        print(f"    {r['name']}: {r['percentile']:.0f}th percentile "
-              f"({r['risk_category']}) [{r['snps_found']}/{r['snps_total']} SNPs]")
+    if skip_prs:
+        print_step("Skipping PRS calculation (--no-prs)")
+        prs_results = None
+    else:
+        print_step("Calculating polygenic risk scores")
+        ancestry_props = ancestry_results['proportions'] if ancestry_results else None
+        prs_results = calculate_prs(genome_by_rsid, ancestry_props)
+        for cid, r in prs_results.items():
+            print(f"    {r['name']}: {r['percentile']:.0f}th percentile "
+                  f"({r['risk_category']}) [{r['snps_found']}/{r['snps_total']} SNPs]")
+
+    # Evaluate gene-gene interactions
+    print_step("Evaluating gene-gene interactions (epistasis)")
+    epistasis_results = evaluate_epistasis(health_results['findings'])
+    if epistasis_results:
+        print(f"    {len(epistasis_results)} interactions detected")
+        for e in epistasis_results:
+            print(f"    - {e['name']} ({e['risk_level']})")
+    else:
+        print("    No significant gene-gene interactions detected")
 
     # Save intermediate results for exhaustive report generator
     results_json = {
@@ -78,6 +100,10 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
         'summary': health_results['summary'],
         'ancestry': ancestry_results,
         'prs': prs_results,
+        'epistasis': [
+            {k: v for k, v in e.items() if k != 'genes_involved' or True}
+            for e in epistasis_results
+        ],
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
@@ -99,12 +125,23 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
     # Generate actionable protocol - use versioned filename
     protocol_path = REPORTS_DIR / "ACTIONABLE_HEALTH_PROTOCOL_V3.md"
     generate_actionable_protocol(health_results, disease_findings, protocol_path, subject_name,
-                                 ancestry_results=ancestry_results, prs_results=prs_results)
+                                 ancestry_results=ancestry_results, prs_results=prs_results,
+                                 epistasis_results=epistasis_results)
 
     # Generate enhanced all-in-one HTML report
     from .reports.enhanced_html import main as generate_enhanced_report
     print_step("Generating enhanced all-in-one HTML report")
     generate_enhanced_report()
+
+    # PDF export
+    if export_pdf:
+        from .reports.pdf_export import export_pdf as _export_pdf
+        print_step("Exporting reports to PDF")
+        enhanced_html = REPORTS_DIR / "ENHANCED_HEALTH_REPORT.html"
+        if enhanced_html.exists():
+            pdf_path = _export_pdf(enhanced_html)
+            if pdf_path:
+                print(f"    PDF: {pdf_path}")
 
     # Summary
     print_header("ANALYSIS COMPLETE")
@@ -121,21 +158,25 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
 
     print(f"\n  3. ACTIONABLE_HEALTH_PROTOCOL_V3.{{md,html}}")
     print(f"     - Comprehensive protocol (lifestyle + disease risk + carrier status)")
+    if epistasis_results:
+        print(f"     - {len(epistasis_results)} gene-gene interactions")
 
     print(f"\n  4. ENHANCED_HEALTH_REPORT.html")
     print(f"     - All-in-one interactive report (SVG charts, collapsible sections)")
 
-    print(f"\n  Ancestry: {ancestry_results['top_ancestry']} "
-          f"({ancestry_results['confidence']} confidence, "
-          f"{ancestry_results['markers_found']} markers)")
+    if ancestry_results:
+        print(f"\n  Ancestry: {ancestry_results['top_ancestry']} "
+              f"({ancestry_results['confidence']} confidence, "
+              f"{ancestry_results['markers_found']} markers)")
 
-    elevated_prs = [r for r in prs_results.values() if r['risk_category'] in ('elevated', 'high')]
-    if elevated_prs:
-        print(f"\n  PRS Alerts:")
-        for r in elevated_prs:
-            print(f"     - {r['name']}: {r['percentile']:.0f}th percentile ({r['risk_category']})")
-    else:
-        print(f"\n  PRS: All conditions within average range")
+    if prs_results:
+        elevated_prs = [r for r in prs_results.values() if r['risk_category'] in ('elevated', 'high')]
+        if elevated_prs:
+            print(f"\n  PRS Alerts:")
+            for r in elevated_prs:
+                print(f"     - {r['name']}: {r['percentile']:.0f}th percentile ({r['risk_category']})")
+        else:
+            print(f"\n  PRS: All conditions within average range")
 
     print(f"\nFinished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -145,6 +186,7 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
         'disease_stats': disease_stats,
         'ancestry_results': ancestry_results,
         'prs_results': prs_results,
+        'epistasis_results': epistasis_results,
     }
 
 
@@ -166,7 +208,15 @@ Examples:
                        help='Path to 23andMe genome file (default: data/genome.txt)')
     parser.add_argument('--name', '-n', type=str, default=None,
                        help='Subject name to include in reports')
+    parser.add_argument('--no-ancestry', action='store_true',
+                       help='Skip ancestry estimation')
+    parser.add_argument('--no-prs', action='store_true',
+                       help='Skip polygenic risk score calculation')
+    parser.add_argument('--pdf', action='store_true',
+                       help='Export reports to PDF (requires Chrome or weasyprint)')
 
     args = parser.parse_args()
 
-    run_full_analysis(args.genome, args.name)
+    run_full_analysis(args.genome, args.name,
+                      skip_ancestry=args.no_ancestry, skip_prs=args.no_prs,
+                      export_pdf=args.pdf)

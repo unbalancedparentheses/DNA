@@ -8,6 +8,7 @@ from datetime import datetime
 from collections import defaultdict
 
 from ..clinical_context import get_clinical_context, get_related_pathways, PATHWAYS
+from ..ancestry import get_population_warnings
 
 
 def format_magnitude(mag):
@@ -89,6 +90,13 @@ def generate_finding_section(finding, index):
             section.append("#### Gene Interactions")
             for interaction in context['interactions']:
                 section.append(f"- {interaction}")
+
+    pop_warnings = get_population_warnings(gene, status)
+    if pop_warnings:
+        section.append("")
+        section.append("#### Population Note")
+        for w in pop_warnings:
+            section.append(f"- {w}")
 
     section.append("")
     section.append("---")

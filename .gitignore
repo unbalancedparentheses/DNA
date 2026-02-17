@@ -6,6 +6,7 @@ wgs_work/
 
 # Personal genome data and downloaded databases
 data/
+data_versions.json
 *.fastq
 *.fastq.gz
 *.bam

@@ -1,13 +1,16 @@
 """Tests for data update module."""
 
 import csv
+import gzip
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from genetic_health.update_data import (
     _load_versions,
     _save_versions,
     _map_gold_stars,
+    update_clinvar,
     validate_pharmgkb,
     show_status,
     DATA_VERSIONS_FILE,
@@ -122,6 +125,118 @@ class TestShowStatus:
         show_status(tmp_path)
         captured = capsys.readouterr()
         assert "MISSING" in captured.out
+
+
+class TestUpdateClinvar:
+    """Test ClinVar processing with a mock gzip file (mocks the download)."""
+
+    VARIANT_SUMMARY_HEADER = [
+        "#AlleleID", "Type", "Name", "GeneID", "GeneSymbol", "HGNC_ID",
+        "ClinicalSignificance", "ClinSigSimple", "LastEvaluated",
+        "RS# (dbSNP)", "nsv/esv (dbVar)", "RCVaccession", "PhenotypeIDS",
+        "PhenotypeList", "Origin", "OriginSimple", "Assembly",
+        "ChromosomeAccession", "Chromosome", "Start", "Stop",
+        "ReferenceAllele", "AlternateAllele", "Cytogenetic",
+        "ReviewStatus", "NumberSubmitters", "Guidelines",
+        "TestedInGTR", "OtherIDs", "SubmitterCategories",
+        "VariationID", "PositionVCF", "ReferenceAlleleVCF",
+        "AlternateAlleleVCF", "RS#(dbSNP2)", "ProteinChange",
+        "MolecularConsequence",
+    ]
+
+    def _make_variant_summary_gz(self, tmp_path, rows):
+        """Create a mock variant_summary.txt.gz in a subfolder to avoid same-file conflict."""
+        src_dir = tmp_path / "_src"
+        src_dir.mkdir(exist_ok=True)
+        gz_path = src_dir / "variant_summary.txt.gz"
+        with gzip.open(str(gz_path), "wt", encoding="utf-8") as gz:
+            gz.write("\t".join(self.VARIANT_SUMMARY_HEADER) + "\n")
+            for row in rows:
+                full = {h: "" for h in self.VARIANT_SUMMARY_HEADER}
+                full.update(row)
+                gz.write("\t".join(full[h] for h in self.VARIANT_SUMMARY_HEADER) + "\n")
+        return gz_path
+
+    def _mock_download(self, url, dest):
+        """Mock that copies the pre-built gz file to the expected dest."""
+        import shutil
+        shutil.copy2(str(self._gz_path), str(dest))
+
+    def test_processes_grch37_snps(self, tmp_path):
+        """GRCh37 rows should appear in output; GRCh38 rows should be filtered."""
+        rows = [
+            {
+                "GeneSymbol": "CFTR",
+                "ClinicalSignificance": "Pathogenic",
+                "Assembly": "GRCh37",
+                "Chromosome": "7",
+                "Start": "117199646",
+                "ReferenceAlleleVCF": "G",
+                "AlternateAlleleVCF": "A",
+                "ReviewStatus": "criteria provided, multiple submitters, no conflicts",
+                "PhenotypeList": "Cystic fibrosis",
+                "OriginSimple": "germline",
+                "MolecularConsequence": "missense",
+            },
+            {
+                "GeneSymbol": "BRCA1",
+                "ClinicalSignificance": "Pathogenic",
+                "Assembly": "GRCh38",  # Should be filtered out
+                "Chromosome": "17",
+                "Start": "43044295",
+                "ReferenceAlleleVCF": "T",
+                "AlternateAlleleVCF": "C",
+                "ReviewStatus": "reviewed by expert panel",
+                "PhenotypeList": "Breast cancer",
+            },
+        ]
+        self._gz_path = self._make_variant_summary_gz(tmp_path, rows)
+
+        with patch("genetic_health.update_data.urllib.request.urlretrieve", self._mock_download):
+            update_clinvar(tmp_path)
+
+        output = tmp_path / "clinvar_alleles.tsv"
+        assert output.exists()
+
+        with open(output) as f:
+            reader = list(csv.DictReader(f, delimiter="\t"))
+
+        # Only GRCh37 row should be present
+        assert len(reader) == 1
+        assert reader[0]["symbol"] == "CFTR"
+        assert reader[0]["chrom"] == "7"
+        assert reader[0]["gold_stars"] == "3"
+
+    def test_metadata_written(self, tmp_path):
+        """data_versions.json should be created after processing."""
+        self._gz_path = self._make_variant_summary_gz(tmp_path, [
+            {
+                "GeneSymbol": "TEST",
+                "ClinicalSignificance": "Benign",
+                "Assembly": "GRCh37",
+                "Chromosome": "1",
+                "Start": "100",
+                "ReferenceAlleleVCF": "A",
+                "AlternateAlleleVCF": "G",
+                "ReviewStatus": "no assertion criteria provided",
+            },
+        ])
+
+        with patch("genetic_health.update_data.urllib.request.urlretrieve", self._mock_download):
+            update_clinvar(tmp_path)
+
+        versions = _load_versions(tmp_path)
+        assert "clinvar" in versions
+        assert versions["clinvar"]["grch37_variants_written"] == 1
+
+    def test_download_cleaned_up(self, tmp_path):
+        """The downloaded gz file should be removed after processing."""
+        self._gz_path = self._make_variant_summary_gz(tmp_path, [])
+
+        with patch("genetic_health.update_data.urllib.request.urlretrieve", self._mock_download):
+            update_clinvar(tmp_path)
+
+        assert not (tmp_path / "variant_summary.txt.gz").exists()
 
 
 class TestReviewStatusStarsMapping:

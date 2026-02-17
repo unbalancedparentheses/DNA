@@ -660,6 +660,40 @@ def build_prs_section(prs_results):
     return "\n".join(parts)
 
 
+def build_epistasis_section(epistasis_results):
+    """Build HTML for gene-gene interactions section."""
+    if not epistasis_results:
+        return "<p>No significant gene-gene interactions detected.</p>"
+
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'These interactions occur when the combined effect of multiple gene '
+        'variants differs from each individual effect.</p>'
+    )
+
+    risk_colors = {"high": "var(--warn)", "moderate": "var(--accent)", "low": "var(--green)"}
+
+    for interaction in epistasis_results:
+        color = risk_colors.get(interaction["risk_level"], "var(--accent)")
+        genes = ", ".join(interaction["genes_involved"].keys())
+        parts.append(
+            f'<details open><summary>'
+            f'<span class="mag-badge" style="background:{color};color:#fff">'
+            f'{interaction["risk_level"].upper()}</span> '
+            f'<strong>{interaction["name"]}</strong></summary>'
+        )
+        parts.append(f'<p><strong>Genes:</strong> {genes}</p>')
+        parts.append(f'<p><strong>Effect:</strong> {interaction["effect"]}</p>')
+        parts.append(f'<p><strong>Mechanism:</strong> {interaction["mechanism"]}</p>')
+        parts.append("<p><strong>Recommended Actions:</strong></p><ul>")
+        for action in interaction["actions"]:
+            parts.append(f"<li>{action}</li>")
+        parts.append("</ul></details>")
+
+    return "\n".join(parts)
+
+
 # =============================================================================
 # SECTION BUILDERS
 # =============================================================================
@@ -1468,16 +1502,17 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <a href="#dashboard">2. Dashboard</a>
 <a href="#ancestry">3. Ancestry</a>
 <a href="#prs">4. Polygenic Risk Scores</a>
-<a href="#critical">5. Critical Findings</a>
-<a href="#asthma">6. Asthma &amp; Medications</a>
-<a href="#lifestyle">7. Lifestyle Findings</a>
-<a href="#disease">8. Disease Risk</a>
-<a href="#drugs">9. Drug-Gene Interactions</a>
-<a href="#nutrition">10. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">11. Monitoring Schedule</a>
-<a href="#protective">12. Protective Variants</a>
-<a href="#doctor-card">13. Doctor Card</a>
-<a href="#references">14. References &amp; Links</a>
+<a href="#epistasis">5. Gene-Gene Interactions</a>
+<a href="#critical">6. Critical Findings</a>
+<a href="#asthma">7. Asthma &amp; Medications</a>
+<a href="#lifestyle">8. Lifestyle Findings</a>
+<a href="#disease">9. Disease Risk</a>
+<a href="#drugs">10. Drug-Gene Interactions</a>
+<a href="#nutrition">11. Nutrition &amp; Lifestyle</a>
+<a href="#monitoring">12. Monitoring Schedule</a>
+<a href="#protective">13. Protective Variants</a>
+<a href="#doctor-card">14. Doctor Card</a>
+<a href="#references">15. References &amp; Links</a>
 </div>
 </nav>
 
@@ -1508,54 +1543,59 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 {prs_content}
 </div>
 
+<div class="section" id="epistasis">
+<h2><span class="section-number">5</span> Gene-Gene Interactions</h2>
+{epistasis_content}
+</div>
+
 <div class="section" id="critical">
-<h2><span class="section-number">5</span> Critical Findings</h2>
+<h2><span class="section-number">6</span> Critical Findings</h2>
 {critical_content}
 </div>
 
 <div class="section" id="asthma">
-<h2><span class="section-number">6</span> Asthma &amp; Medications</h2>
+<h2><span class="section-number">7</span> Asthma &amp; Medications</h2>
 {asthma_content}
 </div>
 
 <div class="section" id="lifestyle">
-<h2><span class="section-number">7</span> All Lifestyle Findings</h2>
+<h2><span class="section-number">8</span> All Lifestyle Findings</h2>
 {lifestyle_content}
 </div>
 
 <div class="section" id="disease">
-<h2><span class="section-number">8</span> Disease Risk</h2>
+<h2><span class="section-number">9</span> Disease Risk</h2>
 {disease_content}
 </div>
 
 <div class="section" id="drugs">
-<h2><span class="section-number">9</span> Drug-Gene Interactions</h2>
+<h2><span class="section-number">10</span> Drug-Gene Interactions</h2>
 {drugs_content}
 </div>
 
 <div class="section" id="nutrition">
-<h2><span class="section-number">10</span> Nutrition, Supplements &amp; Lifestyle</h2>
+<h2><span class="section-number">11</span> Nutrition, Supplements &amp; Lifestyle</h2>
 {nutrition_content}
 </div>
 
 <div class="section" id="monitoring">
-<h2><span class="section-number">11</span> Monitoring Schedule</h2>
+<h2><span class="section-number">12</span> Monitoring Schedule</h2>
 {monitoring_content}
 </div>
 
 <div class="section" id="protective">
-<h2><span class="section-number">12</span> Protective Variants (Good News)</h2>
+<h2><span class="section-number">13</span> Protective Variants (Good News)</h2>
 {protective_content}
 </div>
 
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">13</span> Doctor Card</h2>
+<h2><span class="section-number">14</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">14</span> References &amp; Links</h2>
+<h2><span class="section-number">15</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -1621,8 +1661,8 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
         rows.sort(function(a, b) {{
           var aText = (a.children[colIdx] || {{}}).textContent || '';
           var bText = (b.children[colIdx] || {{}}).textContent || '';
-          var aNum = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
-          var bNum = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+          var aNum = parseFloat(aText.replace(/[^0-9.\\-]/g, ''));
+          var bNum = parseFloat(bText.replace(/[^0-9.\\-]/g, ''));
           if (!isNaN(aNum) && !isNaN(bNum)) {{
             return isAsc ? bNum - aNum : aNum - bNum;
           }}
@@ -1645,10 +1685,10 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
       var header = card.querySelector('.finding-header');
       if (!header) return;
       var text = header.textContent;
-      var parts = text.split(/\s+—\s+/);
+      var parts = text.split(/\\s+—\\s+/);
       var gene = '', rsid = '', genotype = '', status = '';
       if (parts.length >= 1) {{
-        var m = parts[0].match(/([A-Z0-9]+)\s+(rs\d+)\s+(.+)/);
+        var m = parts[0].match(/([A-Z0-9]+)\\s+(rs\\d+)\\s+(.+)/);
         if (m) {{ gene = m[1]; rsid = m[2]; genotype = m[3]; }}
       }}
       if (parts.length >= 2) status = parts[parts.length - 1].trim();
@@ -1704,6 +1744,7 @@ def main():
     summary = data.get("summary", {})
     ancestry_data = data.get("ancestry", {})
     prs_data = data.get("prs", {})
+    epistasis_data = data.get("epistasis", [])
 
     print(f">>> Loading {disease_path.name}")
     disease_text = load_text(disease_path)
@@ -1727,6 +1768,9 @@ def main():
 
     print(">>> Building PRS section")
     prs = build_prs_section(prs_data)
+
+    print(">>> Building epistasis section")
+    epistasis = build_epistasis_section(epistasis_data)
 
     print(">>> Building critical findings")
     critical = build_critical_findings(personal_text)
@@ -1772,6 +1816,7 @@ def main():
         dashboard_content=dashboard,
         ancestry_content=ancestry,
         prs_content=prs,
+        epistasis_content=epistasis,
         critical_content=critical,
         asthma_content=asthma,
         lifestyle_content=lifestyle,
