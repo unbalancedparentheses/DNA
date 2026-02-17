@@ -1,7 +1,7 @@
 """Tests for SNP database structure and lifestyle/health analysis logic."""
 
 from genetic_health.snp_database import COMPREHENSIVE_SNPS
-from genetic_health.analysis import analyze_lifestyle_health
+from genetic_health.analysis import analyze_lifestyle_health, _lookup_genotype, _safe_int
 
 
 class TestSNPDatabase:
@@ -35,6 +35,58 @@ class TestSNPDatabase:
         info = COMPREHENSIVE_SNPS["rs762551"]
         assert info["gene"] == "CYP1A2"
         assert "AA" in info["variants"]
+
+
+class TestSafeInt:
+    def test_valid_integer_string(self):
+        assert _safe_int("3") == 3
+
+    def test_empty_string(self):
+        assert _safe_int("") == 0
+
+    def test_none(self):
+        assert _safe_int(None) == 0
+
+    def test_non_numeric_string(self):
+        assert _safe_int("abc") == 0
+
+    def test_custom_default(self):
+        assert _safe_int("", default=-1) == -1
+
+    def test_float_string(self):
+        assert _safe_int("3.5") == 0
+
+    def test_zero(self):
+        assert _safe_int("0") == 0
+
+
+class TestLookupGenotype:
+    def test_direct_match(self):
+        variants = {"AG": "hit", "GG": "other"}
+        assert _lookup_genotype(variants, "AG") == "hit"
+
+    def test_reverse_complement_match(self):
+        variants = {"AG": "hit"}
+        assert _lookup_genotype(variants, "GA") == "hit"
+
+    def test_no_match(self):
+        variants = {"AG": "hit"}
+        assert _lookup_genotype(variants, "CC") is None
+
+    def test_single_char_genotype(self):
+        """Single-allele genotypes (MT/Y) should not be reversed."""
+        variants = {"A": "hit"}
+        assert _lookup_genotype(variants, "A") == "hit"
+
+    def test_single_char_no_match(self):
+        variants = {"A": "hit"}
+        assert _lookup_genotype(variants, "G") is None
+
+    def test_direct_preferred_over_reverse(self):
+        """If both AG and GA exist, direct match wins."""
+        variants = {"AG": "direct", "GA": "reverse"}
+        assert _lookup_genotype(variants, "AG") == "direct"
+        assert _lookup_genotype(variants, "GA") == "reverse"
 
 
 class TestGenotypeMatching:

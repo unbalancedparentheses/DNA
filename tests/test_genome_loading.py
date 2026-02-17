@@ -1,6 +1,6 @@
-"""Tests for 23andMe genome file parsing (load_genome)."""
+"""Tests for 23andMe genome file parsing and PharmGKB loading."""
 
-from genetic_health.loading import load_genome
+from genetic_health.loading import load_genome, load_pharmgkb
 
 
 class TestGenomeLoading:
@@ -77,3 +77,30 @@ class TestGenomeLoading:
         ])
         by_rsid, _ = load_genome(path)
         assert by_rsid["rs999"]["genotype"] == "A"
+
+
+class TestPharmGKBLoading:
+    def test_missing_annotations_file(self, tmp_path, capsys):
+        """Should report which file is missing."""
+        # Create only the alleles file
+        (tmp_path / "clinical_ann_alleles.tsv").write_text("")
+        result = load_pharmgkb(data_dir=tmp_path)
+        assert result == {}
+        output = capsys.readouterr().out
+        assert "clinical_annotations.tsv" in output
+
+    def test_missing_alleles_file(self, tmp_path, capsys):
+        """Should report which file is missing."""
+        (tmp_path / "clinical_annotations.tsv").write_text("")
+        result = load_pharmgkb(data_dir=tmp_path)
+        assert result == {}
+        output = capsys.readouterr().out
+        assert "clinical_ann_alleles.tsv" in output
+
+    def test_both_files_missing(self, tmp_path, capsys):
+        """Should report both missing files."""
+        result = load_pharmgkb(data_dir=tmp_path)
+        assert result == {}
+        output = capsys.readouterr().out
+        assert "clinical_annotations.tsv" in output
+        assert "clinical_ann_alleles.tsv" in output

@@ -144,7 +144,7 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
 - **Genotype:** `{f['user_genotype']}` ({'Homozygous' if f['is_homozygous'] else 'Heterozygous'})
 - **Variant:** {f['ref']} -> {f['alt']}
 - **Confidence:** {stars} ({f['gold_stars']}/4)
-- **Condition:** {f['traits'] if f['traits'] else 'Not specified'}
+- **Condition:** {f['traits'].strip() if f['traits'] else 'Not specified'}
 
 ---
 
@@ -160,7 +160,7 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}` (Carrier)
 - **Confidence:** {stars} ({f['gold_stars']}/4)
-- **Condition:** {f['traits'] if f['traits'] else 'Not specified'}
+- **Condition:** {f['traits'].strip() if f['traits'] else 'Not specified'}
 
 ---
 
@@ -175,7 +175,7 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}`
 - **Confidence:** {stars} ({f['gold_stars']}/4)
-- **Condition:** {f['traits'] if f['traits'] else 'Not specified'}
+- **Condition:** {f['traits'].strip() if f['traits'] else 'Not specified'}
 
 ---
 
@@ -184,19 +184,19 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
     if findings['risk_factor']:
         report += "## Risk Factor Variants\n\n"
         for f in findings['risk_factor'][:30]:
-            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'][:80] if f['traits'] else 'Risk factor'}...\n"
+            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'].strip()[:80] if f['traits'] else 'Risk factor'}...\n"
         report += "\n---\n\n"
 
     if findings['drug_response']:
         report += "## Drug Response Variants\n\n"
         for f in findings['drug_response'][:30]:
-            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'][:80] if f['traits'] else 'Drug response'}...\n"
+            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'].strip()[:80] if f['traits'] else 'Drug response'}...\n"
         report += "\n---\n\n"
 
     if findings['protective']:
         report += "## Protective Variants\n\n"
         for f in findings['protective']:
-            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'][:80] if f['traits'] else 'Protective'}...\n"
+            report += f"- **{f['gene']}** ({f['rsid']}): `{f['user_genotype']}` - {f['traits'].strip()[:80] if f['traits'] else 'Protective'}...\n"
         report += "\n---\n\n"
 
     report += """## Disclaimer
@@ -608,7 +608,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
         report += "| Gene | RSID | Genotype | Drug/Response |\n"
         report += "|------|------|----------|---------------|\n"
         for f in drug_resp[:20]:
-            traits = f['traits'][:60] + '...' if len(f['traits']) > 60 else f['traits']
+            traits = f['traits'].strip()[:60] + '...' if len(f['traits'].strip()) > 60 else f['traits'].strip()
             gene = f['gene'] if f['gene'] else '\u2014'
             report += f"| {gene} | {f['rsid']} | `{f['user_genotype']}` | {traits} |\n"
         if len(drug_resp) > 20:

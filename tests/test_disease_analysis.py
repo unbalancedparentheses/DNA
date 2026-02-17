@@ -1,7 +1,7 @@
-"""Tests for disease risk analysis (ClinVar logic)."""
+"""Tests for disease risk analysis (ClinVar logic) and disease report generation."""
 
 from genetic_health.analysis import load_clinvar_and_analyze
-from genetic_health.reports import classify_zygosity
+from genetic_health.reports import classify_zygosity, generate_disease_risk_report
 
 
 class TestZygosityClassification:
@@ -129,3 +129,99 @@ class TestVariantDetection:
             genome_positions={"7:1000": {"rsid": "rs123", "genotype": "GG"}},
         )
         assert findings["pathogenic"][0]["is_homozygous"] is True
+
+    def test_underscore_clinical_significance(self, clinvar_file):
+        """clinical_significance with underscores should match (e.g. 'likely_pathogenic')."""
+        findings, stats = self._run_analysis(
+            clinvar_file,
+            clinvar_rows=[{
+                "chrom": "1", "pos": "100", "ref": "A", "alt": "G",
+                "clinical_significance": "Likely_pathogenic",
+                "gold_stars": "2", "all_traits": "Test", "symbol": "TEST",
+            }],
+            genome_positions={"1:100": {"rsid": "rs100", "genotype": "AG"}},
+        )
+        assert len(findings["likely_pathogenic"]) == 1
+        assert stats["likely_pathogenic_matched"] == 1
+
+    def test_missing_gold_stars(self, clinvar_file):
+        """Empty gold_stars should default to 0, not crash."""
+        findings, _ = self._run_analysis(
+            clinvar_file,
+            clinvar_rows=[{
+                "chrom": "7", "pos": "1000", "ref": "A", "alt": "G",
+                "clinical_significance": "Pathogenic",
+                "gold_stars": "", "all_traits": "Test", "symbol": "TEST",
+            }],
+            genome_positions={"7:1000": {"rsid": "rs123", "genotype": "AG"}},
+        )
+        assert findings["pathogenic"][0]["gold_stars"] == 0
+
+    def test_missing_chrom_skipped(self, clinvar_file):
+        """Rows with empty chrom should be skipped."""
+        findings, stats = self._run_analysis(
+            clinvar_file,
+            clinvar_rows=[{
+                "chrom": "", "pos": "1000", "ref": "A", "alt": "G",
+                "clinical_significance": "Pathogenic",
+                "gold_stars": "2", "all_traits": "Test", "symbol": "TEST",
+            }],
+            genome_positions={"7:1000": {"rsid": "rs123", "genotype": "AG"}},
+        )
+        assert len(findings["pathogenic"]) == 0
+        assert stats["matched"] == 0
+
+    def test_missing_optional_fields_default_empty(self, clinvar_file):
+        """Optional fields like inheritance_modes should default to empty string."""
+        findings, _ = self._run_analysis(
+            clinvar_file,
+            clinvar_rows=[{
+                "chrom": "7", "pos": "1000", "ref": "A", "alt": "G",
+                "clinical_significance": "Pathogenic",
+                "gold_stars": "3", "all_traits": "Cystic fibrosis", "symbol": "CFTR",
+            }],
+            genome_positions={"7:1000": {"rsid": "rs123", "genotype": "AG"}},
+        )
+        f = findings["pathogenic"][0]
+        assert f["inheritance"] == ""
+        assert f["hgvs_p"] == ""
+        assert f["molecular_consequence"] == ""
+
+    def test_no_other_significant_category(self, clinvar_file):
+        """'association' variants should not appear — other_significant was removed."""
+        findings, _ = self._run_analysis(
+            clinvar_file,
+            clinvar_rows=[{
+                "chrom": "1", "pos": "100", "ref": "A", "alt": "G",
+                "clinical_significance": "association",
+                "gold_stars": "1", "all_traits": "Test", "symbol": "TEST",
+            }],
+            genome_positions={"1:100": {"rsid": "rs100", "genotype": "AG"}},
+        )
+        assert "other_significant" not in findings
+
+
+class TestDiseaseReportFormatting:
+    def test_traits_whitespace_trimmed(self, tmp_path, make_finding):
+        """Traits with leading/trailing whitespace after semicolon split should be trimmed."""
+        findings = {
+            "pathogenic": [
+                make_finding(
+                    is_homozygous=True,
+                    traits="  Cystic fibrosis ; CFTR-related disorders ",
+                    gene="CFTR",
+                    gold_stars=3,
+                ),
+            ],
+            "likely_pathogenic": [],
+            "risk_factor": [],
+            "drug_response": [],
+            "protective": [],
+        }
+        stats = {"total_clinvar": 100, "pathogenic_matched": 1, "likely_pathogenic_matched": 0}
+        output = tmp_path / "report.md"
+        generate_disease_risk_report(findings, stats, 600000, output)
+        content = output.read_text()
+        # The header should have trimmed trait, not "  Cystic fibrosis "
+        assert "### CFTR - Cystic fibrosis" in content
+        assert "  Cystic fibrosis " not in content
