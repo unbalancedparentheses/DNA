@@ -137,7 +137,7 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
         report += "## Pathogenic Variants - Affected Status\n\n"
         for f in affected:
             stars = '*' * f['gold_stars'] + '.' * (4 - f['gold_stars'])
-            report += f"""### {f['gene']} - {f['traits'].split(';')[0] if f['traits'] else 'Unknown'}
+            report += f"""### {f['gene']} - {f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown'}
 
 - **Position:** chr{f['chromosome']}:{f['position']}
 - **RSID:** {f['rsid']}
@@ -155,7 +155,7 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
         report += "**You are a carrier - no personal symptoms expected, but reproductive implications.**\n\n"
         for f in carriers:
             stars = '*' * f['gold_stars'] + '.' * (4 - f['gold_stars'])
-            report += f"""### {f['gene']} - {f['traits'].split(';')[0] if f['traits'] else 'Unknown'}
+            report += f"""### {f['gene']} - {f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown'}
 
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}` (Carrier)
@@ -170,7 +170,7 @@ def generate_disease_risk_report(findings: dict, stats: dict, genome_count: int,
         report += "## Pathogenic/Likely Pathogenic - Inheritance Unclear\n\n"
         for f in het_unknown:
             stars = '*' * f['gold_stars'] + '.' * (4 - f['gold_stars'])
-            report += f"""### {f['gene']} - {f['traits'].split(';')[0] if f['traits'] else 'Unknown'}
+            report += f"""### {f['gene']} - {f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown'}
 
 - **RSID:** {f['rsid']}
 - **Genotype:** `{f['user_genotype']}`
@@ -284,7 +284,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if affected:
         report += "**Affected Status:**\n"
         for f in affected:
-            condition = f['traits'].split(';')[0] if f['traits'] else 'Unknown condition'
+            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown condition'
             stars = f['gold_stars']
             confidence = f"({stars}/4 stars)" if stars > 0 else "(low confidence)"
             report += f"- **{f['gene']}**: {condition} {confidence}\n"
@@ -293,7 +293,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if carriers:
         report += "**Carrier Status (Recessive):**\n"
         for f in carriers:
-            condition = f['traits'].split(';')[0] if f['traits'] else 'Unknown condition'
+            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown condition'
             stars = f['gold_stars']
             confidence = f"({stars}/4 stars)" if stars > 0 else "(low confidence)"
             report += f"- **{f['gene']}**: {condition} {confidence}\n"
@@ -302,7 +302,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     if het_unknown:
         report += "**Heterozygous (Inheritance Unclear):**\n"
         for f in het_unknown:
-            condition = f['traits'].split(';')[0] if f['traits'] else 'Unknown condition'
+            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Unknown condition'
             stars = f['gold_stars']
             confidence = f"({stars}/4 stars)" if stars > 0 else "(low confidence)"
             report += f"- **{f['gene']}**: {condition} {confidence}\n"
@@ -314,7 +314,7 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     report += "### Protective Variants\n\n"
     if disease_findings and disease_findings.get('protective'):
         for f in disease_findings['protective']:
-            condition = f['traits'].split(';')[0] if f['traits'] else 'Protective effect'
+            condition = f['traits'].split(';')[0].strip() if f['traits'] else 'Protective effect'
             report += f"- **{f['gene']}**: {condition}\n"
     else:
         report += "None detected.\n"

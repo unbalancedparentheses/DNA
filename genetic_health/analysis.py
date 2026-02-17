@@ -8,6 +8,20 @@ from .config import DATA_DIR
 from .snp_database import COMPREHENSIVE_SNPS
 
 
+def _lookup_genotype(variants_dict, genotype):
+    """Look up genotype in a variants dict, trying reverse complement."""
+    genotype_rev = genotype[::-1] if len(genotype) == 2 else genotype
+    return variants_dict.get(genotype) or variants_dict.get(genotype_rev)
+
+
+def _safe_int(value, default=0):
+    """Convert to int, returning default on failure."""
+    try:
+        return int(value) if value else default
+    except (ValueError, TypeError):
+        return default
+
+
 def analyze_lifestyle_health(genome_by_rsid: dict, pharmgkb: dict) -> dict:
     """Analyze genome against lifestyle/health SNP database."""
     print("\n>>> Running lifestyle/health analysis")
@@ -28,9 +42,7 @@ def analyze_lifestyle_health(genome_by_rsid: dict, pharmgkb: dict) -> dict:
     for rsid, info in COMPREHENSIVE_SNPS.items():
         if rsid in genome_by_rsid:
             genotype = genome_by_rsid[rsid]['genotype']
-            genotype_rev = genotype[::-1] if len(genotype) == 2 else genotype
-
-            variant_info = info['variants'].get(genotype) or info['variants'].get(genotype_rev)
+            variant_info = _lookup_genotype(info['variants'], genotype)
 
             if variant_info:
                 finding = {
@@ -57,8 +69,7 @@ def analyze_lifestyle_health(genome_by_rsid: dict, pharmgkb: dict) -> dict:
     for rsid, info in pharmgkb.items():
         if rsid in genome_by_rsid:
             genotype = genome_by_rsid[rsid]['genotype']
-            genotype_rev = genotype[::-1] if len(genotype) == 2 else genotype
-            annotation = info['genotypes'].get(genotype) or info['genotypes'].get(genotype_rev)
+            annotation = _lookup_genotype(info['genotypes'], genotype)
             if annotation and info['level'] in ['1A', '1B', '2A', '2B']:
                 finding = {
                     'rsid': rsid,
@@ -99,7 +110,6 @@ def load_clinvar_and_analyze(genome_by_position: dict, data_dir: Path = None) ->
         'risk_factor': [],
         'drug_response': [],
         'protective': [],
-        'other_significant': []
     }
 
     stats = {
@@ -115,8 +125,10 @@ def load_clinvar_and_analyze(genome_by_position: dict, data_dir: Path = None) ->
         for row in reader:
             stats['total_clinvar'] += 1
 
-            chrom = row['chrom']
-            pos = row['pos']
+            chrom = row.get('chrom', '')
+            pos = row.get('pos', '')
+            if not chrom or not pos:
+                continue
             pos_key = f"{chrom}:{pos}"
 
             if pos_key not in genome_by_position:
@@ -126,9 +138,9 @@ def load_clinvar_and_analyze(genome_by_position: dict, data_dir: Path = None) ->
 
             user_data = genome_by_position[pos_key]
             user_genotype = user_data['genotype']
-            ref_allele = row['ref']
-            alt_allele = row['alt']
-            clinical_sig = row['clinical_significance'].lower()
+            ref_allele = row.get('ref', '')
+            alt_allele = row.get('alt', '')
+            clinical_sig = row.get('clinical_significance', '').lower().replace('_', ' ')
 
             # Only process true SNPs
             if len(ref_allele) != 1 or len(alt_allele) != 1:
@@ -146,16 +158,16 @@ def load_clinvar_and_analyze(genome_by_position: dict, data_dir: Path = None) ->
                 'chromosome': chrom,
                 'position': pos,
                 'rsid': user_data['rsid'],
-                'gene': row['symbol'],
+                'gene': row.get('symbol', ''),
                 'ref': ref_allele,
                 'alt': alt_allele,
                 'user_genotype': user_genotype,
                 'is_homozygous': is_homozygous,
                 'is_heterozygous': is_heterozygous,
-                'clinical_significance': row['clinical_significance'],
-                'review_status': row['review_status'],
-                'gold_stars': int(row['gold_stars']) if row['gold_stars'] else 0,
-                'traits': row['all_traits'],
+                'clinical_significance': row.get('clinical_significance', ''),
+                'review_status': row.get('review_status', ''),
+                'gold_stars': _safe_int(row.get('gold_stars')),
+                'traits': row.get('all_traits', ''),
                 'inheritance': row.get('inheritance_modes', ''),
                 'hgvs_p': row.get('hgvs_p', ''),
                 'hgvs_c': row.get('hgvs_c', ''),
@@ -166,17 +178,15 @@ def load_clinvar_and_analyze(genome_by_position: dict, data_dir: Path = None) ->
             if 'pathogenic' in clinical_sig and 'likely' not in clinical_sig and 'conflict' not in clinical_sig:
                 findings['pathogenic'].append(finding)
                 stats['pathogenic_matched'] += 1
-            elif 'likely pathogenic' in clinical_sig or 'likely_pathogenic' in clinical_sig:
+            elif 'likely pathogenic' in clinical_sig:
                 findings['likely_pathogenic'].append(finding)
                 stats['likely_pathogenic_matched'] += 1
-            elif 'risk factor' in clinical_sig or 'risk_factor' in clinical_sig:
+            elif 'risk factor' in clinical_sig:
                 findings['risk_factor'].append(finding)
-            elif 'drug response' in clinical_sig or 'drug_response' in clinical_sig:
+            elif 'drug response' in clinical_sig:
                 findings['drug_response'].append(finding)
             elif 'protective' in clinical_sig:
                 findings['protective'].append(finding)
-            elif 'association' in clinical_sig or 'affects' in clinical_sig:
-                findings['other_significant'].append(finding)
 
     print(f"    ClinVar entries scanned: {stats['total_clinvar']:,}")
     print(f"    Pathogenic variants: {stats['pathogenic_matched']}")

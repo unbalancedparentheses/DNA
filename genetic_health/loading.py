@@ -44,8 +44,13 @@ def load_pharmgkb(data_dir: Path = None) -> dict:
     annotations_path = data_dir / "clinical_annotations.tsv"
     alleles_path = data_dir / "clinical_ann_alleles.tsv"
 
-    if not annotations_path.exists() or not alleles_path.exists():
-        print("    PharmGKB files not found, skipping drug interactions")
+    missing = []
+    if not annotations_path.exists():
+        missing.append(str(annotations_path))
+    if not alleles_path.exists():
+        missing.append(str(alleles_path))
+    if missing:
+        print(f"    PharmGKB files not found, skipping drug interactions: {', '.join(missing)}")
         return {}
 
     print("\n>>> Loading PharmGKB data")
