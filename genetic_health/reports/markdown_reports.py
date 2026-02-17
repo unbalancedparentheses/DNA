@@ -241,7 +241,8 @@ This report is for **informational purposes only**. It is NOT a clinical diagnos
 
 
 def generate_actionable_protocol(health_results: dict, disease_findings: dict,
-                                  output_path: Path, subject_name: str = None):
+                                  output_path: Path, subject_name: str = None,
+                                  ancestry_results: dict = None, prs_results: dict = None):
     """Generate comprehensive actionable health protocol combining ALL sources."""
     _print_step("Generating actionable health protocol (comprehensive)")
 
@@ -345,6 +346,65 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
             report += f"- **{f['gene']}**: {condition}\n"
     else:
         report += "None detected.\n"
+
+    # --- Ancestry Section ---
+    report += "\n\n---\n\n## Ancestry Estimation\n\n"
+
+    if ancestry_results and ancestry_results.get('markers_found', 0) > 0:
+        report += f"**Top Ancestry:** {ancestry_results['top_ancestry']}\n"
+        report += f"**Confidence:** {ancestry_results['confidence'].title()} "
+        report += f"({ancestry_results['markers_found']} markers analyzed)\n\n"
+
+        report += "| Population | Proportion |\n"
+        report += "|------------|------------|\n"
+        for pop in sorted(ancestry_results['proportions'], key=lambda p: -ancestry_results['proportions'][p]):
+            prop = ancestry_results['proportions'][pop]
+            from ..ancestry import POPULATION_LABELS
+            label = POPULATION_LABELS.get(pop, pop)
+            report += f"| {label} ({pop}) | {prop:.1%} |\n"
+
+        report += "\n*Ancestry estimation uses ~55 ancestry-informative markers (AIMs). "
+        report += "This is a rough superpopulation estimate, not a detailed ethnicity breakdown. "
+        report += "Commercial ancestry services use hundreds of thousands of markers for finer resolution.*\n"
+    else:
+        report += "Insufficient markers for ancestry estimation.\n"
+
+    # --- PRS Section ---
+    report += "\n\n---\n\n## Polygenic Risk Scores\n\n"
+
+    if prs_results:
+        report += "*PRS models estimate relative genetic risk based on common variants. "
+        report += "They do not account for lifestyle, environment, or rare variants.*\n\n"
+
+        # Check for ancestry warning
+        any_non_applicable = any(not r['ancestry_applicable'] for r in prs_results.values())
+        if any_non_applicable:
+            report += "> **Note:** Your ancestry profile is substantially non-European. "
+            report += "These PRS models were calibrated on European-ancestry populations "
+            report += "and may not accurately reflect your risk.\n\n"
+
+        report += "| Condition | Percentile | Risk Category | SNPs Found | Reference |\n"
+        report += "|-----------|-----------|---------------|------------|----------|\n"
+        for cid, r in prs_results.items():
+            flag = "" if r['ancestry_applicable'] else " *"
+            report += (f"| {r['name']} | {r['percentile']:.0f}th | "
+                       f"{r['risk_category'].title()}{flag} | "
+                       f"{r['snps_found']}/{r['snps_total']} | "
+                       f"{r['reference']} |\n")
+
+        # Highlight elevated/high
+        elevated = [r for r in prs_results.values() if r['risk_category'] in ('elevated', 'high')]
+        if elevated:
+            report += "\n### Elevated Risk Conditions\n\n"
+            for r in elevated:
+                report += f"**{r['name']}** — {r['percentile']:.0f}th percentile ({r['risk_category']})\n\n"
+                if r['contributing_snps']:
+                    report += "Top contributing variants:\n"
+                    for s in r['contributing_snps'][:5]:
+                        report += f"- **{s['gene']}** ({s['rsid']}): {s['copies']} copies of risk allele\n"
+                report += "\n"
+    else:
+        report += "PRS calculation not available.\n"
 
     report += """
 

@@ -42,18 +42,22 @@ The pipeline generates four reports in the `reports/` directory:
 
 3. **ACTIONABLE_HEALTH_PROTOCOL_V3.md** - Comprehensive protocol
    - Critical disease findings summary (pathogenic, carrier status)
-   - Daily protocol (morning/midday/evening stacks)
-   - Dietary framework with specific targets
-   - Exercise protocol with weekly structure
+   - Ancestry estimation and population context
+   - Polygenic risk scores for 5 conditions
+   - Supplement and dietary recommendations
+   - Lifestyle and exercise guidance
    - Blood pressure management
    - Risk factor monitoring by condition
    - Comprehensive drug interactions (PharmGKB + ClinVar)
    - Testing & monitoring schedule
-   - 90-day implementation checklist
-   - Quick reference cards
 
 4. **ENHANCED_HEALTH_REPORT.html** - All-in-one interactive HTML report
    - SVG charts and dashboards
+   - Ancestry donut chart with proportions
+   - PRS gauge visualizations for 5 conditions
+   - Search/filter across all findings and tables
+   - Sortable table columns (click headers)
+   - CSV export of findings to clipboard
    - Collapsible sections
    - Print-optimized doctor card
    - Database links for every rsID
@@ -74,6 +78,9 @@ DNA/
 │   ├── config.py                 # Centralized paths (BASE_DIR, DATA_DIR, etc.)
 │   ├── loading.py                # load_genome(), load_pharmgkb()
 │   ├── analysis.py               # analyze_lifestyle_health(), load_clinvar_and_analyze()
+│   ├── ancestry.py               # AIMs database + ancestry estimation
+│   ├── prs.py                    # Polygenic risk score models + scoring
+│   ├── update_data.py            # ClinVar auto-download + PharmGKB validation
 │   ├── snp_database.py           # COMPREHENSIVE_SNPS (~200 curated variants)
 │   ├── clinical_context.py       # CLINICAL_CONTEXT + PATHWAYS data
 │   ├── pipeline.py               # run_full_analysis() orchestrator + CLI
@@ -93,12 +100,16 @@ DNA/
 │   ├── test_vcf_conversion.py
 │   ├── test_disease_analysis.py
 │   ├── test_path_resolution.py
-│   └── test_html_reports.py
+│   ├── test_html_reports.py
+│   ├── test_ancestry.py           # Ancestry marker + scoring tests
+│   ├── test_prs.py                # PRS model + calculation tests
+│   └── test_update_data.py        # Data update + metadata tests
 ├── data/
 │   ├── genome.txt                 # 23andMe raw data file
 │   ├── clinvar_alleles.tsv        # ClinVar database (~341K variants)
 │   ├── clinical_annotations.tsv   # PharmGKB annotations
-│   └── clinical_ann_alleles.tsv   # PharmGKB allele data
+│   ├── clinical_ann_alleles.tsv   # PharmGKB allele data
+│   └── data_versions.json         # Data version metadata (auto-generated)
 ├── reference/
 │   └── human_g1k_v37.fasta.gz    # Reference genome (for WGS pipeline)
 └── reports/                       # Generated output (gitignored)
@@ -188,6 +199,53 @@ if len(ref_allele) != 1 or len(alt_allele) != 1:
     continue  # Skip indels
 ```
 
+### genetic_health.ancestry
+Estimates ancestry proportions from ~55 Ancestry-Informative Markers (AIMs).
+
+```python
+from genetic_health.ancestry import estimate_ancestry
+result = estimate_ancestry(genome_by_rsid)
+# result = {proportions: {EUR: 0.82, ...}, markers_found, confidence, top_ancestry, details}
+```
+
+5 superpopulations (1000 Genomes): EUR, AFR, EAS, SAS, AMR.
+Uses maximum-likelihood scoring with softmax normalization.
+Includes population-specific warnings via `get_population_warnings(gene, status)`.
+
+### genetic_health.prs
+Calculates Polygenic Risk Scores for 5 conditions using published GWAS effect sizes:
+
+| Condition | Reference |
+|-----------|-----------|
+| Type 2 Diabetes | Mahajan 2018 |
+| Coronary Artery Disease | Nikpay 2015, Aragam 2022 |
+| Hypertension | Evangelou 2018 |
+| Breast Cancer | Michailidou 2017 |
+| Age-Related Macular Degeneration | Fritsche 2016 |
+
+```python
+from genetic_health.prs import calculate_prs
+results = calculate_prs(genome_by_rsid, ancestry_proportions)
+# results[condition_id] = {name, percentile, risk_category, ...}
+```
+
+Risk categories: low (<20th), average (20-80), elevated (80-95), high (>95th percentile).
+Flags non-European ancestry as potentially less applicable.
+
+### genetic_health.update_data
+Automated data updates with version tracking.
+
+```bash
+python -m genetic_health.update_data clinvar      # Download + process ClinVar
+python -m genetic_health.update_data pharmgkb     # Validate PharmGKB files
+python -m genetic_health.update_data --status     # Show data versions
+
+# Or via Makefile:
+make update-data          # Download ClinVar + print PharmGKB instructions
+make validate-pharmgkb    # Validate PharmGKB after manual download
+make data-status          # Show current data versions
+```
+
 ### genetic_health.clinical_context
 Contains clinical context database with detailed interpretations, mechanisms, and recommendations for each gene/status combination.
 
@@ -224,13 +282,25 @@ Contains clinical context database with detailed interpretations, mechanisms, an
 
 ### ClinVar (recommended: quarterly)
 ```bash
-# Download latest ClinVar
-wget https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/variant_summary.txt.gz
-# Process and convert to required format (see clinvar processing scripts)
+# Automated download + processing (preferred)
+make update-data
+# Or directly:
+python -m genetic_health.update_data clinvar
 ```
 
+This downloads `variant_summary.txt.gz` from NCBI FTP, filters to GRCh37, and creates `clinvar_alleles.tsv`. Version metadata is saved to `data/data_versions.json`.
+
 ### PharmGKB (recommended: quarterly)
-Download from https://www.pharmgkb.org/downloads after creating free account.
+PharmGKB requires a free account for downloads:
+1. Download from https://www.pharmgkb.org/downloads
+2. Place `clinical_annotations.tsv` and `clinical_ann_alleles.tsv` in `data/`
+3. Validate: `make validate-pharmgkb`
+
+### Check Data Status
+```bash
+make data-status
+# Or: python -m genetic_health.update_data --status
+```
 
 ## Troubleshooting
 

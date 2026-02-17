@@ -429,6 +429,237 @@ def svg_metabolism_gauge(label, level, color):
     )
 
 
+def svg_ancestry_donut(ancestry_results):
+    """Donut chart showing ancestry proportions."""
+    if not ancestry_results or not ancestry_results.get("proportions"):
+        return ""
+
+    import math
+    proportions = ancestry_results["proportions"]
+    colors = {"EUR": "#3b82f6", "AFR": "#f59e0b", "EAS": "#ef4444",
+              "SAS": "#8b5cf6", "AMR": "#22c55e"}
+    labels = {"EUR": "European", "AFR": "African", "EAS": "East Asian",
+              "SAS": "South Asian", "AMR": "Admixed American"}
+
+    cx, cy, r = 110, 110, 85
+    inner_r = 50
+    angle = -90
+    paths = []
+    legend_items = []
+
+    sorted_pops = sorted(proportions.items(), key=lambda x: -x[1])
+
+    for idx, (pop, prop) in enumerate(sorted_pops):
+        if prop < 0.005:
+            continue
+        color = colors.get(pop, "#94a3b8")
+        sweep = prop * 360
+        start_rad = math.radians(angle)
+        end_rad = math.radians(angle + sweep)
+
+        x1 = cx + r * math.cos(start_rad)
+        y1 = cy + r * math.sin(start_rad)
+        x2 = cx + r * math.cos(end_rad)
+        y2 = cy + r * math.sin(end_rad)
+        ix1 = cx + inner_r * math.cos(start_rad)
+        iy1 = cy + inner_r * math.sin(start_rad)
+        ix2 = cx + inner_r * math.cos(end_rad)
+        iy2 = cy + inner_r * math.sin(end_rad)
+
+        large = 1 if sweep > 180 else 0
+        d = (
+            f"M {ix1:.1f} {iy1:.1f} "
+            f"L {x1:.1f} {y1:.1f} "
+            f"A {r} {r} 0 {large} 1 {x2:.1f} {y2:.1f} "
+            f"L {ix2:.1f} {iy2:.1f} "
+            f"A {inner_r} {inner_r} 0 {large} 0 {ix1:.1f} {iy1:.1f} Z"
+        )
+        paths.append(f'<path d="{d}" fill="{color}" opacity="0.85"/>')
+        angle += sweep
+
+        ly = 10 + idx * 24
+        label = labels.get(pop, pop)
+        legend_items.append(
+            f'<rect x="240" y="{ly}" width="14" height="14" rx="3" fill="{color}"/>'
+            f'<text x="260" y="{ly+12}" fill="currentColor" font-size="12">'
+            f'{label} ({prop:.1%})</text>'
+        )
+
+    # Center text
+    top = ancestry_results.get("top_ancestry", "")
+    center = (
+        f'<text x="{cx}" y="{cy - 5}" text-anchor="middle" '
+        f'fill="currentColor" font-size="14" font-weight="bold">{top}</text>'
+        f'<text x="{cx}" y="{cy + 15}" text-anchor="middle" '
+        f'fill="currentColor" font-size="11">{ancestry_results.get("confidence","")}</text>'
+    )
+
+    height = max(230, 10 + len(sorted_pops) * 24 + 10)
+    return (
+        f'<svg viewBox="0 0 420 {height}" class="chart" role="img" '
+        f'aria-label="Ancestry proportion donut chart">'
+        f'<title>Ancestry Proportions</title>'
+        f'{"".join(paths)}{center}{"".join(legend_items)}</svg>'
+    )
+
+
+def svg_prs_gauge(label, percentile, category):
+    """Semi-circular gauge for PRS percentile with 4 color zones."""
+    import math
+    cx, cy, r = 80, 70, 55
+
+    # Arc from 180° to 0° (left to right through top)
+    # Zone boundaries: low <20th, avg 20-80, elevated 80-95, high >95
+    zones = [
+        (0.0, 0.2, "#22c55e"),    # low - green
+        (0.2, 0.8, "#3b82f6"),    # average - blue
+        (0.8, 0.95, "#f59e0b"),   # elevated - orange
+        (0.95, 1.0, "#ef4444"),   # high - red
+    ]
+
+    zone_paths = []
+    for start_frac, end_frac, color in zones:
+        a1 = math.radians(180 - start_frac * 180)
+        a2 = math.radians(180 - end_frac * 180)
+        x1 = cx + r * math.cos(a1)
+        y1 = cy - r * math.sin(a1)
+        x2 = cx + r * math.cos(a2)
+        y2 = cy - r * math.sin(a2)
+        large = 1 if abs(end_frac - start_frac) > 0.5 else 0
+        zone_paths.append(
+            f'<path d="M {x1:.1f} {y1:.1f} A {r} {r} 0 {large} 1 {x2:.1f} {y2:.1f}" '
+            f'fill="none" stroke="{color}" stroke-width="10" stroke-linecap="butt"/>'
+        )
+
+    # Pointer
+    frac = max(0.0, min(1.0, percentile / 100.0))
+    ptr_angle = math.radians(180 - frac * 180)
+    ptr_r = r - 18
+    px = cx + ptr_r * math.cos(ptr_angle)
+    py = cy - ptr_r * math.sin(ptr_angle)
+
+    cat_colors = {"low": "#22c55e", "average": "#3b82f6",
+                  "elevated": "#f59e0b", "high": "#ef4444"}
+    ptr_color = cat_colors.get(category, "#94a3b8")
+
+    return (
+        f'<svg viewBox="0 0 160 105" class="prs-gauge" role="img" '
+        f'aria-label="{label} PRS gauge">'
+        f'<title>{label}: {percentile:.0f}th percentile ({category})</title>'
+        f'{"".join(zone_paths)}'
+        f'<circle cx="{px:.1f}" cy="{py:.1f}" r="6" fill="{ptr_color}"/>'
+        f'<text x="{cx}" y="{cy + 5}" text-anchor="middle" fill="currentColor" '
+        f'font-size="16" font-weight="bold">{percentile:.0f}%</text>'
+        f'<text x="{cx}" y="{cy + 20}" text-anchor="middle" fill="currentColor" '
+        f'font-size="10">{category.title()}</text>'
+        f'<text x="{cx}" y="100" text-anchor="middle" fill="currentColor" '
+        f'font-size="11" font-weight="bold">{label}</text>'
+        f'</svg>'
+    )
+
+
+def build_ancestry_section(ancestry_results):
+    """Build HTML for ancestry estimation section."""
+    if not ancestry_results or ancestry_results.get("markers_found", 0) == 0:
+        return "<p>No ancestry-informative markers found in genome data.</p>"
+
+    parts = []
+    parts.append('<div class="chart-grid">')
+    parts.append("<div>")
+    parts.append("<h3>Ancestry Proportions</h3>")
+    parts.append(svg_ancestry_donut(ancestry_results))
+    parts.append("</div>")
+
+    parts.append("<div>")
+    parts.append("<h3>Details</h3>")
+    parts.append(f'<p><strong>Confidence:</strong> {ancestry_results["confidence"].title()} '
+                 f'({ancestry_results["markers_found"]} markers)</p>')
+    parts.append('<table><tr><th>Population</th><th>Proportion</th></tr>')
+    labels = {"EUR": "European", "AFR": "African", "EAS": "East Asian",
+              "SAS": "South Asian", "AMR": "Admixed American"}
+    for pop in sorted(ancestry_results["proportions"],
+                      key=lambda p: -ancestry_results["proportions"][p]):
+        prop = ancestry_results["proportions"][pop]
+        label = labels.get(pop, pop)
+        parts.append(f'<tr><td>{label} ({pop})</td><td>{prop:.1%}</td></tr>')
+    parts.append("</table>")
+    parts.append('<p style="font-size:.85em;color:var(--accent2)">'
+                 'Based on ~55 ancestry-informative markers. '
+                 'This is a rough superpopulation estimate.</p>')
+    parts.append("</div>")
+    parts.append("</div>")
+
+    return "\n".join(parts)
+
+
+def build_prs_section(prs_results):
+    """Build HTML for polygenic risk scores section."""
+    if not prs_results:
+        return "<p>No PRS data available.</p>"
+
+    parts = []
+
+    # Ancestry disclaimer
+    any_non_applicable = any(not r["ancestry_applicable"] for r in prs_results.values())
+    if any_non_applicable:
+        parts.append(
+            '<div class="doctor-callout" style="border-color:var(--warn)">'
+            'PRS models are calibrated on European-ancestry populations. '
+            'Your ancestry profile is substantially non-European — interpret with caution.'
+            '</div>'
+        )
+
+    # Gauge row
+    parts.append('<div class="gauge-row" style="justify-content:center">')
+    for cid, r in prs_results.items():
+        short_name = r["name"].replace("Age-Related ", "").replace("Macular Degeneration", "AMD")
+        parts.append(svg_prs_gauge(short_name, r["percentile"], r["risk_category"]))
+    parts.append("</div>")
+
+    # Summary table
+    parts.append("<h3>Summary</h3>")
+    parts.append('<table class="sortable"><tr><th>Condition</th><th>Percentile</th>'
+                 '<th>Category</th><th>SNPs</th><th>Reference</th></tr>')
+    for cid, r in prs_results.items():
+        cat_class = {"low": "green", "average": "accent", "elevated": "warn", "high": "warn"}
+        color = cat_class.get(r["risk_category"], "")
+        parts.append(
+            f'<tr><td><strong>{r["name"]}</strong></td>'
+            f'<td>{r["percentile"]:.0f}th</td>'
+            f'<td>{r["risk_category"].title()}</td>'
+            f'<td>{r["snps_found"]}/{r["snps_total"]}</td>'
+            f'<td style="font-size:.8em">{r["reference"]}</td></tr>'
+        )
+    parts.append("</table>")
+
+    # Elevated conditions detail
+    elevated = [r for r in prs_results.values() if r["risk_category"] in ("elevated", "high")]
+    if elevated:
+        parts.append("<h3>Elevated Risk Details</h3>")
+        for r in elevated:
+            parts.append(f'<details open><summary><strong>{r["name"]}</strong> — '
+                         f'{r["percentile"]:.0f}th percentile ({r["risk_category"]})</summary>')
+            if r["contributing_snps"]:
+                parts.append('<table><tr><th>Gene</th><th>rsID</th><th>Copies</th>'
+                             '<th>Effect</th></tr>')
+                for s in r["contributing_snps"][:5]:
+                    parts.append(
+                        f'<tr><td>{s["gene"]}</td><td><code>{s["rsid"]}</code></td>'
+                        f'<td>{s["copies"]}</td><td>{s["contribution"]:.3f}</td></tr>'
+                    )
+                parts.append("</table>")
+            parts.append("</details>")
+
+    parts.append(
+        '<p style="font-size:.85em;color:var(--accent2)">'
+        'PRS estimates relative genetic risk from common variants. '
+        'Lifestyle, environment, and rare variants also affect risk. '
+        'Not a clinical diagnosis.</p>'
+    )
+
+    return "\n".join(parts)
+
+
 # =============================================================================
 # SECTION BUILDERS
 # =============================================================================
@@ -1192,6 +1423,33 @@ details[open] > summary::before {{ transform: rotate(90deg); }}
   left: 1em; top: 1em; background: var(--accent); color: #fff;
   padding: .5em 1em; z-index: 999; border-radius: 4px;
 }}
+
+/* Search & toolbar */
+.toolbar {{
+  display: flex; gap: .75em; align-items: center;
+  margin: 1em 0; flex-wrap: wrap;
+}}
+#search-box {{
+  flex: 1; min-width: 200px; padding: .5em .75em;
+  border: 2px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--fg); font-size: .95em;
+}}
+#search-box:focus {{ border-color: var(--accent); outline: none; }}
+.toolbar button {{
+  padding: .45em 1em; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--code-bg); color: var(--fg);
+  cursor: pointer; font-size: .85em; white-space: nowrap;
+}}
+.toolbar button:hover {{ background: var(--accent); color: #fff; }}
+
+/* Sortable tables */
+th.sortable {{ cursor: pointer; user-select: none; }}
+th.sortable::after {{ content: " \\2195"; opacity: 0.3; }}
+th.sortable.asc::after {{ content: " \\2191"; opacity: 1; }}
+th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
+
+/* PRS gauges */
+.prs-gauge {{ width: 160px; height: 105px; display: inline-block; }}
 </style>
 </head>
 <body>
@@ -1208,18 +1466,25 @@ details[open] > summary::before {{ transform: rotate(90deg); }}
 <div class="toc">
 <a href="#eli5">1. Simple Summary</a>
 <a href="#dashboard">2. Dashboard</a>
-<a href="#critical">3. Critical Findings</a>
-<a href="#asthma">4. Asthma &amp; Medications</a>
-<a href="#lifestyle">5. Lifestyle Findings</a>
-<a href="#disease">6. Disease Risk</a>
-<a href="#drugs">7. Drug-Gene Interactions</a>
-<a href="#nutrition">8. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">9. Monitoring Schedule</a>
-<a href="#protective">10. Protective Variants</a>
-<a href="#doctor-card">11. Doctor Card</a>
-<a href="#references">12. References &amp; Links</a>
+<a href="#ancestry">3. Ancestry</a>
+<a href="#prs">4. Polygenic Risk Scores</a>
+<a href="#critical">5. Critical Findings</a>
+<a href="#asthma">6. Asthma &amp; Medications</a>
+<a href="#lifestyle">7. Lifestyle Findings</a>
+<a href="#disease">8. Disease Risk</a>
+<a href="#drugs">9. Drug-Gene Interactions</a>
+<a href="#nutrition">10. Nutrition &amp; Lifestyle</a>
+<a href="#monitoring">11. Monitoring Schedule</a>
+<a href="#protective">12. Protective Variants</a>
+<a href="#doctor-card">13. Doctor Card</a>
+<a href="#references">14. References &amp; Links</a>
 </div>
 </nav>
+
+<div class="toolbar no-print">
+<input type="text" id="search-box" placeholder="Search findings (gene, rsID, keyword)..." aria-label="Search findings">
+<button id="export-csv" title="Copy findings as CSV to clipboard">Export CSV</button>
+</div>
 
 <main id="main">
 
@@ -1233,54 +1498,64 @@ details[open] > summary::before {{ transform: rotate(90deg); }}
 {dashboard_content}
 </div>
 
+<div class="section" id="ancestry">
+<h2><span class="section-number">3</span> Ancestry Estimation</h2>
+{ancestry_content}
+</div>
+
+<div class="section" id="prs">
+<h2><span class="section-number">4</span> Polygenic Risk Scores</h2>
+{prs_content}
+</div>
+
 <div class="section" id="critical">
-<h2><span class="section-number">3</span> Critical Findings</h2>
+<h2><span class="section-number">5</span> Critical Findings</h2>
 {critical_content}
 </div>
 
 <div class="section" id="asthma">
-<h2><span class="section-number">4</span> Asthma &amp; Medications</h2>
+<h2><span class="section-number">6</span> Asthma &amp; Medications</h2>
 {asthma_content}
 </div>
 
 <div class="section" id="lifestyle">
-<h2><span class="section-number">5</span> All Lifestyle Findings</h2>
+<h2><span class="section-number">7</span> All Lifestyle Findings</h2>
 {lifestyle_content}
 </div>
 
 <div class="section" id="disease">
-<h2><span class="section-number">6</span> Disease Risk</h2>
+<h2><span class="section-number">8</span> Disease Risk</h2>
 {disease_content}
 </div>
 
 <div class="section" id="drugs">
-<h2><span class="section-number">7</span> Drug-Gene Interactions</h2>
+<h2><span class="section-number">9</span> Drug-Gene Interactions</h2>
 {drugs_content}
 </div>
 
 <div class="section" id="nutrition">
-<h2><span class="section-number">8</span> Nutrition, Supplements &amp; Lifestyle</h2>
+<h2><span class="section-number">10</span> Nutrition, Supplements &amp; Lifestyle</h2>
 {nutrition_content}
 </div>
 
 <div class="section" id="monitoring">
-<h2><span class="section-number">9</span> Monitoring Schedule</h2>
+<h2><span class="section-number">11</span> Monitoring Schedule</h2>
 {monitoring_content}
 </div>
 
 <div class="section" id="protective">
-<h2><span class="section-number">10</span> Protective Variants (Good News)</h2>
+<h2><span class="section-number">12</span> Protective Variants (Good News)</h2>
 {protective_content}
 </div>
 
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">11</span> Doctor Card</h2>
+<h2><span class="section-number">13</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">12</span> References &amp; Links</h2>
+<h2><span class="section-number">14</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -1292,11 +1567,11 @@ For informational purposes only. Not a clinical diagnosis.
 </footer>
 
 <script>
-// Collapsible sections already handled by <details>/<summary>.
-// Add keyboard accessibility for summary elements.
+// Keyboard accessibility for summary elements
 document.querySelectorAll('summary').forEach(function(s) {{
   s.setAttribute('tabindex', '0');
 }});
+
 // Smooth scroll for TOC links
 document.querySelectorAll('.toc a').forEach(function(a) {{
   a.addEventListener('click', function(e) {{
@@ -1308,6 +1583,95 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
     }}
   }});
 }});
+
+// --- Search / Filter ---
+(function() {{
+  var searchBox = document.getElementById('search-box');
+  if (!searchBox) return;
+  searchBox.addEventListener('input', function() {{
+    var q = this.value.toLowerCase().trim();
+    // Filter finding cards
+    document.querySelectorAll('.finding-card').forEach(function(card) {{
+      card.style.display = (!q || card.textContent.toLowerCase().indexOf(q) !== -1)
+        ? '' : 'none';
+    }});
+    // Filter table rows (skip header rows)
+    document.querySelectorAll('table').forEach(function(table) {{
+      var rows = table.querySelectorAll('tr');
+      for (var i = 1; i < rows.length; i++) {{
+        rows[i].style.display = (!q || rows[i].textContent.toLowerCase().indexOf(q) !== -1)
+          ? '' : 'none';
+      }}
+    }});
+  }});
+}})();
+
+// --- Sortable Tables ---
+(function() {{
+  document.querySelectorAll('table').forEach(function(table) {{
+    var headers = table.querySelectorAll('th');
+    if (headers.length < 2) return;
+    headers.forEach(function(th, colIdx) {{
+      th.classList.add('sortable');
+      th.addEventListener('click', function() {{
+        var isAsc = th.classList.contains('asc');
+        headers.forEach(function(h) {{ h.classList.remove('asc', 'desc'); }});
+        th.classList.add(isAsc ? 'desc' : 'asc');
+        var rows = Array.from(table.querySelectorAll('tr')).slice(1);
+        rows.sort(function(a, b) {{
+          var aText = (a.children[colIdx] || {{}}).textContent || '';
+          var bText = (b.children[colIdx] || {{}}).textContent || '';
+          var aNum = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
+          var bNum = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+          if (!isNaN(aNum) && !isNaN(bNum)) {{
+            return isAsc ? bNum - aNum : aNum - bNum;
+          }}
+          return isAsc ? bText.localeCompare(aText) : aText.localeCompare(bText);
+        }});
+        var tbody = table.querySelector('tbody') || table;
+        rows.forEach(function(r) {{ tbody.appendChild(r); }});
+      }});
+    }});
+  }});
+}})();
+
+// --- CSV Export ---
+(function() {{
+  var btn = document.getElementById('export-csv');
+  if (!btn) return;
+  btn.addEventListener('click', function() {{
+    var lines = ['Gene,rsID,Genotype,Status,Category,Magnitude'];
+    document.querySelectorAll('.finding-card').forEach(function(card) {{
+      var header = card.querySelector('.finding-header');
+      if (!header) return;
+      var text = header.textContent;
+      var parts = text.split(/\s+—\s+/);
+      var gene = '', rsid = '', genotype = '', status = '';
+      if (parts.length >= 1) {{
+        var m = parts[0].match(/([A-Z0-9]+)\s+(rs\d+)\s+(.+)/);
+        if (m) {{ gene = m[1]; rsid = m[2]; genotype = m[3]; }}
+      }}
+      if (parts.length >= 2) status = parts[parts.length - 1].trim();
+      var mag = '';
+      var magEl = card.querySelector('.mag-badge');
+      if (magEl) mag = magEl.textContent.trim();
+      var cat = '';
+      var section = card.closest('.category-section');
+      if (section) {{
+        var sum = section.querySelector('summary');
+        if (sum) cat = sum.textContent.replace(/\\d+$/, '').trim();
+      }}
+      lines.push([gene, rsid, genotype, status, cat, mag].join(','));
+    }});
+    var csv = lines.join('\\n');
+    if (navigator.clipboard) {{
+      navigator.clipboard.writeText(csv).then(function() {{
+        btn.textContent = 'Copied!';
+        setTimeout(function() {{ btn.textContent = 'Export CSV'; }}, 2000);
+      }});
+    }}
+  }});
+}})();
 </script>
 </body>
 </html>
@@ -1338,6 +1702,8 @@ def main():
     findings = data.get("findings", [])
     pharmgkb_findings = data.get("pharmgkb_findings", [])
     summary = data.get("summary", {})
+    ancestry_data = data.get("ancestry", {})
+    prs_data = data.get("prs", {})
 
     print(f">>> Loading {disease_path.name}")
     disease_text = load_text(disease_path)
@@ -1355,6 +1721,12 @@ def main():
 
     print(">>> Building dashboard")
     dashboard = build_dashboard(findings, personal_text)
+
+    print(">>> Building ancestry section")
+    ancestry = build_ancestry_section(ancestry_data)
+
+    print(">>> Building PRS section")
+    prs = build_prs_section(prs_data)
 
     print(">>> Building critical findings")
     critical = build_critical_findings(personal_text)
@@ -1398,6 +1770,8 @@ def main():
         num_pharmgkb=len(pharmgkb_findings),
         eli5_content=eli5,
         dashboard_content=dashboard,
+        ancestry_content=ancestry,
+        prs_content=prs,
         critical_content=critical,
         asthma_content=asthma,
         lifestyle_content=lifestyle,

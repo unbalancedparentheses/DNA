@@ -28,7 +28,7 @@ else
   NAME_FLAG :=
 endif
 
-.PHONY: all setup pipeline analysis test clean clean-all help shell fastp
+.PHONY: all setup pipeline analysis test clean clean-all help shell fastp update-data validate-pharmgkb data-status
 
 ## Default target: show help
 help:
@@ -53,6 +53,11 @@ help:
 	@echo "  make pipeline"
 	@echo "  make pipeline FASTQ=../22374_1.fastq.gz NAME=\"Subject\""
 	@echo "  make analysis NAME=\"Subject\""
+	@echo ""
+	@echo "Data:"
+	@echo "  make update-data    Download latest ClinVar + print PharmGKB instructions"
+	@echo "  make validate-pharmgkb  Validate PharmGKB after manual download"
+	@echo "  make data-status    Show current data versions"
 	@echo ""
 	@echo "Test:"
 	@echo "  make test           Run test suite"
@@ -113,6 +118,21 @@ analysis:
 ## Run test suite
 test:
 	$(NIX) develop --command python -m pytest tests/ -v
+
+## Download latest ClinVar + print PharmGKB instructions
+update-data:
+	$(NIX) develop --command python -m genetic_health.update_data clinvar
+	@echo ""
+	@echo "PharmGKB requires manual download from https://www.pharmgkb.org/downloads"
+	@echo "Run 'make validate-pharmgkb' after downloading."
+
+## Validate PharmGKB after manual download
+validate-pharmgkb:
+	$(NIX) develop --command python -m genetic_health.update_data pharmgkb
+
+## Show current data versions
+data-status:
+	$(NIX) develop --command python -m genetic_health.update_data --status
 
 ## Remove intermediate files (keep BAM, VCF, and reports)
 clean:

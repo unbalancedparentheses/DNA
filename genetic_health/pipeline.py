@@ -8,6 +8,8 @@ from datetime import datetime
 from .config import DATA_DIR, REPORTS_DIR
 from .loading import load_genome, load_pharmgkb
 from .analysis import analyze_lifestyle_health, load_clinvar_and_analyze
+from .ancestry import estimate_ancestry
+from .prs import calculate_prs
 from .reports import (
     generate_exhaustive_genetic_report,
     generate_disease_risk_report,
@@ -55,11 +57,27 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
     # Run lifestyle/health analysis
     health_results = analyze_lifestyle_health(genome_by_rsid, pharmgkb)
 
+    # Run ancestry estimation
+    print_step("Estimating ancestry from AIMs")
+    ancestry_results = estimate_ancestry(genome_by_rsid)
+    print(f"    Top ancestry: {ancestry_results['top_ancestry']} "
+          f"({ancestry_results['markers_found']} markers, "
+          f"{ancestry_results['confidence']} confidence)")
+
+    # Run polygenic risk scores
+    print_step("Calculating polygenic risk scores")
+    prs_results = calculate_prs(genome_by_rsid, ancestry_results['proportions'])
+    for cid, r in prs_results.items():
+        print(f"    {r['name']}: {r['percentile']:.0f}th percentile "
+              f"({r['risk_category']}) [{r['snps_found']}/{r['snps_total']} SNPs]")
+
     # Save intermediate results for exhaustive report generator
     results_json = {
         'findings': health_results['findings'],
         'pharmgkb_findings': health_results['pharmgkb_findings'],
         'summary': health_results['summary'],
+        'ancestry': ancestry_results,
+        'prs': prs_results,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
@@ -80,7 +98,8 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
 
     # Generate actionable protocol - use versioned filename
     protocol_path = REPORTS_DIR / "ACTIONABLE_HEALTH_PROTOCOL_V3.md"
-    generate_actionable_protocol(health_results, disease_findings, protocol_path, subject_name)
+    generate_actionable_protocol(health_results, disease_findings, protocol_path, subject_name,
+                                 ancestry_results=ancestry_results, prs_results=prs_results)
 
     # Generate enhanced all-in-one HTML report
     from .reports.enhanced_html import main as generate_enhanced_report
@@ -106,12 +125,26 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None):
     print(f"\n  4. ENHANCED_HEALTH_REPORT.html")
     print(f"     - All-in-one interactive report (SVG charts, collapsible sections)")
 
+    print(f"\n  Ancestry: {ancestry_results['top_ancestry']} "
+          f"({ancestry_results['confidence']} confidence, "
+          f"{ancestry_results['markers_found']} markers)")
+
+    elevated_prs = [r for r in prs_results.values() if r['risk_category'] in ('elevated', 'high')]
+    if elevated_prs:
+        print(f"\n  PRS Alerts:")
+        for r in elevated_prs:
+            print(f"     - {r['name']}: {r['percentile']:.0f}th percentile ({r['risk_category']})")
+    else:
+        print(f"\n  PRS: All conditions within average range")
+
     print(f"\nFinished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     return {
         'health_results': health_results,
         'disease_findings': disease_findings,
-        'disease_stats': disease_stats
+        'disease_stats': disease_stats,
+        'ancestry_results': ancestry_results,
+        'prs_results': prs_results,
     }
 
 
