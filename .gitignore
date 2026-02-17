@@ -13,8 +13,8 @@ data/
 *.vcf
 *.vcf.gz
 
-# Generated reports
-reports/
+# Generated reports (root-level only)
+/reports/
 
 # Python
 __pycache__/
