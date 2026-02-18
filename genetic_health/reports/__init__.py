@@ -2,8 +2,6 @@
 
 from .markdown_reports import (
     classify_zygosity,
-    generate_exhaustive_genetic_report,
-    generate_disease_risk_report,
-    generate_actionable_protocol,
+    generate_unified_report,
 )
 from .html_converter import _md_to_html, _inline, _write_html

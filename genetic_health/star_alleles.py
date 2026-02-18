@@ -46,6 +46,47 @@ STAR_ALLELE_DEFINITIONS = {
         },
         "snps": ["rs3892097", "rs1065852"],
     },
+    "DPYD": {
+        "function_map": {
+            "*1": "normal",
+            "*2A": "no_function",
+            "*13": "decreased",
+        },
+        "alleles": {
+            "*2A": {"rs3918290": "A"},
+            "*13": {"rs55886062": "A"},
+        },
+        "snps": ["rs3918290", "rs55886062"],
+        "clinical_note": "DPYD deficiency can cause fatal 5-FU/capecitabine toxicity. Pre-treatment testing recommended.",
+    },
+    "TPMT": {
+        "function_map": {
+            "*1": "normal",
+            "*2": "no_function",
+            "*3A": "no_function",
+            "*3C": "decreased",
+        },
+        "alleles": {
+            "*2": {"rs1800462": "G"},
+            "*3A": {"rs1800460": "A", "rs1142345": "C"},
+            "*3C": {"rs1142345": "C"},
+        },
+        "snps": ["rs1800462", "rs1800460", "rs1142345"],
+        "clinical_note": "TPMT deficiency can cause life-threatening myelosuppression with azathioprine/6-MP.",
+    },
+    "UGT1A1": {
+        "function_map": {
+            "*1": "normal",
+            "*28": "decreased",
+            "*6": "decreased",
+        },
+        "alleles": {
+            "*28": {"rs8175347": "A"},
+            "*6": {"rs4148323": "A"},
+        },
+        "snps": ["rs8175347", "rs4148323"],
+        "clinical_note": "UGT1A1*28 causes Gilbert syndrome and irinotecan toxicity. UGT1A1*6 common in East Asian populations.",
+    },
 }
 
 # Phenotype mapping from diplotype function pairs
@@ -135,6 +176,9 @@ def _call_gene(gene, definitions, genome_by_rsid):
     diplotype_alleles = sorted([allele1, allele2])
     diplotype = f"{diplotype_alleles[0]}/{diplotype_alleles[1]}"
 
+    # Clinical notes
+    notes = []
+
     # Map to phenotype
     func1 = function_map.get(diplotype_alleles[0], "normal")
     func2 = function_map.get(diplotype_alleles[1], "normal")
@@ -147,13 +191,15 @@ def _call_gene(gene, definitions, genome_by_rsid):
             "Clinical interpretation needed."
         )
 
-    # Clinical notes
-    notes = []
     if gene == "CYP2D6":
         notes.append(
             "23andMe cannot detect CYP2D6 gene deletions (*5) or "
             "duplications (*1xN). This result may be incomplete."
         )
+    # Gene-specific clinical note from definitions
+    gene_note = definitions.get("clinical_note")
+    if gene_note:
+        notes.append(gene_note)
     if snps_missing:
         notes.append(
             f"Missing SNPs: {', '.join(snps_missing)}. "

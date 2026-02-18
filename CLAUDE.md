@@ -22,51 +22,38 @@ python -m pytest tests/ -v
 
 ## Output
 
-The pipeline generates four reports in the `reports/` directory:
+The pipeline generates a unified report in the `reports/` directory:
 
-1. **EXHAUSTIVE_GENETIC_REPORT.md** - Lifestyle/health genetics analysis
-   - Drug metabolism (CYP enzymes, warfarin sensitivity)
-   - Methylation (MTHFR, COMT, MTRR)
-   - Nutrition (vitamin D receptor, omega-3, lactose)
-   - Fitness (muscle fiber type, exercise response)
-   - Cardiovascular (blood pressure genes, clotting)
-   - Sleep/circadian rhythm
-   - Blood type (ABO + Rh)
-   - Taste perception (TAS2R38 bitter taste)
-   - Autoimmune (HLA associations)
-   - PharmGKB drug-gene interactions
+1. **GENETIC_HEALTH_REPORT.md** — Comprehensive unified Markdown report (18 sections)
+   1. Data Quality (call rate, chromosomes, sex inference)
+   2. Executive Summary (high-impact findings, critical disease variants, carrier count)
+   3. APOE Haplotype (Alzheimer's risk context)
+   4. Blood Type & Traits (ABO + Rh, eye color, hair color, earwax type, freckling)
+   5. Mitochondrial Haplogroup (maternal lineage)
+   6. Ancestry Estimation (5 superpopulations)
+   7. Polygenic Risk Scores (8 conditions)
+   8. Pharmacogenomic Star Alleles (CYP2C19, CYP2C9, CYP2D6, DPYD, TPMT, UGT1A1)
+   9. ACMG Secondary Findings (81 medically actionable genes)
+   10. Gene-Gene Interactions (Epistasis)
+   11. Personalized Recommendations (priorities, supplements, diet, lifestyle, monitoring)
+   12. Complete Lifestyle/Health Findings by Category (~210+ SNPs)
+   13. Pathway Analysis
+   14. Disease Risk Analysis (pathogenic, likely pathogenic, carriers, risk factors, drug response, protective)
+   15. Carrier Screening (organized by disease system, reproductive context)
+   16. Drug-Gene Interactions (PharmGKB + ClinVar combined)
+   17. Doctor Card (print-friendly summary)
+   18. References & Disclaimer
 
-2. **EXHAUSTIVE_DISEASE_RISK_REPORT.md** - Clinical variant analysis
-   - Pathogenic variants (affected status)
-   - Carrier status for recessive conditions
-   - Risk factors
-   - Drug response variants
-   - Protective variants
-
-3. **ACTIONABLE_HEALTH_PROTOCOL_V3.md** - Comprehensive protocol
-   - Data quality metrics (call rate, chromosome coverage, sex inference)
-   - Critical disease findings summary (pathogenic, carrier status)
-   - Blood type prediction (ABO + Rh factor)
-   - Mitochondrial haplogroup (maternal lineage)
-   - Ancestry estimation and population context
-   - Polygenic risk scores for 5 conditions
-   - Pharmacogenomic star alleles (CYP2C19, CYP2C9, CYP2D6 metabolizer phenotypes)
-   - Gene-gene interactions (epistasis)
-   - Supplement and dietary recommendations
-   - Lifestyle and exercise guidance
-   - Blood pressure management
-   - Risk factor monitoring by condition
-   - Comprehensive drug interactions (PharmGKB + ClinVar)
-   - Testing & monitoring schedule
-
-4. **ENHANCED_HEALTH_REPORT.html** - All-in-one interactive HTML report (20 sections)
-   - Data quality dashboard (call rate, chromosome coverage, sex inference)
-   - Blood type display (ABO + Rh)
-   - Mitochondrial haplogroup (maternal lineage)
-   - Star allele metabolizer gauges (CYP2C19, CYP2C9, CYP2D6)
+2. **GENETIC_HEALTH_REPORT.html** — Interactive all-in-one HTML report (23 sections)
+   - Everything from the Markdown report, plus:
    - SVG charts and dashboards
+   - APOE haplotype display with risk context
+   - Trait predictions section
+   - ACMG findings with actionability notes
+   - Carrier screening organized by system
    - Ancestry donut chart with proportions
-   - PRS gauge visualizations for 5 conditions
+   - PRS gauge visualizations for 8 conditions
+   - Star allele metabolizer gauges (6 genes)
    - Population frequency badges on annotated findings
    - Search/filter across all findings and tables
    - Sortable table columns (click headers)
@@ -74,6 +61,8 @@ The pipeline generates four reports in the `reports/` directory:
    - Collapsible sections
    - Print-optimized doctor card
    - Database links for every rsID
+
+3. **GENETIC_HEALTH_REPORT.pdf** (optional, with `--pdf` flag)
 
 ## Directory Structure
 
@@ -94,22 +83,25 @@ DNA/
 │   ├── snp_database.py           # COMPREHENSIVE_SNPS (~210+ curated variants)
 │   ├── clinical_context.py       # CLINICAL_CONTEXT + PATHWAYS data
 │   ├── ancestry.py               # AIMs database + ancestry estimation
-│   ├── prs.py                    # Polygenic risk score models + scoring
+│   ├── prs.py                    # Polygenic risk score models (8 conditions)
 │   ├── epistasis.py              # Gene-gene interaction detection (10 models)
 │   ├── recommendations.py        # Actionable recommendations from findings
 │   ├── blood_type.py             # ABO + Rh blood type prediction from proxy SNPs
 │   ├── quality_metrics.py        # Call rate, het rate, chromosome coverage, sex inference
 │   ├── mt_haplogroup.py          # Mitochondrial haplogroup estimation (~25 MT SNPs)
-│   ├── star_alleles.py           # CPIC-style star allele calling (CYP2C19/2C9/2D6)
+│   ├── star_alleles.py           # CPIC-style star allele calling (6 genes)
+│   ├── apoe.py                   # APOE epsilon haplotype calling (rs429358 + rs7412)
+│   ├── acmg.py                   # ACMG SF v3.2 medically actionable gene filtering
+│   ├── carrier_screen.py         # Carrier screening organizer (by disease system)
+│   ├── traits.py                 # Visible trait predictions (eye/hair color, earwax, freckling)
 │   ├── pipeline.py               # run_full_analysis() orchestrator + CLI
 │   ├── wgs_pipeline.py           # WGS FASTQ→reports pipeline
 │   ├── update_data.py            # ClinVar auto-download + PharmGKB validation
 │   └── reports/
 │       ├── __init__.py            # Re-exports generators
 │       ├── html_converter.py      # Markdown→HTML converter
-│       ├── section_builders.py    # Section generators for exhaustive report
-│       ├── markdown_reports.py    # 3 Markdown report generators
-│       ├── enhanced_html.py       # All-in-one interactive HTML report
+│       ├── markdown_reports.py    # Unified Markdown report generator (18 sections)
+│       ├── enhanced_html.py       # Interactive HTML report (23 sections)
 │       └── pdf_export.py          # PDF export (Chrome headless / weasyprint)
 ├── scripts/
 │   └── setup_reference.sh        # Reference genome setup (shell script)
@@ -128,8 +120,12 @@ DNA/
 │   ├── test_blood_type.py         # Blood type prediction tests
 │   ├── test_quality_metrics.py    # Data quality metrics tests
 │   ├── test_mt_haplogroup.py      # MT haplogroup estimation tests
-│   ├── test_star_alleles.py       # Star allele calling tests
-│   └── test_recommendations.py    # Recommendation generation tests
+│   ├── test_star_alleles.py       # Star allele calling tests (6 genes)
+│   ├── test_recommendations.py    # Recommendation generation tests
+│   ├── test_apoe.py               # APOE haplotype calling tests
+│   ├── test_acmg.py               # ACMG secondary findings tests
+│   ├── test_carrier_screen.py     # Carrier screening tests
+│   └── test_traits.py             # Trait prediction tests
 ├── data/
 │   ├── genome.txt                 # 23andMe raw data file
 │   ├── clinvar_alleles.tsv        # ClinVar database (~341K variants)
@@ -139,10 +135,9 @@ DNA/
 ├── reference/
 │   └── human_g1k_v37.fasta.gz    # Reference genome (for WGS pipeline)
 └── reports/                       # Generated output (gitignored)
-    ├── EXHAUSTIVE_GENETIC_REPORT.md
-    ├── EXHAUSTIVE_DISEASE_RISK_REPORT.md
-    ├── ACTIONABLE_HEALTH_PROTOCOL_V3.md
-    └── ENHANCED_HEALTH_REPORT.html
+    ├── GENETIC_HEALTH_REPORT.md
+    ├── GENETIC_HEALTH_REPORT.html
+    └── comprehensive_results.json  # Intermediate JSON for HTML generator
 ```
 
 ## Data Requirements
@@ -180,9 +175,8 @@ cp ~/Downloads/genome_mom.txt data/genome_mom.txt
 python -m genetic_health data/genome_mom.txt --name "Mom"
 
 # Rename outputs to preserve them
-mv reports/EXHAUSTIVE_GENETIC_REPORT.md reports/EXHAUSTIVE_GENETIC_REPORT_MOM.md
-mv reports/EXHAUSTIVE_DISEASE_RISK_REPORT.md reports/EXHAUSTIVE_DISEASE_RISK_REPORT_MOM.md
-mv reports/ACTIONABLE_HEALTH_PROTOCOL_V3.md reports/ACTIONABLE_HEALTH_PROTOCOL_MOM.md
+mv reports/GENETIC_HEALTH_REPORT.md reports/GENETIC_HEALTH_REPORT_MOM.md
+mv reports/GENETIC_HEALTH_REPORT.html reports/GENETIC_HEALTH_REPORT_MOM.html
 ```
 
 ## Module Details
@@ -235,7 +229,7 @@ Uses maximum-likelihood scoring with softmax normalization.
 Includes population-specific warnings via `get_population_warnings(gene, status)`.
 
 ### genetic_health.prs
-Calculates Polygenic Risk Scores for 5 conditions using published GWAS effect sizes:
+Calculates Polygenic Risk Scores for 8 conditions using published GWAS effect sizes:
 
 | Condition | Reference |
 |-----------|-----------|
@@ -244,6 +238,9 @@ Calculates Polygenic Risk Scores for 5 conditions using published GWAS effect si
 | Hypertension | Evangelou 2018 |
 | Breast Cancer | Michailidou 2017 |
 | Age-Related Macular Degeneration | Fritsche 2016 |
+| Prostate Cancer | Schumacher 2018 |
+| Ischemic Stroke | Malik 2018 |
+| Colorectal Cancer | Huyghe 2019 |
 
 ```python
 from genetic_health.prs import calculate_prs
@@ -316,7 +313,13 @@ result = estimate_mt_haplogroup(genome_by_rsid)
 ```
 
 ### genetic_health.star_alleles
-CPIC-style star allele calling for CYP2C19, CYP2C9, CYP2D6 with metabolizer phenotype classification.
+CPIC-style star allele calling for 6 pharmacogenes with metabolizer phenotype classification:
+- **CYP2C19** — clopidogrel, PPIs, SSRIs
+- **CYP2C9** — warfarin, NSAIDs, phenytoin
+- **CYP2D6** — codeine, tamoxifen, many antidepressants (caveat: copy number variants undetectable)
+- **DPYD** — fluoropyrimidine chemotherapy (5-FU, capecitabine) — deficiency can be fatal
+- **TPMT** — thiopurines (azathioprine, 6-MP) — deficiency causes myelosuppression
+- **UGT1A1** — irinotecan, atazanavir — *28 causes Gilbert syndrome
 
 ```python
 from genetic_health.star_alleles import call_star_alleles
@@ -324,7 +327,45 @@ results = call_star_alleles(genome_by_rsid)
 # results["CYP2C19"] = {gene, diplotype: "*1/*2", phenotype: "Intermediate Metabolizer", ...}
 ```
 
-CYP2D6 results always include caveat about undetectable copy number variants.
+### genetic_health.apoe
+Combines rs429358 + rs7412 into APOE epsilon haplotypes (e2/e2 through e4/e4) with Alzheimer's risk context.
+
+```python
+from genetic_health.apoe import call_apoe_haplotype
+result = call_apoe_haplotype(genome_by_rsid)
+# result = {apoe_type: "e3/e4", risk_level: "elevated", alzheimer_or: 2.8, confidence: "high", ...}
+```
+
+### genetic_health.acmg
+Filters ClinVar pathogenic/likely_pathogenic findings against the ACMG SF v3.2 list of 81 medically actionable genes (BRCA1/2, Lynch syndrome genes, cardiac genes, etc.).
+
+```python
+from genetic_health.acmg import flag_acmg_findings
+result = flag_acmg_findings(disease_findings)
+# result = {acmg_findings: [...], genes_screened: 81, genes_with_variants: N, summary: "..."}
+```
+
+### genetic_health.carrier_screen
+Reorganizes heterozygous recessive ClinVar findings into a structured carrier screening report grouped by disease system with reproductive context.
+
+```python
+from genetic_health.carrier_screen import organize_carrier_findings
+result = organize_carrier_findings(disease_findings)
+# result = {carriers: [...], total_carriers: N, by_system: {...}, couples_relevant: [...]}
+```
+
+### genetic_health.traits
+Predicts visible traits from well-established SNP associations:
+- **Eye color** — rs12913832 (HERC2) + rs1800407 (OCA2)
+- **Hair color** — rs1805007, rs1805008 (MC1R)
+- **Earwax type** — rs17822931 (ABCC11)
+- **Freckling** — MC1R variants
+
+```python
+from genetic_health.traits import predict_traits
+result = predict_traits(genome_by_rsid)
+# result = {eye_color: {prediction, confidence, ...}, hair_color: {...}, ...}
+```
 
 ## Interpretation Guide
 

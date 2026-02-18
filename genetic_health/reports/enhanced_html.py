@@ -997,6 +997,144 @@ def build_star_alleles_section(star_results):
     return "\n".join(parts)
 
 
+def build_apoe_section(apoe_data):
+    """Build HTML for APOE haplotype section."""
+    if not apoe_data or apoe_data.get("apoe_type") == "Unknown":
+        return "<p>Insufficient SNP data for APOE haplotype determination.</p>"
+
+    risk_colors = {
+        "reduced": "#22c55e", "average": "#3b82f6", "moderate": "#f59e0b",
+        "elevated": "#f97316", "high": "#ef4444", "unknown": "#94a3b8",
+    }
+    color = risk_colors.get(apoe_data["risk_level"], "#94a3b8")
+
+    parts = []
+    parts.append(
+        f'<div style="text-align:center;margin:1em 0">'
+        f'<span style="font-size:2em;font-weight:bold;color:{color}">'
+        f'{apoe_data["apoe_type"]}</span><br>'
+        f'<span class="badge" style="background:{color}">'
+        f'{apoe_data["risk_level"].title()} Alzheimer\'s Risk</span>'
+        f'</div>'
+    )
+
+    if apoe_data.get("alzheimer_or") is not None:
+        parts.append(f'<p><strong>Alzheimer\'s odds ratio:</strong> {apoe_data["alzheimer_or"]}x</p>')
+    parts.append(f'<p>{apoe_data["description"]}</p>')
+    parts.append(
+        '<p style="font-size:.85em;color:var(--accent2)">'
+        'APOE is the strongest common genetic risk factor for late-onset Alzheimer\'s. '
+        'Risk is modifiable through cardiovascular health, exercise, sleep, and cognitive engagement.</p>'
+    )
+    return "\n".join(parts)
+
+
+def build_acmg_section(acmg_data):
+    """Build HTML for ACMG secondary findings section."""
+    if not acmg_data:
+        return "<p>ACMG screening not available.</p>"
+
+    parts = []
+    parts.append(
+        f'<p style="font-size:.9em;color:var(--accent2)">'
+        f'Screened {acmg_data["genes_screened"]} medically actionable genes from the '
+        f'ACMG SF v3.2 recommendation list.</p>'
+    )
+
+    findings = acmg_data.get("acmg_findings", [])
+    if not findings:
+        parts.append(
+            '<div class="doctor-callout" style="border-color:var(--green)">'
+            'No pathogenic/likely pathogenic variants found in ACMG genes.</div>'
+        )
+    else:
+        parts.append(
+            f'<div class="doctor-callout" style="border-color:var(--warn)">'
+            f'<strong>{len(findings)} variant(s)</strong> found in '
+            f'{acmg_data["genes_with_variants"]} ACMG gene(s). '
+            f'Genetic counseling recommended.</div>'
+        )
+        parts.append('<table><tr><th>Gene</th><th>Condition</th>'
+                     '<th>Genotype</th><th>Stars</th><th>Actionability</th></tr>')
+        for f in findings:
+            gene = f.get("gene", "Unknown")
+            condition = (f.get("traits") or "Unknown").split(";")[0].strip()
+            genotype = f.get("user_genotype", "")
+            stars = f.get("gold_stars", 0)
+            action = f.get("acmg_actionability", "")
+            parts.append(
+                f'<tr><td><strong>{gene}</strong></td>'
+                f'<td>{condition}</td>'
+                f'<td><code>{genotype}</code></td>'
+                f'<td>{"&#9733;" * stars}{"&#9734;" * (4 - stars)}</td>'
+                f'<td style="font-size:.85em">{action}</td></tr>'
+            )
+        parts.append("</table>")
+
+    return "\n".join(parts)
+
+
+def build_carrier_screen_section(carrier_data):
+    """Build HTML for carrier screening section."""
+    if not carrier_data or carrier_data.get("total_carriers", 0) == 0:
+        return "<p>No carrier findings to report.</p>"
+
+    parts = []
+    parts.append(
+        f'<p>{carrier_data["total_carriers"]} carrier finding(s) organized by disease system. '
+        f'Relevant for reproductive planning.</p>'
+    )
+
+    for system, carriers in sorted(carrier_data.get("by_system", {}).items()):
+        parts.append(f'<h3>{system}</h3><ul>')
+        for c in carriers:
+            note = f' &mdash; <em>{c["reproductive_note"]}</em>' if c.get("reproductive_note") else ""
+            parts.append(
+                f'<li><strong>{c["gene"]}</strong> ({c.get("rsid", "")}): '
+                f'{c["condition"]} <span class="badge">{c["inheritance"]}</span>{note}</li>'
+            )
+        parts.append("</ul>")
+
+    couples = carrier_data.get("couples_relevant", [])
+    if couples:
+        parts.append('<h3>Couples-Relevant Conditions</h3>'
+                     '<p>Commonly included in expanded carrier screening panels:</p><ul>')
+        for c in couples:
+            parts.append(f'<li><strong>{c["gene"]}</strong>: {c["condition"]}</li>')
+        parts.append("</ul>")
+
+    return "\n".join(parts)
+
+
+def build_traits_section(traits_data):
+    """Build HTML for predicted traits section."""
+    if not traits_data:
+        return "<p>No trait predictions available.</p>"
+
+    trait_labels = {
+        "eye_color": "Eye Color",
+        "hair_color": "Hair Color",
+        "earwax_type": "Earwax Type",
+        "freckling": "Freckling / Sun Sensitivity",
+    }
+
+    parts = []
+    parts.append('<table><tr><th>Trait</th><th>Prediction</th>'
+                 '<th>Confidence</th><th>Description</th></tr>')
+    for trait_id, trait in traits_data.items():
+        label = trait_labels.get(trait_id, trait_id.replace("_", " ").title())
+        conf_color = {"high": "var(--green)", "moderate": "var(--accent)",
+                      "low": "var(--warn)"}.get(trait["confidence"], "inherit")
+        parts.append(
+            f'<tr><td><strong>{label}</strong></td>'
+            f'<td>{trait["prediction"]}</td>'
+            f'<td style="color:{conf_color}">{trait["confidence"].title()}</td>'
+            f'<td style="font-size:.85em">{trait["description"]}</td></tr>'
+        )
+    parts.append("</table>")
+    return "\n".join(parts)
+
+
 def build_eli5(findings, disease_sections, personal_text):
     """Build ELI5 (explain like I'm 5) summary."""
     high_impact = [f for f in findings if f.get("magnitude", 0) >= 3]
@@ -1827,24 +1965,27 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <div class="toc">
 <a href="#eli5">1. Simple Summary</a>
 <a href="#quality">2. Data Quality</a>
-<a href="#recommendations">3. Personalized Recommendations</a>
-<a href="#dashboard">4. Dashboard</a>
-<a href="#ancestry">5. Ancestry</a>
-<a href="#blood-type">6. Blood Type</a>
-<a href="#mt-haplogroup">7. Maternal Haplogroup</a>
-<a href="#prs">8. Polygenic Risk Scores</a>
-<a href="#star-alleles">9. Pharmacogenomic Star Alleles</a>
-<a href="#epistasis">10. Gene-Gene Interactions</a>
-<a href="#critical">11. Critical Findings</a>
-<a href="#asthma">12. Asthma &amp; Medications</a>
-<a href="#lifestyle">13. Lifestyle Findings</a>
-<a href="#disease">14. Disease Risk</a>
-<a href="#drugs">15. Drug-Gene Interactions</a>
-<a href="#nutrition">16. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">17. Monitoring Schedule</a>
-<a href="#protective">18. Protective Variants</a>
-<a href="#doctor-card">19. Doctor Card</a>
-<a href="#references">20. References &amp; Links</a>
+<a href="#apoe">3. APOE Haplotype</a>
+<a href="#recommendations">4. Personalized Recommendations</a>
+<a href="#dashboard">5. Dashboard</a>
+<a href="#ancestry">6. Ancestry</a>
+<a href="#blood-type">7. Blood Type &amp; Traits</a>
+<a href="#mt-haplogroup">8. Maternal Haplogroup</a>
+<a href="#prs">9. Polygenic Risk Scores</a>
+<a href="#star-alleles">10. Pharmacogenomic Star Alleles</a>
+<a href="#acmg">11. ACMG Secondary Findings</a>
+<a href="#epistasis">12. Gene-Gene Interactions</a>
+<a href="#critical">13. Critical Findings</a>
+<a href="#carrier-screen">14. Carrier Screening</a>
+<a href="#asthma">15. Asthma &amp; Medications</a>
+<a href="#lifestyle">16. Lifestyle Findings</a>
+<a href="#disease">17. Disease Risk</a>
+<a href="#drugs">18. Drug-Gene Interactions</a>
+<a href="#nutrition">19. Nutrition &amp; Lifestyle</a>
+<a href="#monitoring">20. Monitoring Schedule</a>
+<a href="#protective">21. Protective Variants</a>
+<a href="#doctor-card">22. Doctor Card</a>
+<a href="#references">23. References &amp; Links</a>
 </div>
 </nav>
 
@@ -1865,94 +2006,110 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 {quality_content}
 </div>
 
+<div class="section" id="apoe">
+<h2><span class="section-number">3</span> APOE Haplotype</h2>
+{apoe_content}
+</div>
+
 <div class="section" id="recommendations">
-<h2><span class="section-number">3</span> Personalized Recommendations</h2>
+<h2><span class="section-number">4</span> Personalized Recommendations</h2>
 {recommendations_content}
 </div>
 
 <div class="section no-print" id="dashboard">
-<h2><span class="section-number">4</span> Dashboard</h2>
+<h2><span class="section-number">5</span> Dashboard</h2>
 {dashboard_content}
 </div>
 
 <div class="section" id="ancestry">
-<h2><span class="section-number">5</span> Ancestry Estimation</h2>
+<h2><span class="section-number">6</span> Ancestry Estimation</h2>
 {ancestry_content}
 </div>
 
 <div class="section" id="blood-type">
-<h2><span class="section-number">6</span> Blood Type</h2>
+<h2><span class="section-number">7</span> Blood Type &amp; Traits</h2>
 {blood_type_content}
+{traits_content}
 </div>
 
 <div class="section" id="mt-haplogroup">
-<h2><span class="section-number">7</span> Maternal Haplogroup</h2>
+<h2><span class="section-number">8</span> Maternal Haplogroup</h2>
 {mt_haplogroup_content}
 </div>
 
 <div class="section" id="prs">
-<h2><span class="section-number">8</span> Polygenic Risk Scores</h2>
+<h2><span class="section-number">9</span> Polygenic Risk Scores</h2>
 {prs_content}
 </div>
 
 <div class="section" id="star-alleles">
-<h2><span class="section-number">9</span> Pharmacogenomic Star Alleles</h2>
+<h2><span class="section-number">10</span> Pharmacogenomic Star Alleles</h2>
 {star_alleles_content}
 </div>
 
+<div class="section" id="acmg">
+<h2><span class="section-number">11</span> ACMG Secondary Findings</h2>
+{acmg_content}
+</div>
+
 <div class="section" id="epistasis">
-<h2><span class="section-number">10</span> Gene-Gene Interactions</h2>
+<h2><span class="section-number">12</span> Gene-Gene Interactions</h2>
 {epistasis_content}
 </div>
 
 <div class="section" id="critical">
-<h2><span class="section-number">11</span> Critical Findings</h2>
+<h2><span class="section-number">13</span> Critical Findings</h2>
 {critical_content}
 </div>
 
+<div class="section" id="carrier-screen">
+<h2><span class="section-number">14</span> Carrier Screening</h2>
+{carrier_screen_content}
+</div>
+
 <div class="section" id="asthma">
-<h2><span class="section-number">12</span> Asthma &amp; Medications</h2>
+<h2><span class="section-number">15</span> Asthma &amp; Medications</h2>
 {asthma_content}
 </div>
 
 <div class="section" id="lifestyle">
-<h2><span class="section-number">13</span> All Lifestyle Findings</h2>
+<h2><span class="section-number">16</span> All Lifestyle Findings</h2>
 {lifestyle_content}
 </div>
 
 <div class="section" id="disease">
-<h2><span class="section-number">14</span> Disease Risk</h2>
+<h2><span class="section-number">17</span> Disease Risk</h2>
 {disease_content}
 </div>
 
 <div class="section" id="drugs">
-<h2><span class="section-number">15</span> Drug-Gene Interactions</h2>
+<h2><span class="section-number">18</span> Drug-Gene Interactions</h2>
 {drugs_content}
 </div>
 
 <div class="section" id="nutrition">
-<h2><span class="section-number">16</span> Nutrition, Supplements &amp; Lifestyle</h2>
+<h2><span class="section-number">19</span> Nutrition, Supplements &amp; Lifestyle</h2>
 {nutrition_content}
 </div>
 
 <div class="section" id="monitoring">
-<h2><span class="section-number">17</span> Monitoring Schedule</h2>
+<h2><span class="section-number">20</span> Monitoring Schedule</h2>
 {monitoring_content}
 </div>
 
 <div class="section" id="protective">
-<h2><span class="section-number">18</span> Protective Variants (Good News)</h2>
+<h2><span class="section-number">21</span> Protective Variants (Good News)</h2>
 {protective_content}
 </div>
 
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">19</span> Doctor Card</h2>
+<h2><span class="section-number">22</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">20</span> References &amp; Links</h2>
+<h2><span class="section-number">23</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -2107,6 +2264,10 @@ def main():
     blood_type_data = data.get("blood_type", {})
     mt_haplogroup_data = data.get("mt_haplogroup", {})
     star_alleles_data = data.get("star_alleles", {})
+    apoe_data = data.get("apoe", {})
+    acmg_data = data.get("acmg", {})
+    carrier_screen_data = data.get("carrier_screen", {})
+    traits_data = data.get("traits", {})
 
     print(f">>> Loading {disease_path.name}")
     disease_text = load_text(disease_path)
@@ -2128,6 +2289,9 @@ def main():
     print(">>> Building quality section")
     quality = build_quality_section(quality_data)
 
+    print(">>> Building APOE section")
+    apoe_html = build_apoe_section(apoe_data)
+
     print(">>> Building ancestry section")
     ancestry = build_ancestry_section(ancestry_data)
 
@@ -2143,8 +2307,17 @@ def main():
     print(">>> Building star alleles section")
     star_alleles_html = build_star_alleles_section(star_alleles_data)
 
+    print(">>> Building ACMG section")
+    acmg_html = build_acmg_section(acmg_data)
+
     print(">>> Building epistasis section")
     epistasis = build_epistasis_section(epistasis_data)
+
+    print(">>> Building carrier screening section")
+    carrier_screen_html = build_carrier_screen_section(carrier_screen_data)
+
+    print(">>> Building traits section")
+    traits_html = build_traits_section(traits_data)
 
     print(">>> Building recommendations section")
     recommendations = build_recommendations_section(recommendations_data)
@@ -2191,14 +2364,18 @@ def main():
         num_pharmgkb=len(pharmgkb_findings),
         eli5_content=eli5,
         quality_content=quality,
+        apoe_content=apoe_html,
         recommendations_content=recommendations,
         dashboard_content=dashboard,
         ancestry_content=ancestry,
         blood_type_content=blood_type_html,
+        traits_content=traits_html,
         mt_haplogroup_content=mt_haplogroup_html,
         prs_content=prs,
         star_alleles_content=star_alleles_html,
+        acmg_content=acmg_html,
         epistasis_content=epistasis,
+        carrier_screen_content=carrier_screen_html,
         critical_content=critical,
         asthma_content=asthma,
         lifestyle_content=lifestyle,
@@ -2211,7 +2388,7 @@ def main():
         references_content=references,
     )
 
-    output_path = REPORTS_DIR / "ENHANCED_HEALTH_REPORT.html"
+    output_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.html"
     output_path.write_text(html, encoding="utf-8")
 
     print(f"\n{'='*60}")

@@ -1,11 +1,8 @@
 """Tests for disease risk analysis (ClinVar logic) and disease report generation."""
 
 from genetic_health.analysis import load_clinvar_and_analyze
-from genetic_health.reports import (
-    classify_zygosity,
-    generate_disease_risk_report,
-    generate_actionable_protocol,
-)
+from genetic_health.reports import classify_zygosity
+from genetic_health.reports.markdown_reports import generate_unified_report
 
 
 class TestZygosityClassification:
@@ -206,9 +203,16 @@ class TestVariantDetection:
 
 
 class TestDiseaseReportFormatting:
+    _MINIMAL_HEALTH = {
+        "findings": [],
+        "pharmgkb_findings": [],
+        "summary": {"total_snps": 0, "analyzed_snps": 0,
+                     "high_impact": 0, "moderate_impact": 0, "low_impact": 0},
+    }
+
     def test_traits_whitespace_trimmed(self, tmp_path, make_finding):
         """Traits with leading/trailing whitespace after semicolon split should be trimmed."""
-        findings = {
+        disease_findings = {
             "pathogenic": [
                 make_finding(
                     is_homozygous=True,
@@ -224,14 +228,14 @@ class TestDiseaseReportFormatting:
         }
         stats = {"total_clinvar": 100, "pathogenic_matched": 1, "likely_pathogenic_matched": 0}
         output = tmp_path / "report.md"
-        generate_disease_risk_report(findings, stats, 600000, output)
+        generate_unified_report(self._MINIMAL_HEALTH, disease_findings, stats, output)
         content = output.read_text()
         # The header should have trimmed trait, not "  Cystic fibrosis "
-        assert "### CFTR - Cystic fibrosis" in content
+        assert "CFTR" in content and "Cystic fibrosis" in content
         assert "  Cystic fibrosis " not in content
 
-    def test_actionable_protocol_with_none_disease_findings(self, tmp_path):
-        """Protocol should generate without crashing when ClinVar is missing."""
+    def test_unified_report_with_none_disease_findings(self, tmp_path):
+        """Report should generate without crashing when ClinVar is missing."""
         health_results = {
             "findings": [
                 {"gene": "CYP1A2", "category": "Caffeine", "genotype": "AA",
@@ -242,11 +246,11 @@ class TestDiseaseReportFormatting:
             "summary": {"total_snps": 1, "analyzed_snps": 1,
                          "high_impact": 0, "moderate_impact": 1, "low_impact": 0},
         }
-        output = tmp_path / "protocol.md"
-        generate_actionable_protocol(health_results, None, output)
+        output = tmp_path / "report.md"
+        generate_unified_report(health_results, None, None, output)
         content = output.read_text()
-        assert "Actionable Health Protocol" in content
-        assert "None detected" in content
+        assert "Genetic Health Report" in content
+        assert "ClinVar data not available" in content
 
     def test_findings_dict_keeps_highest_magnitude(self, tmp_path):
         """When a gene has multiple rsIDs, the highest magnitude finding should be used."""
@@ -263,8 +267,8 @@ class TestDiseaseReportFormatting:
             "summary": {"total_snps": 2, "analyzed_snps": 2,
                          "high_impact": 1, "moderate_impact": 0, "low_impact": 1},
         }
-        output = tmp_path / "protocol.md"
-        generate_actionable_protocol(health_results, None, output)
+        output = tmp_path / "report.md"
+        generate_unified_report(health_results, None, None, output)
         content = output.read_text()
         # With magnitude 3, MTHFR should trigger supplement recommendations
         assert "Methylfolate" in content

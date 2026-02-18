@@ -16,11 +16,11 @@ from .quality_metrics import compute_quality_metrics
 from .blood_type import predict_blood_type
 from .mt_haplogroup import estimate_mt_haplogroup
 from .star_alleles import call_star_alleles
-from .reports import (
-    generate_exhaustive_genetic_report,
-    generate_disease_risk_report,
-    generate_actionable_protocol,
-)
+from .apoe import call_apoe_haplotype
+from .acmg import flag_acmg_findings
+from .carrier_screen import organize_carrier_findings
+from .traits import predict_traits
+from .reports import generate_unified_report
 
 
 def print_header(text):
@@ -86,12 +86,25 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
           f"{mt_haplogroup['markers_found']}/{mt_haplogroup['markers_tested']} markers)")
     print(f"    Lineage: {mt_haplogroup['lineage']}")
 
-    # Call pharmacogenomic star alleles
+    # Call pharmacogenomic star alleles (CYP2C19, CYP2C9, CYP2D6, DPYD, TPMT, UGT1A1)
     print_step("Calling pharmacogenomic star alleles")
     star_alleles = call_star_alleles(genome_by_rsid)
     for gene, result in star_alleles.items():
         print(f"    {gene}: {result['diplotype']} -> {result['phenotype']} metabolizer "
               f"[{result['snps_found']}/{result['snps_total']} SNPs]")
+
+    # Call APOE haplotype
+    print_step("Calling APOE haplotype")
+    apoe = call_apoe_haplotype(genome_by_rsid)
+    print(f"    APOE: {apoe['apoe_type']} ({apoe['risk_level']} risk, "
+          f"{apoe['confidence']} confidence)")
+
+    # Predict traits
+    print_step("Predicting visible traits")
+    traits = predict_traits(genome_by_rsid)
+    for trait_name, trait in traits.items():
+        print(f"    {trait_name.replace('_', ' ').title()}: {trait['prediction']} "
+              f"({trait['confidence']} confidence)")
 
     # Load PharmGKB
     pharmgkb = load_pharmgkb()
@@ -135,6 +148,18 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     # Run disease risk analysis (needed for recommendations)
     disease_findings, disease_stats = load_clinvar_and_analyze(genome_by_position)
 
+    # ACMG secondary findings
+    print_step("Screening ACMG SF v3.2 medically actionable genes")
+    acmg = flag_acmg_findings(disease_findings)
+    print(f"    {acmg['genes_screened']} genes screened, "
+          f"{acmg['genes_with_variants']} with variants")
+
+    # Carrier screening
+    print_step("Organizing carrier findings")
+    carrier_screen = organize_carrier_findings(disease_findings)
+    print(f"    {carrier_screen['total_carriers']} carrier findings, "
+          f"{len(carrier_screen['couples_relevant'])} couples-relevant")
+
     # Generate personalized recommendations synthesis
     print_step("Generating personalized recommendations")
     recommendations = generate_recommendations(
@@ -149,7 +174,7 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     print(f"    {len(recommendations['priorities'])} priority areas "
           f"({high_count} high, {mod_count} moderate)")
 
-    # Save intermediate results for exhaustive report generator
+    # Save intermediate results for HTML report generator
     results_json = {
         'findings': health_results['findings'],
         'pharmgkb_findings': health_results['pharmgkb_findings'],
@@ -165,31 +190,36 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'blood_type': blood_type,
         'mt_haplogroup': mt_haplogroup,
         'star_alleles': star_alleles,
+        'apoe': apoe,
+        'acmg': acmg,
+        'carrier_screen': carrier_screen,
+        'traits': traits,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
         json.dump(results_json, f, indent=2)
 
-    # Generate exhaustive genetic report
-    genetic_report_path = REPORTS_DIR / "EXHAUSTIVE_GENETIC_REPORT.md"
-    generate_exhaustive_genetic_report(health_results, genetic_report_path, subject_name)
-
-    # Generate disease risk report
-    if disease_findings:
-        disease_report_path = REPORTS_DIR / "EXHAUSTIVE_DISEASE_RISK_REPORT.md"
-        generate_disease_risk_report(disease_findings, disease_stats, len(genome_by_rsid),
-                                      disease_report_path, subject_name)
-
-    # Generate actionable protocol - use versioned filename
-    protocol_path = REPORTS_DIR / "ACTIONABLE_HEALTH_PROTOCOL_V3.md"
-    generate_actionable_protocol(health_results, disease_findings, protocol_path, subject_name,
-                                 ancestry_results=ancestry_results, prs_results=prs_results,
-                                 epistasis_results=epistasis_results,
-                                 recommendations=recommendations,
-                                 quality_metrics=quality_metrics,
-                                 blood_type=blood_type,
-                                 mt_haplogroup=mt_haplogroup,
-                                 star_alleles=star_alleles)
+    # Generate unified Markdown report
+    unified_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.md"
+    generate_unified_report(
+        health_results=health_results,
+        disease_findings=disease_findings,
+        disease_stats=disease_stats,
+        output_path=unified_path,
+        subject_name=subject_name,
+        ancestry_results=ancestry_results,
+        prs_results=prs_results,
+        epistasis_results=epistasis_results,
+        recommendations=recommendations,
+        quality_metrics=quality_metrics,
+        blood_type=blood_type,
+        mt_haplogroup=mt_haplogroup,
+        star_alleles=star_alleles,
+        apoe=apoe,
+        acmg=acmg,
+        carrier_screen=carrier_screen,
+        traits=traits,
+    )
 
     # Generate enhanced all-in-one HTML report
     from .reports.enhanced_html import main as generate_enhanced_report
@@ -200,32 +230,30 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     if export_pdf:
         from .reports.pdf_export import export_pdf as _export_pdf
         print_step("Exporting reports to PDF")
-        enhanced_html = REPORTS_DIR / "ENHANCED_HEALTH_REPORT.html"
-        if enhanced_html.exists():
-            pdf_path = _export_pdf(enhanced_html)
+        # Prefer the interactive HTML report for PDF; fall back to markdown sidecar
+        html_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.html"
+        if not html_path.exists():
+            html_path = unified_path.with_suffix(".html")
+        if html_path.exists():
+            pdf_path = _export_pdf(html_path)
             if pdf_path:
                 print(f"    PDF: {pdf_path}")
 
     # Summary
     print_header("ANALYSIS COMPLETE")
-    print(f"\nReports generated in: {REPORTS_DIR}  (Markdown + HTML)")
-    print(f"\n  1. EXHAUSTIVE_GENETIC_REPORT.{{md,html}}")
+    print(f"\nReports generated in: {REPORTS_DIR}")
+    print(f"\n  1. GENETIC_HEALTH_REPORT.md")
+    print(f"     - Unified report with all sections")
     print(f"     - {len(health_results['findings'])} lifestyle/health findings")
     print(f"     - {len(health_results['pharmgkb_findings'])} drug-gene interactions")
 
     if disease_findings:
-        print(f"\n  2. EXHAUSTIVE_DISEASE_RISK_REPORT.{{md,html}}")
         print(f"     - {len(disease_findings['pathogenic'])} pathogenic variants")
         print(f"     - {len(disease_findings['likely_pathogenic'])} likely pathogenic")
         print(f"     - {len(disease_findings['risk_factor'])} risk factors")
 
-    print(f"\n  3. ACTIONABLE_HEALTH_PROTOCOL_V3.{{md,html}}")
-    print(f"     - Comprehensive protocol (lifestyle + disease risk + carrier status)")
-    if epistasis_results:
-        print(f"     - {len(epistasis_results)} gene-gene interactions")
-
-    print(f"\n  4. ENHANCED_HEALTH_REPORT.html")
-    print(f"     - All-in-one interactive report (SVG charts, collapsible sections)")
+    print(f"\n  2. GENETIC_HEALTH_REPORT.html")
+    print(f"     - Interactive HTML report (SVG charts, collapsible sections)")
 
     if ancestry_results:
         print(f"\n  Ancestry: {ancestry_results['top_ancestry']} "
@@ -241,6 +269,10 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         else:
             print(f"\n  PRS: All conditions within average range")
 
+    print(f"\n  APOE: {apoe['apoe_type']} ({apoe['risk_level']})")
+    if acmg['genes_with_variants'] > 0:
+        print(f"\n  ACMG: {acmg['genes_with_variants']} medically actionable gene(s) found")
+
     print(f"\nFinished: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     return {
@@ -255,6 +287,10 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'blood_type': blood_type,
         'mt_haplogroup': mt_haplogroup,
         'star_alleles': star_alleles,
+        'apoe': apoe,
+        'acmg': acmg,
+        'carrier_screen': carrier_screen,
+        'traits': traits,
     }
 
 
