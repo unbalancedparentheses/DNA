@@ -252,10 +252,77 @@ This report is for **informational purposes only**. It is NOT a clinical diagnos
     _write_html(report, output_path)
 
 
+def _render_recommendations_section(recommendations):
+    """Render the personalized recommendations section as Markdown."""
+    if not recommendations:
+        return ""
+
+    section = "\n\n---\n\n## Personalized Recommendations\n\n"
+    section += ("*Prioritized synthesis of all genetic signals — convergent risks "
+                "are ranked highest.*\n\n")
+
+    priorities = recommendations.get("priorities", [])
+    if not priorities:
+        section += "No convergent risk patterns detected.\n"
+    else:
+        for p in priorities:
+            icon = {"high": "!!!", "moderate": "!!", "low": ""}.get(p["priority"], "")
+            section += f"### {p['title']} ({p['priority'].title()}) {icon}\n\n"
+            section += f"**Why:** {p['why']}\n\n"
+            section += "**Actions:**\n"
+            for i, action in enumerate(p["actions"], 1):
+                section += f"{i}. {action}\n"
+            if p.get("doctor_note"):
+                section += f"\n> **Doctor note:** {p['doctor_note']}\n"
+            if p.get("monitoring"):
+                section += "\n**Monitoring:**\n"
+                for m in p["monitoring"]:
+                    section += f"- {m['test']} ({m['frequency']}): {m['reason']}\n"
+            section += "\n---\n\n"
+
+    # Drug card
+    drug_card = recommendations.get("drug_card", [])
+    if drug_card:
+        section += "### Drug-Gene Card\n\n"
+        section += "| Gene | rsID | Genotype | Status | Source |\n"
+        section += "|------|------|----------|--------|--------|\n"
+        for entry in drug_card:
+            for e in entry["entries"]:
+                status = e.get("status", "").replace("_", " ").title() or "\u2014"
+                section += (f"| {entry['gene']} | {e['rsid']} | "
+                            f"`{e['genotype']}` | {status} | {e['source']} |\n")
+        section += "\n"
+
+    # Monitoring schedule
+    schedule = recommendations.get("monitoring_schedule", [])
+    if schedule:
+        section += "### Monitoring Schedule\n\n"
+        section += "| Test | Frequency | Reason |\n"
+        section += "|------|-----------|--------|\n"
+        for m in schedule:
+            section += f"| {m['test']} | {m['frequency']} | {m['reason']} |\n"
+        section += "\n"
+
+    # Good news
+    good_news = recommendations.get("good_news", [])
+    if good_news:
+        section += "### Good News\n\n"
+        for g in good_news:
+            section += f"- **{g['gene']}**: {g['description']}\n"
+        section += "\n"
+
+    return section
+
+
 def generate_actionable_protocol(health_results: dict, disease_findings: dict,
                                   output_path: Path, subject_name: str = None,
                                   ancestry_results: dict = None, prs_results: dict = None,
-                                  epistasis_results: list = None):
+                                  epistasis_results: list = None,
+                                  recommendations: dict = None,
+                                  quality_metrics: dict = None,
+                                  blood_type: dict = None,
+                                  mt_haplogroup: dict = None,
+                                  star_alleles: dict = None):
     """Generate comprehensive actionable health protocol combining ALL sources."""
     _print_step("Generating actionable health protocol (comprehensive)")
 
@@ -307,7 +374,37 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
 
 ---
 
-## Executive Summary
+"""
+
+    # --- Data Quality Section ---
+    if quality_metrics:
+        report += "## Data Quality\n\n"
+        report += f"- **Total SNPs loaded:** {quality_metrics['total_snps']:,}\n"
+        report += f"- **Call rate:** {quality_metrics['call_rate']:.1%}\n"
+        report += f"- **No-call positions:** {quality_metrics['no_call_count']:,}\n"
+        report += f"- **Autosomal SNPs:** {quality_metrics['autosomal_count']:,}\n"
+        report += f"- **Heterozygosity rate:** {quality_metrics['het_rate']:.3f}\n"
+        report += f"- **Mitochondrial SNPs:** {quality_metrics['mt_snp_count']}\n"
+        if quality_metrics['has_y']:
+            report += "- **Inferred sex:** Male (Y chromosome detected)\n"
+        else:
+            report += "- **Inferred sex:** Female (no Y chromosome)\n"
+
+        # Chromosome coverage summary
+        chroms = quality_metrics.get('chromosomes', {})
+        autosomal = sorted(
+            [(ch, cnt) for ch, cnt in chroms.items() if ch.isdigit()],
+            key=lambda x: int(x[0])
+        )
+        if autosomal:
+            report += "\n**Chromosome coverage (top 5):**\n\n"
+            report += "| Chromosome | SNPs |\n|------------|------|\n"
+            for ch, cnt in sorted(autosomal, key=lambda x: -x[1])[:5]:
+                report += f"| chr{ch} | {cnt:,} |\n"
+
+        report += "\n---\n\n"
+
+    report += """## Executive Summary
 
 ### High-Impact Lifestyle Findings (Magnitude >= 3)
 
@@ -360,6 +457,9 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
     else:
         report += "None detected.\n"
 
+    # --- Personalized Recommendations ---
+    report += _render_recommendations_section(recommendations)
+
     # --- Ancestry Section ---
     report += "\n\n---\n\n## Ancestry Estimation\n\n"
 
@@ -381,6 +481,38 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
         report += "Commercial ancestry services use hundreds of thousands of markers for finer resolution.*\n"
     else:
         report += "Insufficient markers for ancestry estimation.\n"
+
+    # --- Blood Type Section ---
+    report += "\n\n---\n\n## Blood Type\n\n"
+
+    if blood_type and blood_type.get("blood_type") != "Unknown":
+        report += f"**Predicted Blood Type:** {blood_type['blood_type']}\n\n"
+        report += f"- **ABO Group:** {blood_type['abo']}\n"
+        report += f"- **Rh Factor:** {blood_type['rh']}\n"
+        report += f"- **Confidence:** {blood_type['confidence'].title()}\n\n"
+        if blood_type.get("details"):
+            report += "**SNPs used:**\n"
+            for d in blood_type["details"]:
+                report += f"- {d}\n"
+        report += "\n*Blood type prediction from SNP data has limitations. "
+        report += "23andMe cannot detect all ABO variants (rs8176719 is an indel). "
+        report += "Confirm with a clinical blood typing test.*\n"
+    else:
+        report += "Insufficient SNP data for blood type prediction.\n"
+
+    # --- Mitochondrial Haplogroup Section ---
+    report += "\n\n---\n\n## Mitochondrial Haplogroup (Maternal Lineage)\n\n"
+
+    if mt_haplogroup and mt_haplogroup.get("haplogroup") != "Unknown":
+        report += f"**Haplogroup:** {mt_haplogroup['haplogroup']}\n\n"
+        report += f"- **Description:** {mt_haplogroup['description']}\n"
+        report += f"- **Lineage:** {mt_haplogroup['lineage']}\n"
+        report += f"- **Confidence:** {mt_haplogroup['confidence'].title()}\n"
+        report += f"- **Markers found:** {mt_haplogroup['markers_found']}/{mt_haplogroup['markers_tested']}\n\n"
+        report += "*Mitochondrial DNA is inherited exclusively from the mother and traces "
+        report += "the direct maternal line. Your haplogroup reflects ancient migration patterns.*\n"
+    else:
+        report += "Insufficient mitochondrial SNP data for haplogroup estimation.\n"
 
     # --- PRS Section ---
     report += "\n\n---\n\n## Polygenic Risk Scores\n\n"
@@ -686,6 +818,36 @@ This protocol synthesizes ALL genetic findings into concrete recommendations:
             report += f"- {m}\n"
     else:
         report += "Standard health monitoring appropriate for age.\n"
+
+    # --- Star Alleles Section ---
+    report += "\n\n---\n\n## Pharmacogenomic Star Alleles\n\n"
+
+    if star_alleles:
+        report += ("*CPIC-style star allele calling for key drug-metabolizing enzymes. "
+                   "Share with prescribing physicians.*\n\n")
+
+        report += "| Gene | Diplotype | Phenotype | SNPs Found | Note |\n"
+        report += "|------|-----------|-----------|------------|------|\n"
+        for gene, r in star_alleles.items():
+            phenotype = r['phenotype'].replace('_', ' ').title()
+            note = r['clinical_note'][:80] + '...' if len(r['clinical_note']) > 80 else r['clinical_note']
+            report += (f"| {gene} | {r['diplotype']} | {phenotype} | "
+                       f"{r['snps_found']}/{r['snps_total']} | {note} |\n")
+
+        # Highlight actionable results
+        actionable = [
+            (g, r) for g, r in star_alleles.items()
+            if r['phenotype'] in ('poor', 'intermediate', 'rapid', 'ultrarapid')
+               and r['phenotype'] != 'Unknown'
+        ]
+        if actionable:
+            report += "\n### Actionable Metabolizer Phenotypes\n\n"
+            for gene, r in actionable:
+                phenotype = r['phenotype'].replace('_', ' ').title()
+                report += f"**{gene}** — {r['diplotype']} ({phenotype} Metabolizer)\n\n"
+                report += f"{r['clinical_note']}\n\n"
+    else:
+        report += "Star allele data not available.\n"
 
     report += """
 

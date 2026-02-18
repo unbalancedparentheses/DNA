@@ -27,10 +27,13 @@ The pipeline generates four reports in the `reports/` directory:
 1. **EXHAUSTIVE_GENETIC_REPORT.md** - Lifestyle/health genetics analysis
    - Drug metabolism (CYP enzymes, warfarin sensitivity)
    - Methylation (MTHFR, COMT, MTRR)
-   - Nutrition (vitamin D, omega-3, lactose)
+   - Nutrition (vitamin D receptor, omega-3, lactose)
    - Fitness (muscle fiber type, exercise response)
    - Cardiovascular (blood pressure genes, clotting)
    - Sleep/circadian rhythm
+   - Blood type (ABO + Rh)
+   - Taste perception (TAS2R38 bitter taste)
+   - Autoimmune (HLA associations)
    - PharmGKB drug-gene interactions
 
 2. **EXHAUSTIVE_DISEASE_RISK_REPORT.md** - Clinical variant analysis
@@ -41,9 +44,14 @@ The pipeline generates four reports in the `reports/` directory:
    - Protective variants
 
 3. **ACTIONABLE_HEALTH_PROTOCOL_V3.md** - Comprehensive protocol
+   - Data quality metrics (call rate, chromosome coverage, sex inference)
    - Critical disease findings summary (pathogenic, carrier status)
+   - Blood type prediction (ABO + Rh factor)
+   - Mitochondrial haplogroup (maternal lineage)
    - Ancestry estimation and population context
    - Polygenic risk scores for 5 conditions
+   - Pharmacogenomic star alleles (CYP2C19, CYP2C9, CYP2D6 metabolizer phenotypes)
+   - Gene-gene interactions (epistasis)
    - Supplement and dietary recommendations
    - Lifestyle and exercise guidance
    - Blood pressure management
@@ -51,10 +59,15 @@ The pipeline generates four reports in the `reports/` directory:
    - Comprehensive drug interactions (PharmGKB + ClinVar)
    - Testing & monitoring schedule
 
-4. **ENHANCED_HEALTH_REPORT.html** - All-in-one interactive HTML report
+4. **ENHANCED_HEALTH_REPORT.html** - All-in-one interactive HTML report (20 sections)
+   - Data quality dashboard (call rate, chromosome coverage, sex inference)
+   - Blood type display (ABO + Rh)
+   - Mitochondrial haplogroup (maternal lineage)
+   - Star allele metabolizer gauges (CYP2C19, CYP2C9, CYP2D6)
    - SVG charts and dashboards
    - Ancestry donut chart with proportions
    - PRS gauge visualizations for 5 conditions
+   - Population frequency badges on annotated findings
    - Search/filter across all findings and tables
    - Sortable table columns (click headers)
    - CSV export of findings to clipboard
@@ -78,19 +91,26 @@ DNA/
 │   ├── config.py                 # Centralized paths (BASE_DIR, DATA_DIR, etc.)
 │   ├── loading.py                # load_genome(), load_pharmgkb()
 │   ├── analysis.py               # analyze_lifestyle_health(), load_clinvar_and_analyze()
+│   ├── snp_database.py           # COMPREHENSIVE_SNPS (~210+ curated variants)
+│   ├── clinical_context.py       # CLINICAL_CONTEXT + PATHWAYS data
 │   ├── ancestry.py               # AIMs database + ancestry estimation
 │   ├── prs.py                    # Polygenic risk score models + scoring
-│   ├── update_data.py            # ClinVar auto-download + PharmGKB validation
-│   ├── snp_database.py           # COMPREHENSIVE_SNPS (~200 curated variants)
-│   ├── clinical_context.py       # CLINICAL_CONTEXT + PATHWAYS data
+│   ├── epistasis.py              # Gene-gene interaction detection (10 models)
+│   ├── recommendations.py        # Actionable recommendations from findings
+│   ├── blood_type.py             # ABO + Rh blood type prediction from proxy SNPs
+│   ├── quality_metrics.py        # Call rate, het rate, chromosome coverage, sex inference
+│   ├── mt_haplogroup.py          # Mitochondrial haplogroup estimation (~25 MT SNPs)
+│   ├── star_alleles.py           # CPIC-style star allele calling (CYP2C19/2C9/2D6)
 │   ├── pipeline.py               # run_full_analysis() orchestrator + CLI
 │   ├── wgs_pipeline.py           # WGS FASTQ→reports pipeline
+│   ├── update_data.py            # ClinVar auto-download + PharmGKB validation
 │   └── reports/
 │       ├── __init__.py            # Re-exports generators
 │       ├── html_converter.py      # Markdown→HTML converter
 │       ├── section_builders.py    # Section generators for exhaustive report
 │       ├── markdown_reports.py    # 3 Markdown report generators
-│       └── enhanced_html.py       # All-in-one interactive HTML report
+│       ├── enhanced_html.py       # All-in-one interactive HTML report
+│       └── pdf_export.py          # PDF export (Chrome headless / weasyprint)
 ├── scripts/
 │   └── setup_reference.sh        # Reference genome setup (shell script)
 ├── tests/
@@ -103,7 +123,13 @@ DNA/
 │   ├── test_html_reports.py
 │   ├── test_ancestry.py           # Ancestry marker + scoring tests
 │   ├── test_prs.py                # PRS model + calculation tests
-│   └── test_update_data.py        # Data update + metadata tests
+│   ├── test_epistasis.py          # Epistasis model + interaction tests
+│   ├── test_update_data.py        # Data update + metadata tests
+│   ├── test_blood_type.py         # Blood type prediction tests
+│   ├── test_quality_metrics.py    # Data quality metrics tests
+│   ├── test_mt_haplogroup.py      # MT haplogroup estimation tests
+│   ├── test_star_alleles.py       # Star allele calling tests
+│   └── test_recommendations.py    # Recommendation generation tests
 ├── data/
 │   ├── genome.txt                 # 23andMe raw data file
 │   ├── clinvar_alleles.tsv        # ClinVar database (~341K variants)
@@ -170,16 +196,11 @@ results = run_full_analysis(genome_path, subject_name)
 ```
 
 ### genetic_health.snp_database
-Contains curated SNP interpretations for ~200 health-relevant variants organized by category:
-- Drug Metabolism
-- Methylation
-- Neurotransmitters
-- Caffeine Response
-- Cardiovascular
-- Nutrition
-- Fitness
-- Sleep/Circadian
-- And more...
+Contains curated SNP interpretations for ~210+ health-relevant variants organized by 16 categories:
+- Drug Metabolism, Methylation, Neurotransmitters, Caffeine Response
+- Cardiovascular, Nutrition, Fitness, Sleep/Circadian
+- Detoxification, Autoimmune, Iron Metabolism, Immune Function
+- Inflammation, Alcohol Metabolism, Blood Type, Taste Perception
 
 Each SNP entry includes:
 - Gene name
@@ -187,6 +208,7 @@ Each SNP entry includes:
 - Genotype interpretations
 - Status descriptions
 - Impact magnitude (0-6 scale)
+- Optional `freq` field with population allele frequencies (EUR, AFR, EAS, SAS, AMR)
 
 ### genetic_health.analysis — Disease Risk Analysis
 The disease risk analysis scans the genome against ClinVar. Important implementation detail:
@@ -248,6 +270,61 @@ make data-status          # Show current data versions
 
 ### genetic_health.clinical_context
 Contains clinical context database with detailed interpretations, mechanisms, and recommendations for each gene/status combination.
+
+### genetic_health.epistasis
+Evaluates 10 well-characterized multi-gene interactions where combined effects differ from individual variants.
+
+```python
+from genetic_health.epistasis import evaluate_epistasis
+results = evaluate_epistasis(genome_by_rsid, lifestyle_results)
+# results = [{"name": ..., "risk_level": ..., "mechanism": ..., "recommendations": [...]}, ...]
+```
+
+### genetic_health.recommendations
+Generates actionable supplement, dietary, and lifestyle recommendations from analysis findings.
+
+```python
+from genetic_health.recommendations import generate_recommendations
+recs = generate_recommendations(lifestyle_results, clinvar_findings, ancestry, prs_results)
+```
+
+### genetic_health.blood_type
+Predicts ABO blood group + Rh factor from proxy SNPs (rs505922, rs8176746, rs590787).
+
+```python
+from genetic_health.blood_type import predict_blood_type
+result = predict_blood_type(genome_by_rsid)
+# result = {blood_type: "A+", abo: "A", rh: "+", confidence: "high", details: [...]}
+```
+
+### genetic_health.quality_metrics
+Computes data quality metrics from the loaded genome and raw file.
+
+```python
+from genetic_health.quality_metrics import compute_quality_metrics
+metrics = compute_quality_metrics(genome_by_rsid, genome_path)
+# metrics = {total_snps, no_call_count, call_rate, chromosomes, has_mt, has_y, het_rate, ...}
+```
+
+### genetic_health.mt_haplogroup
+Estimates maternal lineage haplogroup from ~25 mitochondrial DNA defining SNPs.
+
+```python
+from genetic_health.mt_haplogroup import estimate_mt_haplogroup
+result = estimate_mt_haplogroup(genome_by_rsid)
+# result = {haplogroup: "H", description: "...", confidence: "high", lineage: "European maternal", ...}
+```
+
+### genetic_health.star_alleles
+CPIC-style star allele calling for CYP2C19, CYP2C9, CYP2D6 with metabolizer phenotype classification.
+
+```python
+from genetic_health.star_alleles import call_star_alleles
+results = call_star_alleles(genome_by_rsid)
+# results["CYP2C19"] = {gene, diplotype: "*1/*2", phenotype: "Intermediate Metabolizer", ...}
+```
+
+CYP2D6 results always include caveat about undetectable copy number variants.
 
 ## Interpretation Guide
 

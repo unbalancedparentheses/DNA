@@ -2,6 +2,12 @@
 Comprehensive SNP Database for Total Health Optimization
 Covers: Drug metabolism, methylation, fitness, nutrition, sleep, cardiovascular,
 cognition, longevity, inflammation, and lifestyle factors.
+
+The optional ``freq`` field on some entries contains **minor (variant) allele
+frequencies** per 1000 Genomes superpopulation (EUR, AFR, EAS, SAS, AMR).
+Values represent the proportion of chromosomes carrying the variant allele in
+that population.  They do NOT sum to 1.0 across populations — each population
+is an independent measurement.
 """
 
 COMPREHENSIVE_SNPS = {
@@ -24,7 +30,8 @@ COMPREHENSIVE_SNPS = {
             "GG": {"status": "normal", "desc": "Normal CYP2C19 - standard drug metabolism", "magnitude": 0},
             "GA": {"status": "intermediate", "desc": "Intermediate CYP2C19 (*2 carrier) - clopidogrel less effective", "magnitude": 3},
             "AA": {"status": "poor", "desc": "Poor CYP2C19 (*2/*2) - clopidogrel ineffective, use alternative antiplatelet", "magnitude": 4},
-        }
+        },
+        "freq": {"EUR": 0.15, "AFR": 0.18, "EAS": 0.30, "SAS": 0.34, "AMR": 0.12},
     },
     "rs12248560": {
         "gene": "CYP2C19", "category": "Drug Metabolism",
@@ -57,7 +64,8 @@ COMPREHENSIVE_SNPS = {
             "GA": {"status": "sensitive", "desc": "Increased warfarin sensitivity - lower doses needed", "magnitude": 3},
             "AG": {"status": "sensitive", "desc": "Increased warfarin sensitivity - lower doses needed", "magnitude": 3},
             "AA": {"status": "highly_sensitive", "desc": "Highly warfarin sensitive - significantly lower doses", "magnitude": 4},
-        }
+        },
+        "freq": {"EUR": 0.39, "AFR": 0.11, "EAS": 0.90, "SAS": 0.34, "AMR": 0.45},
     },
     "rs4149056": {
         "gene": "SLCO1B1", "category": "Drug Metabolism",
@@ -66,7 +74,8 @@ COMPREHENSIVE_SNPS = {
             "TC": {"status": "intermediate", "desc": "Intermediate statin transporter - 4x myopathy risk with simvastatin", "magnitude": 3},
             "CT": {"status": "intermediate", "desc": "Intermediate statin transporter - 4x myopathy risk with simvastatin", "magnitude": 3},
             "CC": {"status": "poor", "desc": "Poor statin transporter - 17x myopathy risk, avoid simvastatin", "magnitude": 4},
-        }
+        },
+        "freq": {"EUR": 0.15, "AFR": 0.02, "EAS": 0.11, "SAS": 0.05, "AMR": 0.08},
     },
     "rs3892097": {
         "gene": "CYP2D6", "category": "Drug Metabolism",
@@ -92,7 +101,8 @@ COMPREHENSIVE_SNPS = {
             "CC": {"status": "normal", "desc": "Normal DPYD - standard fluoropyrimidine tolerance", "magnitude": 0},
             "CT": {"status": "intermediate", "desc": "Reduced DPYD - 50% dose reduction for 5-FU/capecitabine", "magnitude": 5},
             "TT": {"status": "deficient", "desc": "DPYD deficient - fluoropyrimidines contraindicated (can be fatal)", "magnitude": 6},
-        }
+        },
+        "freq": {"EUR": 0.01, "AFR": 0.001, "EAS": 0.001, "SAS": 0.001, "AMR": 0.005},
     },
     "rs1800460": {
         "gene": "TPMT", "category": "Drug Metabolism",
@@ -124,7 +134,8 @@ COMPREHENSIVE_SNPS = {
             "AG": {"status": "reduced", "desc": "MTHFR C677T heterozygous - ~35% reduced activity, may benefit from methylfolate", "magnitude": 2},
             "GA": {"status": "reduced", "desc": "MTHFR C677T heterozygous - ~35% reduced activity, may benefit from methylfolate", "magnitude": 2},
             "AA": {"status": "significantly_reduced", "desc": "MTHFR C677T homozygous - ~70% reduced activity, methylfolate recommended over folic acid", "magnitude": 3},
-        }
+        },
+        "freq": {"EUR": 0.36, "AFR": 0.11, "EAS": 0.33, "SAS": 0.15, "AMR": 0.46},
     },
     "rs1801131": {
         "gene": "MTHFR", "category": "Methylation",
@@ -368,7 +379,8 @@ COMPREHENSIVE_SNPS = {
             "CT": {"status": "mixed", "desc": "ACTN3 R/X (mixed) - balanced muscle fiber composition", "magnitude": 1},
             "TC": {"status": "mixed", "desc": "ACTN3 R/X (mixed) - balanced muscle fiber composition", "magnitude": 1},
             "TT": {"status": "endurance", "desc": "ACTN3 X/X (endurance type) - no alpha-actinin-3, better suited for endurance sports", "magnitude": 2},
-        }
+        },
+        "freq": {"EUR": 0.42, "AFR": 0.10, "EAS": 0.52, "SAS": 0.38, "AMR": 0.35},
     },
     "rs4994": {
         "gene": "ADRB3", "category": "Fitness",
@@ -467,7 +479,8 @@ COMPREHENSIVE_SNPS = {
             "CT": {"status": "increased", "desc": "TCF7L2 risk allele heterozygous - 1.4x T2D risk, carb restriction helpful", "magnitude": 2},
             "TC": {"status": "increased", "desc": "TCF7L2 risk allele heterozygous - 1.4x T2D risk, carb restriction helpful", "magnitude": 2},
             "TT": {"status": "elevated", "desc": "TCF7L2 T/T - 2x T2D risk, low-glycemic diet strongly recommended", "magnitude": 3},
-        }
+        },
+        "freq": {"EUR": 0.30, "AFR": 0.28, "EAS": 0.03, "SAS": 0.30, "AMR": 0.25},
     },
     "rs5082": {
         "gene": "APOA2", "category": "Nutrition",
@@ -494,7 +507,8 @@ COMPREHENSIVE_SNPS = {
             "AG": {"status": "tolerant", "desc": "Lactase persistence heterozygous - likely lactose tolerant", "magnitude": 0},
             "GA": {"status": "tolerant", "desc": "Lactase persistence heterozygous - likely lactose tolerant", "magnitude": 0},
             "GG": {"status": "tolerant", "desc": "Lactase persistence - maintains lactase production, lactose tolerant", "magnitude": 0},
-        }
+        },
+        "freq": {"EUR": 0.75, "AFR": 0.10, "EAS": 0.01, "SAS": 0.25, "AMR": 0.40},
     },
     "rs2282679": {
         "gene": "GC", "category": "Nutrition",
@@ -513,6 +527,26 @@ COMPREHENSIVE_SNPS = {
             "TA": {"status": "reduced", "desc": "BCMO1 A379V heterozygous - ~30% reduced conversion, consider preformed vitamin A", "magnitude": 1},
             "TT": {"status": "significantly_reduced", "desc": "BCMO1 T/T - ~70% reduced beta-carotene conversion, need preformed vitamin A sources", "magnitude": 2},
         }
+    },
+    "rs2228570": {
+        "gene": "VDR", "category": "Nutrition",
+        "variants": {
+            "CC": {"status": "normal", "desc": "Normal VDR FokI - standard vitamin D receptor function", "magnitude": 0},
+            "CT": {"status": "reduced", "desc": "VDR FokI heterozygous - slightly reduced vitamin D receptor activity", "magnitude": 1},
+            "TC": {"status": "reduced", "desc": "VDR FokI heterozygous - slightly reduced vitamin D receptor activity", "magnitude": 1},
+            "TT": {"status": "significantly_reduced", "desc": "VDR FokI T/T - reduced vitamin D receptor function, may need higher vitamin D levels", "magnitude": 2},
+        },
+        "note": "FokI variant affects VDR protein length. T allele produces a longer, less active receptor."
+    },
+    "rs1544410": {
+        "gene": "VDR", "category": "Nutrition",
+        "variants": {
+            "CC": {"status": "normal", "desc": "Normal VDR BsmI - standard bone mineral density", "magnitude": 0},
+            "CT": {"status": "reduced", "desc": "VDR BsmI heterozygous - associated with lower bone mineral density", "magnitude": 1},
+            "TC": {"status": "reduced", "desc": "VDR BsmI heterozygous - associated with lower bone mineral density", "magnitude": 1},
+            "TT": {"status": "low_bmd", "desc": "VDR BsmI T/T - associated with reduced bone mineral density, ensure adequate vitamin D + calcium", "magnitude": 2},
+        },
+        "note": "BsmI polymorphism affects VDR mRNA stability and bone metabolism."
     },
     "rs602662": {
         "gene": "FUT2", "category": "Nutrition",
@@ -536,7 +570,8 @@ COMPREHENSIVE_SNPS = {
             "TC": {"status": "e4_carrier", "desc": "APOE e4 carrier (one copy) - increased CVD and Alzheimer's risk", "magnitude": 3},
             "CT": {"status": "e4_carrier", "desc": "APOE e4 carrier (one copy) - increased CVD and Alzheimer's risk", "magnitude": 3},
             "CC": {"status": "e4_homozygous", "desc": "APOE e4/e4 - significantly elevated Alzheimer's risk (10-15x)", "magnitude": 5},
-        }
+        },
+        "freq": {"EUR": 0.15, "AFR": 0.27, "EAS": 0.09, "SAS": 0.12, "AMR": 0.11},
     },
     "rs7412": {
         "gene": "APOE", "category": "Cardiovascular",
@@ -555,7 +590,8 @@ COMPREHENSIVE_SNPS = {
             "CT": {"status": "carrier", "desc": "Factor V Leiden heterozygous - 5-10x DVT risk, avoid estrogen contraceptives", "magnitude": 4},
             "TC": {"status": "carrier", "desc": "Factor V Leiden heterozygous - 5-10x DVT risk, avoid estrogen contraceptives", "magnitude": 4},
             "TT": {"status": "homozygous", "desc": "Factor V Leiden homozygous - 50-100x DVT risk", "magnitude": 5},
-        }
+        },
+        "freq": {"EUR": 0.05, "AFR": 0.01, "EAS": 0.001, "SAS": 0.01, "AMR": 0.02},
     },
     "rs1799963": {
         "gene": "F2", "category": "Cardiovascular",
@@ -641,7 +677,8 @@ COMPREHENSIVE_SNPS = {
             "GA": {"status": "carrier", "desc": "HFE C282Y carrier - monitor iron levels periodically", "magnitude": 2},
             "AG": {"status": "carrier", "desc": "HFE C282Y carrier - monitor iron levels periodically", "magnitude": 2},
             "AA": {"status": "at_risk", "desc": "HFE C282Y homozygous - hereditary hemochromatosis risk, regular iron monitoring essential", "magnitude": 4},
-        }
+        },
+        "freq": {"EUR": 0.08, "AFR": 0.001, "EAS": 0.001, "SAS": 0.001, "AMR": 0.03},
     },
     "rs1799945": {
         "gene": "HFE", "category": "Iron Metabolism",
@@ -674,6 +711,26 @@ COMPREHENSIVE_SNPS = {
             "TG": {"status": "increased", "desc": "STAT4 risk allele - increased RA, lupus risk", "magnitude": 1},
             "TT": {"status": "elevated", "desc": "STAT4 T/T - elevated autoimmune disease risk", "magnitude": 2},
         }
+    },
+    "rs6457620": {
+        "gene": "HLA-DRB1", "category": "Autoimmune",
+        "variants": {
+            "AA": {"status": "normal", "desc": "Normal HLA-DRB1 risk - lower RA/T1D susceptibility", "magnitude": 0},
+            "AG": {"status": "increased", "desc": "HLA-DRB1 tag heterozygous - increased rheumatoid arthritis and type 1 diabetes risk", "magnitude": 2},
+            "GA": {"status": "increased", "desc": "HLA-DRB1 tag heterozygous - increased rheumatoid arthritis and type 1 diabetes risk", "magnitude": 2},
+            "GG": {"status": "elevated", "desc": "HLA-DRB1 tag homozygous - significantly elevated RA and T1D risk", "magnitude": 3},
+        },
+        "note": "Tag SNP for HLA-DRB1 shared epitope alleles associated with RA and T1D."
+    },
+    "rs3134792": {
+        "gene": "HLA-B27", "category": "Autoimmune",
+        "variants": {
+            "CC": {"status": "normal", "desc": "HLA-B27 proxy negative - lower ankylosing spondylitis risk", "magnitude": 0},
+            "CT": {"status": "carrier", "desc": "HLA-B27 proxy heterozygous - increased ankylosing spondylitis risk (~5-6% develop AS)", "magnitude": 2},
+            "TC": {"status": "carrier", "desc": "HLA-B27 proxy heterozygous - increased ankylosing spondylitis risk (~5-6% develop AS)", "magnitude": 2},
+            "TT": {"status": "positive", "desc": "HLA-B27 proxy positive - elevated risk for ankylosing spondylitis and reactive arthritis", "magnitude": 3},
+        },
+        "note": "Proxy for HLA-B27. ~8% of European population is HLA-B27+, but only 5-6% of carriers develop AS."
     },
     "rs2476601": {
         "gene": "PTPN22", "category": "Autoimmune",
@@ -769,7 +826,8 @@ COMPREHENSIVE_SNPS = {
             "CT": {"status": "carrier", "desc": "Alpha-1 antitrypsin Pi*Z carrier - avoid smoking, monitor lung function", "magnitude": 3},
             "TC": {"status": "carrier", "desc": "Alpha-1 antitrypsin Pi*Z carrier - avoid smoking, monitor lung function", "magnitude": 3},
             "TT": {"status": "deficient", "desc": "Alpha-1 antitrypsin deficiency (Pi*ZZ) - high COPD/liver disease risk", "magnitude": 5},
-        }
+        },
+        "freq": {"EUR": 0.02, "AFR": 0.001, "EAS": 0.001, "SAS": 0.001, "AMR": 0.01},
     },
 
     # =========================================================================
@@ -783,7 +841,8 @@ COMPREHENSIVE_SNPS = {
             "GA": {"status": "reduced", "desc": "ALDH2*2 heterozygous - alcohol flush, increased esophageal cancer risk with drinking", "magnitude": 3},
             "AG": {"status": "reduced", "desc": "ALDH2*2 heterozygous - alcohol flush, increased esophageal cancer risk with drinking", "magnitude": 3},
             "AA": {"status": "deficient", "desc": "ALDH2*2 homozygous - severe alcohol intolerance, avoid alcohol", "magnitude": 4},
-        }
+        },
+        "freq": {"EUR": 0.001, "AFR": 0.001, "EAS": 0.30, "SAS": 0.03, "AMR": 0.01},
     },
     "rs1229984": {
         "gene": "ADH1B", "category": "Alcohol",
@@ -792,6 +851,74 @@ COMPREHENSIVE_SNPS = {
             "CT": {"status": "intermediate", "desc": "Intermediate alcohol metabolism", "magnitude": 0},
             "TC": {"status": "intermediate", "desc": "Intermediate alcohol metabolism", "magnitude": 0},
             "TT": {"status": "fast", "desc": "Fast alcohol metabolism - protective against alcoholism", "magnitude": 1},
+        }
+    },
+
+    # =========================================================================
+    # SECTION 15: BLOOD TYPE
+    # =========================================================================
+
+    "rs505922": {
+        "gene": "ABO", "category": "Blood Type",
+        "variants": {
+            "CC": {"status": "A_or_B", "desc": "ABO proxy: likely blood type A or B (C allele)", "magnitude": 1},
+            "CT": {"status": "A_or_B_carrier_O", "desc": "ABO proxy: A/B with one O allele", "magnitude": 1},
+            "TC": {"status": "A_or_B_carrier_O", "desc": "ABO proxy: A/B with one O allele", "magnitude": 1},
+            "TT": {"status": "likely_O", "desc": "ABO proxy: likely blood type O (TT strongly associated with O type)", "magnitude": 1},
+        },
+        "note": "rs505922 is a reliable proxy for ABO blood type. T allele strongly associated with O type."
+    },
+    "rs8176746": {
+        "gene": "ABO", "category": "Blood Type",
+        "variants": {
+            "CC": {"status": "not_B", "desc": "ABO B allele absent - blood type A or O", "magnitude": 0},
+            "CT": {"status": "B_carrier", "desc": "ABO B allele heterozygous - possible blood type B or AB", "magnitude": 1},
+            "TC": {"status": "B_carrier", "desc": "ABO B allele heterozygous - possible blood type B or AB", "magnitude": 1},
+            "TT": {"status": "B_likely", "desc": "ABO B allele homozygous - likely blood type B", "magnitude": 1},
+        },
+        "note": "T allele at rs8176746 defines the B antigen."
+    },
+    "rs590787": {
+        "gene": "RHD", "category": "Blood Type",
+        "variants": {
+            "CC": {"status": "Rh_positive", "desc": "Rh factor positive (most common)", "magnitude": 0},
+            "CT": {"status": "Rh_positive", "desc": "Rh factor positive (carrier of Rh- allele)", "magnitude": 0},
+            "TC": {"status": "Rh_positive", "desc": "Rh factor positive (carrier of Rh- allele)", "magnitude": 0},
+            "TT": {"status": "Rh_negative", "desc": "Rh factor likely negative - relevant for pregnancy and transfusions", "magnitude": 2},
+        },
+        "note": "Proxy SNP for RhD status. Rh-negative is ~15% in Europeans, <1% in East Asians."
+    },
+
+    # =========================================================================
+    # SECTION 16: BITTER TASTE
+    # =========================================================================
+
+    "rs713598": {
+        "gene": "TAS2R38", "category": "Taste",
+        "variants": {
+            "GG": {"status": "taster", "desc": "TAS2R38 A49P: strong bitter taster (PAV haplotype) - perceives PTC/PROP as very bitter", "magnitude": 1},
+            "GC": {"status": "intermediate", "desc": "TAS2R38 A49P heterozygous: moderate bitter taste perception", "magnitude": 0},
+            "CG": {"status": "intermediate", "desc": "TAS2R38 A49P heterozygous: moderate bitter taste perception", "magnitude": 0},
+            "CC": {"status": "non_taster", "desc": "TAS2R38 A49P: non-taster (AVI haplotype) - reduced bitter taste, may eat more cruciferous vegetables", "magnitude": 1},
+        },
+        "note": "Most important variant for bitter taste. Affects preference for cruciferous vegetables, coffee, beer."
+    },
+    "rs1726866": {
+        "gene": "TAS2R38", "category": "Taste",
+        "variants": {
+            "GG": {"status": "taster", "desc": "TAS2R38 V262A: taster allele", "magnitude": 0},
+            "GA": {"status": "intermediate", "desc": "TAS2R38 V262A heterozygous", "magnitude": 0},
+            "AG": {"status": "intermediate", "desc": "TAS2R38 V262A heterozygous", "magnitude": 0},
+            "AA": {"status": "non_taster", "desc": "TAS2R38 V262A: non-taster allele", "magnitude": 0},
+        }
+    },
+    "rs10246939": {
+        "gene": "TAS2R38", "category": "Taste",
+        "variants": {
+            "CC": {"status": "taster", "desc": "TAS2R38 I296V: taster allele (I296)", "magnitude": 0},
+            "CT": {"status": "intermediate", "desc": "TAS2R38 I296V heterozygous", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "TAS2R38 I296V heterozygous", "magnitude": 0},
+            "TT": {"status": "non_taster", "desc": "TAS2R38 I296V: non-taster allele (V296)", "magnitude": 0},
         }
     },
 }

@@ -54,6 +54,7 @@ def analyze_lifestyle_health(genome_by_rsid: dict, pharmgkb: dict) -> dict:
                     'description': variant_info['desc'],
                     'magnitude': variant_info['magnitude'],
                     'note': info.get('note', ''),
+                    'freq': info.get('freq'),
                 }
                 results['findings'].append(finding)
                 results['by_category'][info['category']].append(finding)

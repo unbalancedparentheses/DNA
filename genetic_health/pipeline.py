@@ -11,6 +11,11 @@ from .analysis import analyze_lifestyle_health, load_clinvar_and_analyze
 from .ancestry import estimate_ancestry
 from .prs import calculate_prs
 from .epistasis import evaluate_epistasis
+from .recommendations import generate_recommendations
+from .quality_metrics import compute_quality_metrics
+from .blood_type import predict_blood_type
+from .mt_haplogroup import estimate_mt_haplogroup
+from .star_alleles import call_star_alleles
 from .reports import (
     generate_exhaustive_genetic_report,
     generate_disease_risk_report,
@@ -54,6 +59,40 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     # Load genome
     genome_by_rsid, genome_by_position = load_genome(genome_path)
 
+    # Compute data quality metrics
+    print_step("Computing data quality metrics")
+    quality_metrics = compute_quality_metrics(genome_by_rsid, genome_path)
+    print(f"    Total SNPs: {quality_metrics['total_snps']:,}")
+    print(f"    Call rate: {quality_metrics['call_rate']:.1%}")
+    print(f"    Autosomal: {quality_metrics['autosomal_count']:,}, "
+          f"MT: {quality_metrics['mt_snp_count']}, "
+          f"Het rate: {quality_metrics['het_rate']:.3f}")
+    if quality_metrics['has_y']:
+        print("    Sex chromosomes: X + Y (biological male)")
+    else:
+        print("    Sex chromosomes: X only (biological female)")
+
+    # Predict blood type
+    print_step("Predicting blood type")
+    blood_type = predict_blood_type(genome_by_rsid)
+    print(f"    Blood type: {blood_type['blood_type']} "
+          f"({blood_type['confidence']} confidence)")
+
+    # Estimate mitochondrial haplogroup
+    print_step("Estimating mitochondrial haplogroup")
+    mt_haplogroup = estimate_mt_haplogroup(genome_by_rsid)
+    print(f"    Haplogroup: {mt_haplogroup['haplogroup']} "
+          f"({mt_haplogroup['confidence']} confidence, "
+          f"{mt_haplogroup['markers_found']}/{mt_haplogroup['markers_tested']} markers)")
+    print(f"    Lineage: {mt_haplogroup['lineage']}")
+
+    # Call pharmacogenomic star alleles
+    print_step("Calling pharmacogenomic star alleles")
+    star_alleles = call_star_alleles(genome_by_rsid)
+    for gene, result in star_alleles.items():
+        print(f"    {gene}: {result['diplotype']} -> {result['phenotype']} metabolizer "
+              f"[{result['snps_found']}/{result['snps_total']} SNPs]")
+
     # Load PharmGKB
     pharmgkb = load_pharmgkb()
 
@@ -93,6 +132,23 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     else:
         print("    No significant gene-gene interactions detected")
 
+    # Run disease risk analysis (needed for recommendations)
+    disease_findings, disease_stats = load_clinvar_and_analyze(genome_by_position)
+
+    # Generate personalized recommendations synthesis
+    print_step("Generating personalized recommendations")
+    recommendations = generate_recommendations(
+        health_results['findings'],
+        disease_findings=disease_findings,
+        ancestry_results=ancestry_results,
+        prs_results=prs_results,
+        epistasis_results=epistasis_results,
+    )
+    high_count = sum(1 for p in recommendations['priorities'] if p['priority'] == 'high')
+    mod_count = sum(1 for p in recommendations['priorities'] if p['priority'] == 'moderate')
+    print(f"    {len(recommendations['priorities'])} priority areas "
+          f"({high_count} high, {mod_count} moderate)")
+
     # Save intermediate results for exhaustive report generator
     results_json = {
         'findings': health_results['findings'],
@@ -104,6 +160,11 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
             {k: v for k, v in e.items() if k != 'genes_involved' or True}
             for e in epistasis_results
         ],
+        'recommendations': recommendations,
+        'quality_metrics': quality_metrics,
+        'blood_type': blood_type,
+        'mt_haplogroup': mt_haplogroup,
+        'star_alleles': star_alleles,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
@@ -112,9 +173,6 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     # Generate exhaustive genetic report
     genetic_report_path = REPORTS_DIR / "EXHAUSTIVE_GENETIC_REPORT.md"
     generate_exhaustive_genetic_report(health_results, genetic_report_path, subject_name)
-
-    # Run disease risk analysis
-    disease_findings, disease_stats = load_clinvar_and_analyze(genome_by_position)
 
     # Generate disease risk report
     if disease_findings:
@@ -126,7 +184,12 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     protocol_path = REPORTS_DIR / "ACTIONABLE_HEALTH_PROTOCOL_V3.md"
     generate_actionable_protocol(health_results, disease_findings, protocol_path, subject_name,
                                  ancestry_results=ancestry_results, prs_results=prs_results,
-                                 epistasis_results=epistasis_results)
+                                 epistasis_results=epistasis_results,
+                                 recommendations=recommendations,
+                                 quality_metrics=quality_metrics,
+                                 blood_type=blood_type,
+                                 mt_haplogroup=mt_haplogroup,
+                                 star_alleles=star_alleles)
 
     # Generate enhanced all-in-one HTML report
     from .reports.enhanced_html import main as generate_enhanced_report
@@ -187,6 +250,11 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'ancestry_results': ancestry_results,
         'prs_results': prs_results,
         'epistasis_results': epistasis_results,
+        'recommendations': recommendations,
+        'quality_metrics': quality_metrics,
+        'blood_type': blood_type,
+        'mt_haplogroup': mt_haplogroup,
+        'star_alleles': star_alleles,
     }
 
 

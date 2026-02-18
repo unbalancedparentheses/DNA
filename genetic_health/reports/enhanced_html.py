@@ -694,9 +694,308 @@ def build_epistasis_section(epistasis_results):
     return "\n".join(parts)
 
 
+def build_recommendations_section(recs_data):
+    """Build HTML for personalized recommendations section."""
+    if not recs_data:
+        return "<p>No personalized recommendations available.</p>"
+
+    parts = []
+    priorities = recs_data.get("priorities", [])
+
+    if not priorities:
+        parts.append("<p>No convergent risk patterns detected.</p>")
+    else:
+        parts.append(
+            '<p style="font-size:.9em;color:var(--accent2)">'
+            'Prioritized synthesis of all genetic signals. Convergent risks '
+            '(multiple independent signals pointing to the same condition) '
+            'are ranked highest.</p>'
+        )
+
+        priority_colors = {
+            "high": "#ef4444",
+            "moderate": "#f59e0b",
+            "low": "#22c55e",
+        }
+
+        for p in priorities:
+            color = priority_colors.get(p["priority"], "var(--border)")
+            badge_bg = color
+
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid {color};">'
+                f'<summary>'
+                f'<span class="mag-badge" style="background:{badge_bg};color:#fff">'
+                f'{p["priority"].upper()}</span> '
+                f'<strong>{p["title"]}</strong></summary>'
+            )
+
+            parts.append(f'<p><strong>Why:</strong> {p["why"]}</p>')
+
+            parts.append("<p><strong>Actions:</strong></p><ol>")
+            for action in p["actions"]:
+                parts.append(f"<li>{action}</li>")
+            parts.append("</ol>")
+
+            if p.get("doctor_note"):
+                parts.append(
+                    f'<div class="doctor-callout" style="text-align:left;font-weight:normal">'
+                    f'<strong>Doctor note:</strong> {p["doctor_note"]}</div>'
+                )
+
+            if p.get("monitoring"):
+                parts.append(
+                    '<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>'
+                )
+                for m in p["monitoring"]:
+                    parts.append(
+                        f'<tr><td>{m["test"]}</td><td>{m["frequency"]}</td>'
+                        f'<td>{m["reason"]}</td></tr>'
+                    )
+                parts.append("</table>")
+
+            parts.append("</details>")
+
+    # Drug card
+    drug_card = recs_data.get("drug_card", [])
+    if drug_card:
+        parts.append("<h3>Drug-Gene Card</h3>")
+        parts.append(
+            '<table><tr><th>Gene</th><th>rsID</th><th>Genotype</th>'
+            '<th>Status</th><th>Source</th></tr>'
+        )
+        for entry in drug_card:
+            for e in entry["entries"]:
+                status = (e.get("status") or "").replace("_", " ").title() or "\u2014"
+                parts.append(
+                    f'<tr><td><strong>{entry["gene"]}</strong></td>'
+                    f'<td><code>{e["rsid"]}</code></td>'
+                    f'<td><code>{e["genotype"]}</code></td>'
+                    f'<td>{status}</td><td>{e["source"]}</td></tr>'
+                )
+        parts.append("</table>")
+
+    # Monitoring schedule
+    schedule = recs_data.get("monitoring_schedule", [])
+    if schedule:
+        parts.append("<h3>Consolidated Monitoring Schedule</h3>")
+        parts.append(
+            '<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>'
+        )
+        for m in schedule:
+            parts.append(
+                f'<tr><td>{m["test"]}</td><td>{m["frequency"]}</td>'
+                f'<td>{m["reason"]}</td></tr>'
+            )
+        parts.append("</table>")
+
+    # Good news
+    good_news = recs_data.get("good_news", [])
+    if good_news:
+        parts.append("<h3>Good News</h3>")
+        parts.append('<div class="good-news-grid">')
+        for g in good_news:
+            parts.append(
+                f'<div class="good-news-card">'
+                f'<strong>{g["gene"]}</strong>: {g["description"]}</div>'
+            )
+        parts.append("</div>")
+
+    return "\n".join(parts)
+
+
 # =============================================================================
 # SECTION BUILDERS
 # =============================================================================
+
+def build_quality_section(metrics):
+    """Build HTML for data quality section."""
+    if not metrics:
+        return "<p>No quality metrics available.</p>"
+
+    parts = []
+
+    call_pct = metrics.get("call_rate", 0) * 100
+    if call_pct >= 99:
+        badge_color = "var(--green)"
+        badge_text = "Excellent"
+    elif call_pct >= 97:
+        badge_color = "#3b82f6"
+        badge_text = "Good"
+    elif call_pct >= 95:
+        badge_color = "#f59e0b"
+        badge_text = "Fair"
+    else:
+        badge_color = "var(--warn)"
+        badge_text = "Low"
+
+    parts.append(
+        f'<p><strong>Call Rate:</strong> '
+        f'<span class="mag-badge" style="background:{badge_color};color:#fff">'
+        f'{call_pct:.1f}% — {badge_text}</span></p>'
+    )
+
+    parts.append(
+        f'<table><tr><th>Metric</th><th>Value</th></tr>'
+        f'<tr><td>Total SNPs</td><td>{metrics["total_snps"]:,}</td></tr>'
+        f'<tr><td>No-call positions</td><td>{metrics["no_call_count"]:,}</td></tr>'
+        f'<tr><td>Autosomal SNPs</td><td>{metrics["autosomal_count"]:,}</td></tr>'
+        f'<tr><td>Mitochondrial SNPs</td><td>{metrics["mt_snp_count"]}</td></tr>'
+        f'<tr><td>Heterozygosity rate</td><td>{metrics["het_rate"]:.3f}</td></tr>'
+        f'<tr><td>Inferred sex</td><td>{"Male (Y detected)" if metrics["has_y"] else "Female"}</td></tr>'
+        f'</table>'
+    )
+
+    # Chromosome bar chart
+    chroms = metrics.get("chromosomes", {})
+    autosomal = sorted(
+        [(ch, cnt) for ch, cnt in chroms.items() if ch.isdigit()],
+        key=lambda x: int(x[0])
+    )
+    if autosomal:
+        max_cnt = max(cnt for _, cnt in autosomal)
+        bar_w = 300
+        bar_h = 14
+        height = len(autosomal) * (bar_h + 4) + 20
+        bars = []
+        for i, (ch, cnt) in enumerate(autosomal):
+            y = 10 + i * (bar_h + 4)
+            w = int(cnt / max_cnt * bar_w) if max_cnt else 0
+            bars.append(
+                f'<text x="30" y="{y + 11}" text-anchor="end" '
+                f'fill="currentColor" font-size="10">{ch}</text>'
+                f'<rect x="35" y="{y}" width="{w}" height="{bar_h}" '
+                f'rx="2" fill="var(--accent)" opacity="0.7"/>'
+                f'<text x="{40 + w}" y="{y + 11}" '
+                f'fill="currentColor" font-size="9">{cnt:,}</text>'
+            )
+        parts.append(
+            f'<h3>Chromosome Coverage</h3>'
+            f'<svg viewBox="0 0 440 {height}" class="chart" role="img" '
+            f'aria-label="Chromosome SNP coverage">'
+            f'<title>SNPs per Chromosome</title>'
+            f'{"".join(bars)}</svg>'
+        )
+
+    return "\n".join(parts)
+
+
+def build_blood_type_section(blood_type):
+    """Build HTML for blood type section."""
+    if not blood_type or blood_type.get("blood_type") == "Unknown":
+        return "<p>Insufficient SNP data for blood type prediction.</p>"
+
+    parts = []
+    bt = blood_type["blood_type"]
+    conf = blood_type["confidence"].title()
+
+    parts.append(
+        f'<div style="text-align:center;margin:1em 0">'
+        f'<span style="font-size:3em;font-weight:bold;color:var(--warn)">{bt}</span>'
+        f'<br><span style="font-size:.9em;color:var(--accent2)">'
+        f'Confidence: {conf}</span></div>'
+    )
+
+    parts.append(
+        f'<table><tr><th>Component</th><th>Result</th></tr>'
+        f'<tr><td>ABO Group</td><td><strong>{blood_type["abo"]}</strong></td></tr>'
+        f'<tr><td>Rh Factor</td><td><strong>{blood_type["rh"]}</strong></td></tr>'
+        f'</table>'
+    )
+
+    if blood_type.get("details"):
+        parts.append("<p><strong>SNPs analyzed:</strong></p><ul>")
+        for d in blood_type["details"]:
+            parts.append(f"<li><code>{d}</code></li>")
+        parts.append("</ul>")
+
+    parts.append(
+        '<p style="font-size:.85em;color:var(--accent2)">'
+        'Blood type from SNP data has limitations (rs8176719 is an indel, '
+        'often not genotyped by 23andMe). Confirm with clinical blood typing.</p>'
+    )
+
+    return "\n".join(parts)
+
+
+def build_mt_haplogroup_section(mt_result):
+    """Build HTML for mitochondrial haplogroup section."""
+    if not mt_result or mt_result.get("haplogroup") == "Unknown":
+        return "<p>Insufficient mitochondrial SNP data for haplogroup estimation.</p>"
+
+    parts = []
+    hg = mt_result["haplogroup"]
+    desc = mt_result["description"]
+    lineage = mt_result["lineage"]
+    conf = mt_result["confidence"].title()
+
+    parts.append(
+        f'<div style="text-align:center;margin:1em 0">'
+        f'<span style="font-size:2.5em;font-weight:bold;color:var(--accent)">{hg}</span>'
+        f'<br><span style="font-size:.95em">{desc}</span>'
+        f'<br><span style="font-size:.85em;color:var(--accent2)">'
+        f'{lineage} — {conf} confidence '
+        f'({mt_result["markers_found"]}/{mt_result["markers_tested"]} markers)</span></div>'
+    )
+
+    parts.append(
+        '<p style="font-size:.85em;color:var(--accent2)">'
+        'Mitochondrial DNA is inherited exclusively from the mother. '
+        'Your haplogroup traces the direct maternal line and reflects '
+        'ancient human migration patterns.</p>'
+    )
+
+    return "\n".join(parts)
+
+
+def build_star_alleles_section(star_results):
+    """Build HTML for pharmacogenomic star alleles section."""
+    if not star_results:
+        return "<p>No star allele data available.</p>"
+
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'CPIC-style star allele calling for key drug-metabolizing enzymes. '
+        'Share results with prescribing physicians.</p>'
+    )
+
+    # Gauge row for metabolizer phenotypes
+    parts.append('<div class="gauge-row" style="justify-content:center">')
+    phenotype_levels = {
+        "poor": 0, "intermediate": 0.5, "normal": 1,
+        "rapid": 1.5, "ultrarapid": 2, "Unknown": 1,
+    }
+    phenotype_colors = {
+        "poor": "#ef4444", "intermediate": "#f59e0b", "normal": "#22c55e",
+        "rapid": "#3b82f6", "ultrarapid": "#8b5cf6", "Unknown": "#94a3b8",
+    }
+    for gene, r in star_results.items():
+        level = phenotype_levels.get(r["phenotype"], 1)
+        color = phenotype_colors.get(r["phenotype"], "#94a3b8")
+        label = f'{gene}: {r["phenotype"].title()}'
+        parts.append(svg_metabolism_gauge(gene, level, color))
+    parts.append("</div>")
+
+    # Summary table
+    parts.append(
+        '<table><tr><th>Gene</th><th>Diplotype</th><th>Phenotype</th>'
+        '<th>SNPs</th><th>Note</th></tr>'
+    )
+    for gene, r in star_results.items():
+        phenotype = r["phenotype"].replace("_", " ").title()
+        note = r["clinical_note"][:100]
+        parts.append(
+            f'<tr><td><strong>{gene}</strong></td>'
+            f'<td><code>{r["diplotype"]}</code></td>'
+            f'<td>{phenotype}</td>'
+            f'<td>{r["snps_found"]}/{r["snps_total"]}</td>'
+            f'<td style="font-size:.8em">{note}</td></tr>'
+        )
+    parts.append("</table>")
+
+    return "\n".join(parts)
+
 
 def build_eli5(findings, disease_sections, personal_text):
     """Build ELI5 (explain like I'm 5) summary."""
@@ -977,6 +1276,19 @@ def build_lifestyle_findings(findings):
             parts.append(f'<p class="finding-desc">{desc}</p>')
             if note:
                 parts.append(f'<p class="finding-note">Note: {note}</p>')
+            # Population frequency annotation
+            freq = f.get("freq")
+            if freq and isinstance(freq, dict):
+                freq_labels = {"EUR": "European", "AFR": "African",
+                               "EAS": "East Asian", "SAS": "South Asian", "AMR": "American"}
+                freq_parts = [f'{freq_labels.get(p, p)}: {v:.0%}'
+                              for p, v in sorted(freq.items(), key=lambda x: -x[1])
+                              if v > 0.001]
+                if freq_parts:
+                    parts.append(
+                        f'<p class="finding-note" style="font-size:.8em">'
+                        f'Population freq: {" · ".join(freq_parts)}</p>'
+                    )
             parts.append(db_links_html(rsid))
             parts.append(paper_refs_html(rsid))
             parts.append("</div>")
@@ -1484,6 +1796,21 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 
 /* PRS gauges */
 .prs-gauge {{ width: 160px; height: 105px; display: inline-block; }}
+
+/* Recommendation cards */
+.rec-card {{
+  background: var(--card-bg); padding: .75em 1em; margin: .75em 0;
+  border-radius: 0 8px 8px 0;
+}}
+.good-news-grid {{
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: .75em;
+}}
+.good-news-card {{
+  background: var(--card-bg); border: 1px solid var(--green);
+  border-left: 4px solid var(--green); border-radius: 0 6px 6px 0;
+  padding: .6em 1em; font-size: .9em;
+}}
 </style>
 </head>
 <body>
@@ -1499,20 +1826,25 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <h2 id="toc-heading">Table of Contents</h2>
 <div class="toc">
 <a href="#eli5">1. Simple Summary</a>
-<a href="#dashboard">2. Dashboard</a>
-<a href="#ancestry">3. Ancestry</a>
-<a href="#prs">4. Polygenic Risk Scores</a>
-<a href="#epistasis">5. Gene-Gene Interactions</a>
-<a href="#critical">6. Critical Findings</a>
-<a href="#asthma">7. Asthma &amp; Medications</a>
-<a href="#lifestyle">8. Lifestyle Findings</a>
-<a href="#disease">9. Disease Risk</a>
-<a href="#drugs">10. Drug-Gene Interactions</a>
-<a href="#nutrition">11. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">12. Monitoring Schedule</a>
-<a href="#protective">13. Protective Variants</a>
-<a href="#doctor-card">14. Doctor Card</a>
-<a href="#references">15. References &amp; Links</a>
+<a href="#quality">2. Data Quality</a>
+<a href="#recommendations">3. Personalized Recommendations</a>
+<a href="#dashboard">4. Dashboard</a>
+<a href="#ancestry">5. Ancestry</a>
+<a href="#blood-type">6. Blood Type</a>
+<a href="#mt-haplogroup">7. Maternal Haplogroup</a>
+<a href="#prs">8. Polygenic Risk Scores</a>
+<a href="#star-alleles">9. Pharmacogenomic Star Alleles</a>
+<a href="#epistasis">10. Gene-Gene Interactions</a>
+<a href="#critical">11. Critical Findings</a>
+<a href="#asthma">12. Asthma &amp; Medications</a>
+<a href="#lifestyle">13. Lifestyle Findings</a>
+<a href="#disease">14. Disease Risk</a>
+<a href="#drugs">15. Drug-Gene Interactions</a>
+<a href="#nutrition">16. Nutrition &amp; Lifestyle</a>
+<a href="#monitoring">17. Monitoring Schedule</a>
+<a href="#protective">18. Protective Variants</a>
+<a href="#doctor-card">19. Doctor Card</a>
+<a href="#references">20. References &amp; Links</a>
 </div>
 </nav>
 
@@ -1528,74 +1860,99 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 {eli5_content}
 </div>
 
+<div class="section" id="quality">
+<h2><span class="section-number">2</span> Data Quality</h2>
+{quality_content}
+</div>
+
+<div class="section" id="recommendations">
+<h2><span class="section-number">3</span> Personalized Recommendations</h2>
+{recommendations_content}
+</div>
+
 <div class="section no-print" id="dashboard">
-<h2><span class="section-number">2</span> Dashboard</h2>
+<h2><span class="section-number">4</span> Dashboard</h2>
 {dashboard_content}
 </div>
 
 <div class="section" id="ancestry">
-<h2><span class="section-number">3</span> Ancestry Estimation</h2>
+<h2><span class="section-number">5</span> Ancestry Estimation</h2>
 {ancestry_content}
 </div>
 
+<div class="section" id="blood-type">
+<h2><span class="section-number">6</span> Blood Type</h2>
+{blood_type_content}
+</div>
+
+<div class="section" id="mt-haplogroup">
+<h2><span class="section-number">7</span> Maternal Haplogroup</h2>
+{mt_haplogroup_content}
+</div>
+
 <div class="section" id="prs">
-<h2><span class="section-number">4</span> Polygenic Risk Scores</h2>
+<h2><span class="section-number">8</span> Polygenic Risk Scores</h2>
 {prs_content}
 </div>
 
+<div class="section" id="star-alleles">
+<h2><span class="section-number">9</span> Pharmacogenomic Star Alleles</h2>
+{star_alleles_content}
+</div>
+
 <div class="section" id="epistasis">
-<h2><span class="section-number">5</span> Gene-Gene Interactions</h2>
+<h2><span class="section-number">10</span> Gene-Gene Interactions</h2>
 {epistasis_content}
 </div>
 
 <div class="section" id="critical">
-<h2><span class="section-number">6</span> Critical Findings</h2>
+<h2><span class="section-number">11</span> Critical Findings</h2>
 {critical_content}
 </div>
 
 <div class="section" id="asthma">
-<h2><span class="section-number">7</span> Asthma &amp; Medications</h2>
+<h2><span class="section-number">12</span> Asthma &amp; Medications</h2>
 {asthma_content}
 </div>
 
 <div class="section" id="lifestyle">
-<h2><span class="section-number">8</span> All Lifestyle Findings</h2>
+<h2><span class="section-number">13</span> All Lifestyle Findings</h2>
 {lifestyle_content}
 </div>
 
 <div class="section" id="disease">
-<h2><span class="section-number">9</span> Disease Risk</h2>
+<h2><span class="section-number">14</span> Disease Risk</h2>
 {disease_content}
 </div>
 
 <div class="section" id="drugs">
-<h2><span class="section-number">10</span> Drug-Gene Interactions</h2>
+<h2><span class="section-number">15</span> Drug-Gene Interactions</h2>
 {drugs_content}
 </div>
 
 <div class="section" id="nutrition">
-<h2><span class="section-number">11</span> Nutrition, Supplements &amp; Lifestyle</h2>
+<h2><span class="section-number">16</span> Nutrition, Supplements &amp; Lifestyle</h2>
 {nutrition_content}
 </div>
 
 <div class="section" id="monitoring">
-<h2><span class="section-number">12</span> Monitoring Schedule</h2>
+<h2><span class="section-number">17</span> Monitoring Schedule</h2>
 {monitoring_content}
 </div>
 
 <div class="section" id="protective">
-<h2><span class="section-number">13</span> Protective Variants (Good News)</h2>
+<h2><span class="section-number">18</span> Protective Variants (Good News)</h2>
 {protective_content}
 </div>
 
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">14</span> Doctor Card</h2>
+<h2><span class="section-number">19</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">15</span> References &amp; Links</h2>
+<h2><span class="section-number">20</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -1745,6 +2102,11 @@ def main():
     ancestry_data = data.get("ancestry", {})
     prs_data = data.get("prs", {})
     epistasis_data = data.get("epistasis", [])
+    recommendations_data = data.get("recommendations", {})
+    quality_data = data.get("quality_metrics", {})
+    blood_type_data = data.get("blood_type", {})
+    mt_haplogroup_data = data.get("mt_haplogroup", {})
+    star_alleles_data = data.get("star_alleles", {})
 
     print(f">>> Loading {disease_path.name}")
     disease_text = load_text(disease_path)
@@ -1763,14 +2125,29 @@ def main():
     print(">>> Building dashboard")
     dashboard = build_dashboard(findings, personal_text)
 
+    print(">>> Building quality section")
+    quality = build_quality_section(quality_data)
+
     print(">>> Building ancestry section")
     ancestry = build_ancestry_section(ancestry_data)
+
+    print(">>> Building blood type section")
+    blood_type_html = build_blood_type_section(blood_type_data)
+
+    print(">>> Building MT haplogroup section")
+    mt_haplogroup_html = build_mt_haplogroup_section(mt_haplogroup_data)
 
     print(">>> Building PRS section")
     prs = build_prs_section(prs_data)
 
+    print(">>> Building star alleles section")
+    star_alleles_html = build_star_alleles_section(star_alleles_data)
+
     print(">>> Building epistasis section")
     epistasis = build_epistasis_section(epistasis_data)
+
+    print(">>> Building recommendations section")
+    recommendations = build_recommendations_section(recommendations_data)
 
     print(">>> Building critical findings")
     critical = build_critical_findings(personal_text)
@@ -1813,9 +2190,14 @@ def main():
         num_findings=len(findings),
         num_pharmgkb=len(pharmgkb_findings),
         eli5_content=eli5,
+        quality_content=quality,
+        recommendations_content=recommendations,
         dashboard_content=dashboard,
         ancestry_content=ancestry,
+        blood_type_content=blood_type_html,
+        mt_haplogroup_content=mt_haplogroup_html,
         prs_content=prs,
+        star_alleles_content=star_alleles_html,
         epistasis_content=epistasis,
         critical_content=critical,
         asthma_content=asthma,

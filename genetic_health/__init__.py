@@ -5,4 +5,9 @@ from .analysis import analyze_lifestyle_health, load_clinvar_and_analyze
 from .ancestry import estimate_ancestry
 from .prs import calculate_prs
 from .epistasis import evaluate_epistasis
+from .recommendations import generate_recommendations
+from .quality_metrics import compute_quality_metrics
+from .blood_type import predict_blood_type
+from .mt_haplogroup import estimate_mt_haplogroup
+from .star_alleles import call_star_alleles
 from .pipeline import run_full_analysis
