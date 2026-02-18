@@ -215,29 +215,83 @@ def step_call(bam_in, threads, targeted=True):
     return vcf
 
 
+def _collect_all_rsids():
+    """Collect every rsID used across all analysis modules."""
+    from .snp_database import COMPREHENSIVE_SNPS
+    from .ancestry import ANCESTRY_MARKERS
+    from .prs import PRS_MODELS
+    from .mt_haplogroup import MT_HAPLOGROUP_TREE
+    from .star_alleles import STAR_ALLELE_DEFINITIONS
+
+    all_rsids = set()
+
+    all_rsids.update(COMPREHENSIVE_SNPS.keys())
+    all_rsids.update(ANCESTRY_MARKERS.keys())
+
+    for model in PRS_MODELS.values():
+        for snp in model['snps']:
+            all_rsids.add(snp['rsid'])
+
+    # Blood type
+    all_rsids.update(['rs505922', 'rs8176746', 'rs590787'])
+
+    # MT haplogroup
+    def _collect_mt(tree):
+        rsids = set()
+        for node in tree:
+            if 'rsid' in node:
+                rsids.add(node['rsid'])
+            if 'children' in node:
+                rsids.update(_collect_mt(node['children']))
+        return rsids
+    all_rsids.update(_collect_mt(MT_HAPLOGROUP_TREE))
+
+    # Star alleles
+    for gene, defn in STAR_ALLELE_DEFINITIONS.items():
+        all_rsids.update(defn.get('snps', []))
+
+    # APOE
+    all_rsids.update(['rs429358', 'rs7412'])
+
+    # Traits
+    all_rsids.update(['rs12913832', 'rs1800407', 'rs1805007', 'rs1805008', 'rs17822931'])
+
+    return sorted(all_rsids)
+
+
 def step_rsid_lookup():
-    """Build rsID -> GRCh37 position lookup by querying Ensembl API."""
+    """Build rsID -> GRCh37 position lookup by querying Ensembl API.
+
+    Collects rsIDs from ALL analysis modules (snp_database, ancestry, PRS,
+    star alleles, blood type, MT haplogroup, APOE, traits) so targeted
+    variant calling covers every position we need.
+    """
     log("Step 2/5: Building rsID position lookup (parallel with alignment)")
 
+    all_rsids = _collect_all_rsids()
+
+    # Load existing lookup and find missing rsIDs
+    lookup = {}
     if RSID_LOOKUP.exists():
         with open(RSID_LOOKUP) as f:
             lookup = json.load(f)
-        log(f"  Lookup already exists ({len(lookup)} rsIDs)")
+
+    missing = [r for r in all_rsids if r not in lookup]
+    if not missing:
+        log(f"  Lookup already complete ({len(lookup)} rsIDs)")
         return
 
-    from .snp_database import COMPREHENSIVE_SNPS
-
-    rsids = list(COMPREHENSIVE_SNPS.keys())
-    log(f"  Querying Ensembl GRCh37 API for {len(rsids)} rsIDs...")
+    log(f"  {len(lookup)} rsIDs cached, {len(missing)} to query from Ensembl...")
 
     import urllib.request
     import urllib.error
+    import time
 
-    lookup = {}
-    batch_size = 50
+    valid_chroms = {str(c) for c in range(1, 23)} | {'X', 'Y', 'MT'}
+    batch_size = 200
 
-    for i in range(0, len(rsids), batch_size):
-        batch = rsids[i:i + batch_size]
+    for i in range(0, len(missing), batch_size):
+        batch = missing[i:i + batch_size]
         payload = json.dumps({"ids": batch}).encode()
 
         req = urllib.request.Request(
@@ -249,26 +303,35 @@ def step_rsid_lookup():
             }
         )
 
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                results = json.loads(resp.read())
+        retries = 3
+        for attempt in range(retries):
+            try:
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    results = json.loads(resp.read())
 
-            for rsid, info in results.items():
-                for m in info.get('mappings', []):
-                    if m.get('seq_region_name', '').replace('chr', '') in \
-                       [str(c) for c in range(1, 23)] + ['X', 'Y', 'MT']:
-                        lookup[rsid] = {
-                            'chrom': m['seq_region_name'],
-                            'pos': str(m['start']),
-                        }
-                        break
-        except (urllib.error.URLError, json.JSONDecodeError, KeyError, ValueError) as e:
-            log(f"  Warning: API batch {i//batch_size + 1} failed: {e}")
+                for rsid, info in results.items():
+                    if isinstance(info, dict) and 'mappings' in info:
+                        for m in info['mappings']:
+                            chrom = m.get('seq_region_name', '').replace('chr', '')
+                            if chrom in valid_chroms:
+                                lookup[rsid] = {
+                                    'chrom': chrom,
+                                    'pos': str(m['start']),
+                                }
+                                break
+                break
+            except (urllib.error.URLError, json.JSONDecodeError, KeyError, ValueError) as e:
+                if attempt < retries - 1:
+                    time.sleep(2 ** (attempt + 1))
+                else:
+                    log(f"  Warning: API batch {i // batch_size + 1} failed: {e}")
+
+        time.sleep(0.2)  # Ensembl rate limit
 
     with open(RSID_LOOKUP, 'w') as f:
         json.dump(lookup, f, indent=2)
 
-    log(f"  Saved {len(lookup)} rsID positions")
+    log(f"  Saved {len(lookup)} rsID positions ({len(all_rsids)} requested)")
 
 
 def step_convert(vcf_in, genome_out):
