@@ -585,7 +585,8 @@ def build_epistasis_section(epistasis_results):
 
     for interaction in epistasis_results:
         color = risk_colors.get(interaction["risk_level"], "var(--accent)")
-        genes = ", ".join(interaction["genes_involved"].keys())
+        genes_involved = interaction.get("genes_involved", {})
+        genes = ", ".join(genes_involved.keys()) if genes_involved else _esc(interaction.get("name", ""))
         parts.append(
             f'<details open><summary>'
             f'<span class="mag-badge" style="background:{color};color:#fff">'
