@@ -5,6 +5,8 @@ from pathlib import Path
 
 from .config import DATA_DIR
 
+_VALID_BASES = frozenset("ACGT")
+
 
 def load_genome(genome_path: Path) -> tuple:
     """Load 23andMe genome file into dictionaries."""
@@ -12,6 +14,7 @@ def load_genome(genome_path: Path) -> tuple:
 
     genome_by_rsid = {}
     genome_by_position = {}
+    skipped = 0
 
     with open(genome_path, 'r') as f:
         for line in f:
@@ -20,19 +23,26 @@ def load_genome(genome_path: Path) -> tuple:
             parts = line.strip().split('\t')
             if len(parts) >= 4:
                 rsid, chrom, pos, genotype = parts[0], parts[1], parts[2], parts[3]
-                if genotype != '--':
-                    genome_by_rsid[rsid] = {
-                        'chromosome': chrom,
-                        'position': pos,
-                        'genotype': genotype
-                    }
-                    pos_key = f"{chrom}:{pos}"
-                    genome_by_position[pos_key] = {
-                        'rsid': rsid,
-                        'genotype': genotype
-                    }
+                if genotype == '--':
+                    continue
+                # Validate genotype: must be 1-2 valid bases
+                if not (1 <= len(genotype) <= 2 and all(b in _VALID_BASES for b in genotype)):
+                    skipped += 1
+                    continue
+                genome_by_rsid[rsid] = {
+                    'chromosome': chrom,
+                    'position': pos,
+                    'genotype': genotype
+                }
+                pos_key = f"{chrom}:{pos}"
+                genome_by_position[pos_key] = {
+                    'rsid': rsid,
+                    'genotype': genotype
+                }
 
     print(f"    Loaded {len(genome_by_rsid):,} SNPs")
+    if skipped:
+        print(f"    Skipped {skipped:,} entries with invalid genotypes")
     return genome_by_rsid, genome_by_position
 
 

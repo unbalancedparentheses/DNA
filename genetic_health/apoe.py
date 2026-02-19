@@ -2,24 +2,60 @@
 
 Combines two SNPs into APOE epsilon type (e2/e2 through e4/e4)
 with Alzheimer's disease risk context.
+
+APOE allele encoding:
+  rs429358  rs7412   epsilon
+  T         T        e2
+  T         C        e3
+  C         C        e4
+  C         T        impossible (not observed in nature)
+
+Diploid genotypes are decoded allele-by-allele.
 """
 
-# APOE haplotype lookup: (rs429358_genotype, rs7412_genotype) -> haplotype
-# rs429358: T=e2/e3 allele, C=e4 allele
-# rs7412:   T=e2 allele, C=e3/e4 allele
-_HAPLOTYPE_TABLE = {
-    ("TT", "TT"): "e2/e2",
-    ("TT", "CT"): "e2/e3",
-    ("TT", "CC"): "e3/e3",
-    ("CT", "CC"): "e3/e4",
-    ("CT", "CT"): "e2/e4",
-    ("CC", "CC"): "e4/e4",
-    # Handle reversed allele order
-    ("TT", "TC"): "e2/e3",
-    ("TC", "CC"): "e3/e4",
-    ("TC", "CT"): "e2/e4",
-    ("TC", "TC"): "e2/e4",
-}
+
+def _decode_haplotype(rs429358_genotype, rs7412_genotype):
+    """Deterministic APOE haplotype from rs429358 + rs7412 genotypes.
+
+    Decodes each allele pair into an epsilon allele, then sorts
+    for canonical representation.
+    """
+    if len(rs429358_genotype) != 2 or len(rs7412_genotype) != 2:
+        return None
+
+    # Map each allele position to an epsilon allele
+    epsilon_alleles = []
+    for i in range(2):
+        a358 = rs429358_genotype[i]
+        a7412 = rs7412_genotype[i]
+        if a358 == "T" and a7412 == "T":
+            epsilon_alleles.append("e2")
+        elif a358 == "T" and a7412 == "C":
+            epsilon_alleles.append("e3")
+        elif a358 == "C" and a7412 == "C":
+            epsilon_alleles.append("e4")
+        else:
+            # C+T is not a natural APOE haplotype; try other phasing
+            return None
+
+    if len(epsilon_alleles) == 2:
+        epsilon_alleles.sort()
+        return f"{epsilon_alleles[0]}/{epsilon_alleles[1]}"
+    return None
+
+
+def _try_all_phasings(rs429358, rs7412):
+    """Try all possible allele phasings to find a valid APOE haplotype."""
+    # 23andMe genotypes are unphased, so TC could be T|C or C|T
+    alleles_358 = [rs429358[0] + rs429358[1], rs429358[1] + rs429358[0]]
+    alleles_7412 = [rs7412[0] + rs7412[1], rs7412[1] + rs7412[0]]
+
+    for a358 in alleles_358:
+        for a7412 in alleles_7412:
+            result = _decode_haplotype(a358, a7412)
+            if result:
+                return result
+    return None
 
 _RISK_INFO = {
     "e2/e2": {"risk_level": "reduced", "alzheimer_or": 0.6,
@@ -69,14 +105,8 @@ def call_apoe_haplotype(genome_by_rsid):
             "details": details,
         }
 
-    # Normalize genotype order (sort alleles)
-    key = (rs429358, rs7412)
-    haplotype = _HAPLOTYPE_TABLE.get(key)
-
-    if haplotype is None:
-        # Try sorting each genotype's alleles
-        sorted_key = ("".join(sorted(rs429358)), "".join(sorted(rs7412)))
-        haplotype = _HAPLOTYPE_TABLE.get(sorted_key)
+    # Deterministic decoding — try all allele phasings
+    haplotype = _try_all_phasings(rs429358, rs7412)
 
     if haplotype is None:
         return {

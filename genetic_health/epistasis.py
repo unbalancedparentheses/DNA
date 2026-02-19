@@ -325,26 +325,60 @@ EPISTASIS_MODELS = {
 }
 
 
+# Severity weights for dosage-aware epistasis scoring.
+# Higher = more severe status for the gene.
+_STATUS_SEVERITY = {
+    # MTHFR
+    "severely_reduced": 1.0, "reduced": 0.5,
+    # COMT
+    "slow": 1.0, "intermediate": 0.5,
+    # CYP1A2
+    "slow": 1.0,
+    # ADORA2A
+    "anxiety_prone": 0.8,
+    # ACE/AGT/AGTR1
+    "high": 1.0, "elevated": 0.7,
+    # APOE
+    "e4_e4": 1.0, "e3_e4": 0.5,
+    # FTO/TCF7L2
+    "high_risk": 1.0, "risk": 0.5,
+    # BDNF
+    "met_carrier": 0.6,
+    # HFE
+    "homozygous": 1.0, "carrier": 0.5,
+    # IL6
+    "high": 1.0,
+}
+
+
 def evaluate_epistasis(findings: list) -> list:
     """Evaluate gene-gene interactions from lifestyle/health findings.
 
+    Uses dosage-aware matching: each matched gene contributes a severity
+    score (0-1), and the interaction's effective strength is the product
+    of gene severities. This prevents binary matching that treats mild
+    and severe variants identically.
+
     Args:
         findings: List of finding dicts from analyze_lifestyle_health(),
-                  each with 'gene' and 'status' keys.
+                  each with 'gene', 'status', and 'magnitude' keys.
 
     Returns:
         List of interaction dicts with keys: id, name, genes_involved,
-        effect, risk_level, mechanism, actions.
+        effect, risk_level, mechanism, actions, severity_score.
     """
-    # Build gene -> set of statuses lookup
+    # Build gene -> set of statuses + max magnitude lookup
     gene_status = {}
+    gene_magnitude = {}
     for f in findings:
         gene = f.get('gene', '')
         status = f.get('status', '')
+        mag = f.get('magnitude', 0)
         if gene and status:
             if gene not in gene_status:
                 gene_status[gene] = set()
             gene_status[gene].add(status)
+            gene_magnitude[gene] = max(gene_magnitude.get(gene, 0), mag)
 
     interactions = []
 
@@ -352,6 +386,7 @@ def evaluate_epistasis(findings: list) -> list:
         for condition in model['conditions']:
             # Check if all required genes have qualifying statuses
             matched_genes = {}
+            gene_severities = {}
             match = True
             for gene, qualifying_statuses in condition['required'].items():
                 if gene not in gene_status:
@@ -362,20 +397,43 @@ def evaluate_epistasis(findings: list) -> list:
                     match = False
                     break
                 matched_genes[gene] = sorted(overlap)
+                # Severity: max of status severity weights for matched statuses
+                severity = max(
+                    _STATUS_SEVERITY.get(s, 0.5) for s in overlap
+                )
+                # Also factor in magnitude (0-6 scale, normalized to 0-1)
+                mag_factor = min(gene_magnitude.get(gene, 3) / 6.0, 1.0)
+                gene_severities[gene] = severity * (0.5 + 0.5 * mag_factor)
 
             if match:
+                # Overall interaction severity: geometric mean of gene severities
+                severity_product = 1.0
+                for s in gene_severities.values():
+                    severity_product *= s
+                severity_score = severity_product ** (1.0 / len(gene_severities))
+
+                # Adjust risk level based on severity score
+                base_risk = condition['risk_level']
+                if severity_score < 0.3 and base_risk == 'high':
+                    effective_risk = 'moderate'
+                elif severity_score >= 0.7 and base_risk == 'moderate':
+                    effective_risk = 'high'
+                else:
+                    effective_risk = base_risk
+
                 interactions.append({
                     'id': model_id,
                     'name': model['name'],
                     'genes_involved': matched_genes,
                     'effect': condition['effect'],
-                    'risk_level': condition['risk_level'],
+                    'risk_level': effective_risk,
                     'mechanism': condition['mechanism'],
                     'actions': condition['actions'],
+                    'severity_score': round(severity_score, 2),
                 })
 
-    # Sort by risk level (high first)
+    # Sort by risk level (high first), then by severity score
     risk_order = {'high': 0, 'moderate': 1, 'low': 2}
-    interactions.sort(key=lambda x: risk_order.get(x['risk_level'], 3))
+    interactions.sort(key=lambda x: (risk_order.get(x['risk_level'], 3), -x['severity_score']))
 
     return interactions

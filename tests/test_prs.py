@@ -167,7 +167,7 @@ class TestCalculatePRS:
         results = calculate_prs(genome, ancestry_proportions=ancestry)
         for r in results.values():
             assert r["ancestry_applicable"] is False
-            assert "non-European" in r["ancestry_warning"]
+            assert "EUR ancestry" in r["ancestry_warning"]
 
     def test_ancestry_ok_european(self):
         """EUR-dominant ancestry should keep models as applicable."""

@@ -12,11 +12,17 @@ Output: reports/GENETIC_HEALTH_REPORT.html
   - Curated paper references
 """
 
+import html as html_mod
 import json
 import sys
 from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
+
+
+def _esc(text):
+    """Escape text for safe HTML interpolation."""
+    return html_mod.escape(str(text)) if text else ""
 
 
 
@@ -1309,12 +1315,12 @@ def build_lifestyle_findings(findings):
         for f in cat_findings:
             mag = f.get("magnitude", 0)
             mag_class = "high" if mag >= 3 else "mod" if mag == 2 else "low" if mag == 1 else "info"
-            rsid = f.get("rsid", "")
-            gene = f.get("gene", "Unknown")
-            genotype = f.get("genotype", "")
-            status = f.get("status", "").replace("_", " ").title()
-            desc = f.get("description", "")
-            note = f.get("note", "")
+            rsid = _esc(f.get("rsid", ""))
+            gene = _esc(f.get("gene", "Unknown"))
+            genotype = _esc(f.get("genotype", ""))
+            status = _esc(f.get("status", "").replace("_", " ").title())
+            desc = _esc(f.get("description", ""))
+            note = _esc(f.get("note", ""))
 
             parts.append(f'<div class="finding-card {mag_class}">')
             parts.append(
@@ -1357,14 +1363,14 @@ def build_lifestyle_findings(findings):
         if not pathway_findings:
             continue
 
-        parts.append(f'<details><summary><strong>{pathway_name}</strong></summary><ul>')
+        parts.append(f'<details><summary><strong>{_esc(pathway_name)}</strong></summary><ul>')
         for pf in pathway_findings:
             mag = pf.get("magnitude", 0)
             mag_class = "high" if mag >= 3 else "mod" if mag == 2 else "low" if mag == 1 else "info"
             parts.append(
                 f'<li><span class="mag-dot mag-{mag_class}"></span> '
-                f'<strong>{pf["gene"]}</strong>: '
-                f'{pf.get("status","").replace("_"," ").title()}</li>'
+                f'<strong>{_esc(pf["gene"])}</strong>: '
+                f'{_esc(pf.get("status","").replace("_"," ").title())}</li>'
             )
         parts.append("</ul></details>")
 
@@ -1396,15 +1402,15 @@ def build_disease_risk(disease_findings):
             '<th>Stars</th><th>Zygosity</th></tr>'
         )
         for v in variants[:50]:
-            gene = v.get("gene", "Unknown")
-            condition = (v.get("traits") or "Unknown").split(";")[0].strip()[:80]
-            genotype = v.get("user_genotype", "")
+            gene = _esc(v.get("gene", "Unknown"))
+            condition = _esc((v.get("traits") or "Unknown").split(";")[0].strip())
+            genotype = _esc(v.get("user_genotype", ""))
             stars = v.get("gold_stars", 0)
             star_str = "&#9733;" * stars + "&#9734;" * (4 - stars)
-            zyg = v.get("zygosity", "").replace("_", " ").title()
+            zyg = _esc(v.get("zygosity", "").replace("_", " ").title())
             rows.append(
                 f'<tr><td><strong>{gene}</strong></td>'
-                f'<td>{condition}</td>'
+                f'<td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{_esc(v.get("traits", ""))}">{condition}</td>'
                 f'<td><code>{genotype}</code></td>'
                 f'<td>{star_str}</td>'
                 f'<td>{zyg}</td></tr>'
@@ -1433,8 +1439,8 @@ def build_disease_risk(disease_findings):
         )
         parts.append('<div class="good-news-grid">')
         for v in protective:
-            gene = v.get("gene", "Unknown")
-            condition = (v.get("traits") or "").split(";")[0].strip()[:80]
+            gene = _esc(v.get("gene", "Unknown"))
+            condition = _esc((v.get("traits") or "").split(";")[0].strip())
             parts.append(
                 f'<div class="good-news-card">'
                 f'<strong>{gene}</strong>: {condition}</div>'
@@ -1454,11 +1460,11 @@ def build_drug_gene(findings, pharmgkb_findings):
                      '<th>Drugs</th><th>Genotype</th></tr>')
         for p in pharmgkb_findings:
             parts.append(
-                f'<tr><td><strong>{p["gene"]}</strong></td>'
-                f'<td><code>{p["rsid"]}</code></td>'
-                f'<td>{p["level"]}</td>'
-                f'<td>{p["drugs"]}</td>'
-                f'<td><code>{p["genotype"]}</code></td></tr>'
+                f'<tr><td><strong>{_esc(p["gene"])}</strong></td>'
+                f'<td><code>{_esc(p["rsid"])}</code></td>'
+                f'<td>{_esc(p["level"])}</td>'
+                f'<td>{_esc(p["drugs"])}</td>'
+                f'<td><code>{_esc(p["genotype"])}</code></td></tr>'
             )
         parts.append("</table>")
 

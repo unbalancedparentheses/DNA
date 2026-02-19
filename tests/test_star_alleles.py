@@ -121,7 +121,8 @@ class TestCallStarAlleles:
         genome = _make_genome({"rs4244285": "GG"})
         results = call_star_alleles(genome)
         expected_keys = {"gene", "diplotype", "phenotype",
-                         "snps_found", "snps_total", "clinical_note"}
+                         "snps_found", "snps_total", "clinical_note",
+                         "coverage", "confidence"}
         for gene, r in results.items():
             assert set(r.keys()) == expected_keys, f"{gene} missing keys"
 

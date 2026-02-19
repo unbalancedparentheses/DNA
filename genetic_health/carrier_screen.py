@@ -18,12 +18,29 @@ _GENE_SYSTEMS = {
     "BTD": "Metabolic", "ASL": "Metabolic", "ASPA": "Metabolic",
     "ACADM": "Metabolic", "MCCC2": "Metabolic",
     # Neurologic
-    "SMN1": "Neurologic", "DYNC1H1": "Neurologic", "ATM": "Neurologic",
+    "SMN1": "Neurologic", "DYNC1H1": "Neurologic",
     "FMR1": "Neurologic", "MECP2": "Neurologic",
+    # Cancer predisposition
+    "BRCA1": "Cancer Predisposition", "BRCA2": "Cancer Predisposition",
+    "ATM": "Cancer Predisposition", "PALB2": "Cancer Predisposition",
+    "CHEK2": "Cancer Predisposition", "BAP1": "Cancer Predisposition",
+    "MUTYH": "Cancer Predisposition", "APC": "Cancer Predisposition",
+    "MLH1": "Cancer Predisposition", "MSH2": "Cancer Predisposition",
+    "MSH6": "Cancer Predisposition", "PMS2": "Cancer Predisposition",
+    "TP53": "Cancer Predisposition", "PTEN": "Cancer Predisposition",
+    "STK11": "Cancer Predisposition", "CDH1": "Cancer Predisposition",
+    "BMPR1A": "Cancer Predisposition", "SMAD4": "Cancer Predisposition",
     # Connective tissue
     "FBN1": "Connective Tissue", "COL3A1": "Connective Tissue",
     "COL1A1": "Connective Tissue", "COL1A2": "Connective Tissue",
     "ELN": "Connective Tissue",
+    # Cardiac
+    "RYR1": "Cardiac/Muscular", "RYR2": "Cardiac",
+    "CACNA1S": "Cardiac/Muscular", "SCN5A": "Cardiac",
+    "KCNQ1": "Cardiac", "KCNH2": "Cardiac",
+    "MYBPC3": "Cardiac", "MYH7": "Cardiac",
+    "TNNT2": "Cardiac", "LMNA": "Cardiac",
+    "DSP": "Cardiac", "PKP2": "Cardiac",
     # Renal
     "PKD1": "Renal", "PKD2": "Renal", "ATP7B": "Renal/Hepatic",
     "SLC12A3": "Renal",
@@ -36,6 +53,10 @@ _GENE_SYSTEMS = {
     # Endocrine
     "OTC": "Endocrine/Metabolic", "CYP21A2": "Endocrine",
     "HFE": "Iron Metabolism",
+    # Vascular
+    "ACVRL1": "Vascular", "ENG": "Vascular",
+    "TGFBR1": "Vascular", "TGFBR2": "Vascular",
+    "FBN1": "Connective Tissue/Vascular",
 }
 
 # Inheritance patterns
@@ -52,17 +73,43 @@ _GENE_INHERITANCE = {
     "HFE": "autosomal recessive",
     "GAA": "autosomal recessive",
     "SMPD1": "autosomal recessive",
+    "GALT": "autosomal recessive",
+    "IDUA": "autosomal recessive",
+    "BTD": "autosomal recessive",
+    "ASL": "autosomal recessive",
+    "ASPA": "autosomal recessive",
+    "ACADM": "autosomal recessive",
+    "ABCA4": "autosomal recessive",
+    "SLC26A4": "autosomal recessive",
+    "CYP21A2": "autosomal recessive",
+    "ATP7B": "autosomal recessive",
     "G6PD": "X-linked",
     "OTC": "X-linked",
     "FMR1": "X-linked",
     "F5": "autosomal dominant (incomplete penetrance)",
     "F2": "autosomal dominant (incomplete penetrance)",
+    "BRCA1": "autosomal dominant",
+    "BRCA2": "autosomal dominant",
+    "MLH1": "autosomal dominant",
+    "MSH2": "autosomal dominant",
+    "MSH6": "autosomal dominant",
+    "PMS2": "autosomal dominant",
+    "APC": "autosomal dominant",
+    "MUTYH": "autosomal recessive",
+    "ATM": "autosomal dominant (moderate penetrance)",
+    "PALB2": "autosomal dominant (moderate penetrance)",
+    "CHEK2": "autosomal dominant (moderate penetrance)",
+    "TP53": "autosomal dominant",
+    "RYR1": "autosomal dominant / autosomal recessive",
+    "CACNA1S": "autosomal dominant",
 }
 
-# Conditions commonly screened in couples
+# Conditions commonly screened in couples (recessive + cancer predisposition)
 _COUPLES_CONDITIONS = frozenset({
     "CFTR", "HBB", "HEXA", "SMN1", "GBA", "PAH", "GALT",
     "GJB2", "SMPD1", "ASPA", "ACADM", "BTD", "GAA",
+    "BRCA1", "BRCA2", "ATM", "PALB2", "CHEK2", "MUTYH",
+    "MLH1", "MSH2", "MSH6", "PMS2",
 })
 
 

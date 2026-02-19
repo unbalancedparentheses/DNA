@@ -13,14 +13,25 @@ STAR_ALLELE_DEFINITIONS = {
             "*1": "normal",
             "*2": "no_function",
             "*3": "no_function",
+            "*4": "no_function",
+            "*5": "no_function",
+            "*6": "no_function",
+            "*7": "no_function",
+            "*8": "no_function",
             "*17": "increased",
         },
         "alleles": {
             "*2": {"rs4244285": "A"},
             "*3": {"rs4986893": "A"},
+            "*4": {"rs28399504": "A"},
+            "*5": {"rs56337013": "T"},
+            "*6": {"rs72552267": "A"},
+            "*7": {"rs72558186": "T"},
+            "*8": {"rs41291556": "T"},
             "*17": {"rs12248560": "T"},
         },
-        "snps": ["rs4244285", "rs4986893", "rs12248560"],
+        "snps": ["rs4244285", "rs4986893", "rs28399504", "rs56337013",
+                 "rs72552267", "rs72558186", "rs41291556", "rs12248560"],
     },
     "CYP2C9": {
         "function_map": {
@@ -37,14 +48,30 @@ STAR_ALLELE_DEFINITIONS = {
     "CYP2D6": {
         "function_map": {
             "*1": "normal",
+            "*2": "normal",
             "*4": "no_function",
+            "*5": "no_function",
+            "*6": "no_function",
+            "*9": "decreased",
             "*10": "decreased",
+            "*41": "decreased",
         },
         "alleles": {
+            "*2": {"rs16947": "A"},
             "*4": {"rs3892097": "A"},
+            "*6": {"rs5030655": "T"},
+            "*9": {"rs5030656": "A"},
             "*10": {"rs1065852": "T"},
+            "*41": {"rs28371725": "T"},
         },
-        "snps": ["rs3892097", "rs1065852"],
+        "snps": ["rs16947", "rs3892097", "rs5030655", "rs5030656",
+                 "rs1065852", "rs28371725"],
+        "clinical_note": (
+            "23andMe cannot detect CYP2D6 gene deletions (*5) or "
+            "duplications (*1xN/*2xN). Copy number variants account "
+            "for ~20-30% of poor/ultrarapid metabolizers. This result "
+            "may underestimate phenotype severity."
+        ),
     },
     "DPYD": {
         "function_map": {
@@ -64,14 +91,18 @@ STAR_ALLELE_DEFINITIONS = {
             "*1": "normal",
             "*2": "no_function",
             "*3A": "no_function",
+            "*3B": "no_function",
             "*3C": "decreased",
+            "*4": "no_function",
         },
         "alleles": {
             "*2": {"rs1800462": "G"},
             "*3A": {"rs1800460": "A", "rs1142345": "C"},
+            "*3B": {"rs1800460": "A"},
             "*3C": {"rs1142345": "C"},
+            "*4": {"rs1800584": "A"},
         },
-        "snps": ["rs1800462", "rs1800460", "rs1142345"],
+        "snps": ["rs1800462", "rs1800460", "rs1142345", "rs1800584"],
         "clinical_note": "TPMT deficiency can cause life-threatening myelosuppression with azathioprine/6-MP.",
     },
     "UGT1A1": {
@@ -91,6 +122,7 @@ STAR_ALLELE_DEFINITIONS = {
 
 # Phenotype mapping from diplotype function pairs
 # (sorted pair of functions) -> metabolizer phenotype
+# All 10 combinations of {normal, increased, decreased, no_function} covered.
 _PHENOTYPE_MAP = {
     ("increased", "increased"): "ultrarapid",
     ("increased", "normal"): "rapid",
@@ -103,6 +135,12 @@ _PHENOTYPE_MAP = {
     ("decreased", "no_function"): "poor",
     ("no_function", "no_function"): "poor",
 }
+# Verify completeness at import time
+_FUNCTIONS = ("normal", "increased", "decreased", "no_function")
+for _f1 in _FUNCTIONS:
+    for _f2 in _FUNCTIONS:
+        _pair = tuple(sorted((_f1, _f2)))
+        assert _pair in _PHENOTYPE_MAP, f"Missing phenotype mapping for {_pair}"
 
 
 def _call_gene(gene, definitions, genome_by_rsid):
@@ -130,6 +168,8 @@ def _call_gene(gene, definitions, genome_by_rsid):
             "phenotype": "Unknown",
             "snps_found": 0,
             "snps_total": len(all_snps),
+            "coverage": 0.0,
+            "confidence": "low",
             "clinical_note": f"No defining SNPs found for {gene} in genome data.",
         }
 
@@ -191,11 +231,6 @@ def _call_gene(gene, definitions, genome_by_rsid):
             "Clinical interpretation needed."
         )
 
-    if gene == "CYP2D6":
-        notes.append(
-            "23andMe cannot detect CYP2D6 gene deletions (*5) or "
-            "duplications (*1xN). This result may be incomplete."
-        )
     # Gene-specific clinical note from definitions
     gene_note = definitions.get("clinical_note")
     if gene_note:
@@ -208,12 +243,17 @@ def _call_gene(gene, definitions, genome_by_rsid):
 
     clinical_note = " ".join(notes) if notes else "All defining SNPs found."
 
+    coverage = len(snps_found) / len(all_snps) if all_snps else 0
+    confidence = "high" if coverage >= 0.8 else "moderate" if coverage >= 0.5 else "low"
+
     return {
         "gene": gene,
         "diplotype": diplotype,
         "phenotype": phenotype,
         "snps_found": len(snps_found),
         "snps_total": len(all_snps),
+        "coverage": round(coverage, 2),
+        "confidence": confidence,
         "clinical_note": clinical_note,
     }
 

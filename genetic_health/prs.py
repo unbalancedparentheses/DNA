@@ -1,8 +1,15 @@
 """Polygenic Risk Score (PRS) calculation for common conditions.
 
 Implements simplified PRS models using published GWAS effect sizes
-(log odds ratios) for 5 well-studied conditions. Each model uses
+(log odds ratios) for 8 well-studied conditions. Each model uses
 ~20-30 top-associated SNPs.
+
+Limitations:
+  - No LD clumping: SNPs in the same LD block are deduplicated by rsID but
+    not pruned by r². Nearby SNPs may be correlated, inflating variance.
+  - EUR-calibrated: effect sizes and frequencies from European-ancestry GWAS.
+    Percentiles are adjusted by a continuous ancestry factor for non-EUR.
+  - Confidence intervals are approximate (assumes independent SNPs).
 
 References per condition are embedded in PRS_MODELS.
 """
@@ -210,7 +217,6 @@ PRS_MODELS = {
             {"rsid": "rs1801020", "risk_allele": "A", "log_or": 0.078, "gene": "F12", "eur_freq": 0.230},
             {"rsid": "rs9349379", "risk_allele": "G", "log_or": 0.078, "gene": "PHACTR1", "eur_freq": 0.580},
             {"rsid": "rs635634", "risk_allele": "T", "log_or": 0.095, "gene": "ABO", "eur_freq": 0.200},
-            {"rsid": "rs12122341", "risk_allele": "T", "log_or": 0.078, "gene": "SH2B3", "eur_freq": 0.360},
             {"rsid": "rs11556924", "risk_allele": "T", "log_or": 0.054, "gene": "ZC3HC1", "eur_freq": 0.620},
         ],
     },
@@ -270,16 +276,34 @@ def _categorize_percentile(percentile: float) -> str:
         return "high"
 
 
+def _validate_models():
+    """Validate PRS model definitions at import time."""
+    for cid, model in PRS_MODELS.items():
+        seen = set()
+        for snp in model["snps"]:
+            if snp["rsid"] in seen:
+                raise ValueError(f"Duplicate rsID {snp['rsid']} in PRS model {cid}")
+            seen.add(snp["rsid"])
+            if not (-1 < snp["log_or"] < 1):
+                raise ValueError(
+                    f"Unexpected effect size {snp['log_or']} for {snp['rsid']} in {cid}"
+                )
+
+_validate_models()
+
+
 def calculate_prs(genome_by_rsid: dict, ancestry_proportions: dict = None) -> dict:
     """Calculate polygenic risk scores for all conditions.
 
     Algorithm per condition:
-        1. raw_score = sum(log_or * risk_allele_count) for found SNPs
-        2. population_mean = sum(log_or * 2 * eur_freq) for found SNPs
-        3. population_var = sum(log_or^2 * 2 * eur_freq * (1-eur_freq)) for found SNPs
-        4. z-score = (raw - mean) / sqrt(var)
-        5. percentile via math.erf (no scipy needed)
-        6. If ancestry non-EUR > 40%, flag ancestry_applicable = False
+        1. Deduplicate SNPs by rsID within each model
+        2. raw_score = sum(log_or * risk_allele_count) for found SNPs
+        3. population_mean = sum(log_or * 2 * eur_freq) for found SNPs
+        4. population_var = sum(log_or^2 * 2 * eur_freq * (1-eur_freq)) for found SNPs
+        5. z-score = (raw - mean) / sqrt(var)
+        6. percentile via math.erf (no scipy needed)
+        7. 95% confidence interval from standard error
+        8. Continuous ancestry adjustment (scales z-score by EUR proportion)
 
     Args:
         genome_by_rsid: Dict mapping rsID -> {genotype, chromosome, position}
@@ -288,12 +312,9 @@ def calculate_prs(genome_by_rsid: dict, ancestry_proportions: dict = None) -> di
     Returns:
         Dict mapping condition_id -> result dict
     """
-    # Check if primarily non-European
-    non_eur_dominant = False
+    eur_prop = 1.0
     if ancestry_proportions:
-        eur_prop = ancestry_proportions.get("EUR", 0.0)
-        if eur_prop < 0.6:
-            non_eur_dominant = True
+        eur_prop = ancestry_proportions.get("EUR", 1.0)
 
     results = {}
 
@@ -303,9 +324,14 @@ def calculate_prs(genome_by_rsid: dict, ancestry_proportions: dict = None) -> di
         pop_var = 0.0
         snps_found = 0
         contributing = []
+        seen_rsids = set()
 
         for snp in model["snps"]:
             rsid = snp["rsid"]
+            if rsid in seen_rsids:
+                continue
+            seen_rsids.add(rsid)
+
             if rsid not in genome_by_rsid:
                 continue
 
@@ -332,41 +358,65 @@ def calculate_prs(genome_by_rsid: dict, ancestry_proportions: dict = None) -> di
                     "contribution": score_contribution,
                 })
 
-        # Calculate percentile
+        # Calculate percentile with confidence interval
         if snps_found > 0 and pop_var > 0:
-            z_score = (raw_score - pop_mean) / math.sqrt(pop_var)
+            sd = math.sqrt(pop_var)
+            z_score = (raw_score - pop_mean) / sd
+            # Standard error of the PRS (approximation assuming independent SNPs)
+            se = sd / math.sqrt(snps_found) if snps_found > 1 else sd
+            z_se = se / sd  # SE in z-score units
             percentile = _z_to_percentile(z_score)
+            ci_lower = _z_to_percentile(z_score - 1.96 * z_se)
+            ci_upper = _z_to_percentile(z_score + 1.96 * z_se)
         else:
             z_score = 0.0
             percentile = 50.0
+            ci_lower = 50.0
+            ci_upper = 50.0
 
         risk_category = _categorize_percentile(percentile)
 
-        # Ancestry applicability
+        # Continuous ancestry adjustment
         ancestry_applicable = True
         ancestry_warning = ""
-        if non_eur_dominant:
-            ancestry_applicable = False
-            ancestry_warning = (
-                "PRS models are calibrated on European-ancestry populations. "
-                "Your ancestry profile is >40% non-European, so these scores "
-                "may not accurately reflect your risk."
-            )
+        if eur_prop < 0.95:
+            # Scale z-score by EUR proportion (linear decay model)
+            adjusted_z = z_score * eur_prop
+            adjusted_percentile = _z_to_percentile(adjusted_z)
+            if eur_prop < 0.5:
+                ancestry_applicable = False
+                ancestry_warning = (
+                    f"PRS calibrated on European populations. Your EUR ancestry "
+                    f"is ~{eur_prop:.0%}, so these scores have reduced accuracy. "
+                    f"Unadjusted percentile: {percentile:.0f}th."
+                )
+            else:
+                ancestry_warning = (
+                    f"PRS adjusted for {eur_prop:.0%} European ancestry "
+                    f"(unadjusted: {percentile:.0f}th percentile)."
+                )
+            percentile = round(adjusted_percentile, 1)
+            risk_category = _categorize_percentile(percentile)
 
         # Sort contributing SNPs by contribution (descending)
         contributing.sort(key=lambda x: -x["contribution"])
+
+        # Unique SNP count in model (after dedup)
+        unique_total = len(seen_rsids)
 
         results[condition_id] = {
             "name": model["name"],
             "raw_score": round(raw_score, 4),
             "z_score": round(z_score, 3),
             "percentile": round(percentile, 1),
+            "ci_95_lower": round(ci_lower, 1),
+            "ci_95_upper": round(ci_upper, 1),
             "risk_category": risk_category,
             "snps_found": snps_found,
-            "snps_total": len(model["snps"]),
+            "snps_total": unique_total,
             "ancestry_applicable": ancestry_applicable,
             "ancestry_warning": ancestry_warning,
-            "contributing_snps": contributing[:10],  # top 10
+            "contributing_snps": contributing[:10],
             "reference": model["reference"],
         }
 

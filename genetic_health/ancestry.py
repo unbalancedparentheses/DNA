@@ -294,12 +294,11 @@ ANCESTRY_MARKERS = {
         "allele": "T",
         "frequencies": {"EUR": 0.130, "AFR": 0.025, "EAS": 0.020, "SAS": 0.060, "AMR": 0.070},
     },
-    "rs4988235_2": {
-        # Proxy for LCT European persistence (different assay)
-        "gene": "LCT",
-        "description": "Lactase persistence (European proxy)",
-        "allele": "A",
-        "frequencies": {"EUR": 0.740, "AFR": 0.080, "EAS": 0.010, "SAS": 0.300, "AMR": 0.370},
+    "rs4833103": {
+        "gene": "NRG1",
+        "description": "Neuregulin 1 (ancestry informative)",
+        "allele": "T",
+        "frequencies": {"EUR": 0.550, "AFR": 0.120, "EAS": 0.780, "SAS": 0.400, "AMR": 0.350},
     },
     "rs7657799": {
         "gene": "DDB1",
@@ -477,6 +476,16 @@ def _count_allele(genotype: str, informative_allele: str) -> int:
     return sum(1 for a in genotype if a == informative_allele)
 
 
+def _marker_informativeness(frequencies: dict) -> float:
+    """Calculate informativeness of a marker using Fst-like delta metric.
+
+    Higher values = more discriminating between populations.
+    Returns the max absolute frequency difference between any two populations.
+    """
+    freqs = list(frequencies.values())
+    return max(freqs) - min(freqs)
+
+
 def _softmax(log_likelihoods: dict) -> dict:
     """Softmax normalization of log-likelihoods to proportions."""
     max_ll = max(log_likelihoods.values())
@@ -505,6 +514,7 @@ def estimate_ancestry(genome_by_rsid: dict) -> dict:
     log_likelihoods = {pop: 0.0 for pop in POPULATIONS}
     details = []
     markers_found = 0
+    total_informativeness = 0.0
 
     for rsid, marker in ANCESTRY_MARKERS.items():
         if rsid not in genome_by_rsid:
@@ -514,6 +524,8 @@ def estimate_ancestry(genome_by_rsid: dict) -> dict:
         allele = marker["allele"]
         n = _count_allele(genotype, allele)
         markers_found += 1
+        info_score = _marker_informativeness(marker["frequencies"])
+        total_informativeness += info_score
 
         marker_detail = {
             "rsid": rsid,
@@ -543,10 +555,15 @@ def estimate_ancestry(genome_by_rsid: dict) -> dict:
 
     proportions = _softmax(log_likelihoods)
 
-    # Determine confidence
-    if markers_found >= 40:
+    # Determine confidence using both marker count and total informativeness
+    # Average informativeness per marker (scale 0-1; >0.5 is highly informative)
+    avg_info = total_informativeness / markers_found if markers_found else 0
+    # Weighted effective marker count (markers * avg discriminative power)
+    effective_markers = markers_found * avg_info
+
+    if markers_found >= 40 and effective_markers >= 15:
         confidence = "high"
-    elif markers_found >= 20:
+    elif markers_found >= 20 and effective_markers >= 8:
         confidence = "moderate"
     else:
         confidence = "low"
