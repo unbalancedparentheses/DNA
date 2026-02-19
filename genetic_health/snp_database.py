@@ -921,6 +921,202 @@ COMPREHENSIVE_SNPS = {
             "TT": {"status": "non_taster", "desc": "TAS2R38 I296V: non-taster allele (V296)", "magnitude": 0},
         }
     },
+
+    # =========================================================================
+    # SECTION: LONGEVITY & AGING
+    # =========================================================================
+
+    "rs2536": {
+        "gene": "MTOR", "category": "Longevity",
+        "variants": {
+            "CC": {"status": "protective", "desc": "mTOR variant associated with longevity signaling", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "mTOR heterozygous — partial longevity effect", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "mTOR heterozygous — partial longevity effect", "magnitude": 0},
+            "TT": {"status": "reference", "desc": "mTOR reference — standard aging pathway activity", "magnitude": 0},
+        }
+    },
+    "rs7069102": {
+        "gene": "SIRT1", "category": "Longevity",
+        "variants": {
+            "GG": {"status": "protective", "desc": "SIRT1 GG — enhanced NAD+ deacetylase, caloric restriction pathway", "magnitude": 2},
+            "GC": {"status": "intermediate", "desc": "SIRT1 heterozygous — partial sirtuin benefit", "magnitude": 1},
+            "CG": {"status": "intermediate", "desc": "SIRT1 heterozygous — partial sirtuin benefit", "magnitude": 1},
+            "CC": {"status": "reference", "desc": "SIRT1 reference — standard sirtuin activity", "magnitude": 0},
+        }
+    },
+    "rs9536314": {
+        "gene": "KLOTHO", "category": "Longevity",
+        "variants": {
+            "TT": {"status": "protective", "desc": "Klotho TT — enhanced anti-aging hormone, kidney & brain protection", "magnitude": 2},
+            "TG": {"status": "intermediate", "desc": "Klotho heterozygous — partial anti-aging benefit", "magnitude": 1},
+            "GT": {"status": "intermediate", "desc": "Klotho heterozygous — partial anti-aging benefit", "magnitude": 1},
+            "GG": {"status": "reference", "desc": "Klotho reference — standard aging hormone levels", "magnitude": 0},
+        }
+    },
+    "rs2229765": {
+        "gene": "IGF1R", "category": "Longevity",
+        "variants": {
+            "AA": {"status": "protective", "desc": "IGF1R AA — reduced IGF-1 signaling associated with longevity", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "IGF1R heterozygous — partial growth pathway reduction", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "IGF1R heterozygous — partial growth pathway reduction", "magnitude": 1},
+            "GG": {"status": "reference", "desc": "IGF1R reference — standard growth hormone signaling", "magnitude": 0},
+        }
+    },
+    "rs10936599": {
+        "gene": "TERC", "category": "Longevity",
+        "variants": {
+            "CC": {"status": "protective", "desc": "TERC CC — longer telomere maintenance, cellular longevity", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "TERC heterozygous — moderate telomere benefit", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "TERC heterozygous — moderate telomere benefit", "magnitude": 1},
+            "TT": {"status": "reduced", "desc": "TERC TT — shorter telomeres, accelerated cellular aging", "magnitude": 2},
+        }
+    },
+    "rs2736100": {
+        "gene": "TERT", "category": "Longevity",
+        "variants": {
+            "CC": {"status": "protective", "desc": "TERT CC — enhanced telomerase activity, telomere maintenance", "magnitude": 2},
+            "CA": {"status": "intermediate", "desc": "TERT heterozygous — moderate telomerase activity", "magnitude": 1},
+            "AC": {"status": "intermediate", "desc": "TERT heterozygous — moderate telomerase activity", "magnitude": 1},
+            "AA": {"status": "reduced", "desc": "TERT AA — lower telomerase activity", "magnitude": 1},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: SLEEP & CIRCADIAN
+    # =========================================================================
+
+    "rs228697": {
+        "gene": "PER3", "category": "Sleep/Circadian",
+        "variants": {
+            "CC": {"status": "evening", "desc": "PER3 CC — short-sleep tolerance, evening chronotype tendency", "magnitude": 2},
+            "CG": {"status": "intermediate", "desc": "PER3 heterozygous — moderate chronotype effect", "magnitude": 1},
+            "GC": {"status": "intermediate", "desc": "PER3 heterozygous — moderate chronotype effect", "magnitude": 1},
+            "GG": {"status": "morning", "desc": "PER3 GG — morning chronotype, needs full sleep duration", "magnitude": 1},
+        }
+    },
+    "rs2305160": {
+        "gene": "NPAS2", "category": "Sleep/Circadian",
+        "variants": {
+            "GG": {"status": "evening", "desc": "NPAS2 GG — evening chronotype preference", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "NPAS2 heterozygous — moderate chronotype effect", "magnitude": 0},
+            "AG": {"status": "intermediate", "desc": "NPAS2 heterozygous — moderate chronotype effect", "magnitude": 0},
+            "AA": {"status": "morning", "desc": "NPAS2 AA — morning chronotype preference", "magnitude": 1},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: MENTAL HEALTH
+    # =========================================================================
+
+    "rs6295": {
+        "gene": "HTR1A", "category": "Mental Health",
+        "variants": {
+            "GG": {"status": "risk", "desc": "HTR1A GG — reduced serotonin autoreceptor feedback, depression/SSRI resistance risk", "magnitude": 3},
+            "GC": {"status": "intermediate", "desc": "HTR1A heterozygous — moderate serotonin receptor effect", "magnitude": 1},
+            "CG": {"status": "intermediate", "desc": "HTR1A heterozygous — moderate serotonin receptor effect", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "HTR1A CC — normal serotonin autoreceptor function", "magnitude": 0},
+        }
+    },
+    "rs1800532": {
+        "gene": "TPH1", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "reduced", "desc": "TPH1 AA — reduced serotonin synthesis, depression susceptibility", "magnitude": 2},
+            "AC": {"status": "intermediate", "desc": "TPH1 heterozygous — moderate serotonin synthesis reduction", "magnitude": 1},
+            "CA": {"status": "intermediate", "desc": "TPH1 heterozygous — moderate serotonin synthesis reduction", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "TPH1 CC — normal serotonin synthesis rate", "magnitude": 0},
+        }
+    },
+    "rs110402": {
+        "gene": "CRHR1", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "resilient", "desc": "CRHR1 AA — may be protective after trauma exposure", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "CRHR1 heterozygous — moderate stress response modulation", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "CRHR1 heterozygous — moderate stress response modulation", "magnitude": 1},
+            "GG": {"status": "standard", "desc": "CRHR1 GG — standard HPA axis stress response", "magnitude": 0},
+        }
+    },
+    "rs9296158": {
+        "gene": "FKBP5", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "FKBP5 AA — impaired cortisol recovery, trauma sensitivity", "magnitude": 3},
+            "AG": {"status": "intermediate", "desc": "FKBP5 heterozygous — moderate cortisol recovery effect", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "FKBP5 heterozygous — moderate cortisol recovery effect", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "FKBP5 GG — normal cortisol feedback", "magnitude": 0},
+        }
+    },
+    "rs279858": {
+        "gene": "GABRA2", "category": "Mental Health",
+        "variants": {
+            "GG": {"status": "risk", "desc": "GABRA2 GG — elevated alcohol dependence susceptibility", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "GABRA2 heterozygous — moderate risk", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "GABRA2 heterozygous — moderate risk", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "GABRA2 AA — typical GABA-A receptor function", "magnitude": 0},
+        }
+    },
+    "rs16969968": {
+        "gene": "CHRNA5", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "CHRNA5 AA — high nicotine dependence risk, increased cigarettes/day", "magnitude": 3},
+            "AG": {"status": "intermediate", "desc": "CHRNA5 heterozygous — moderate nicotine dependence risk", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "CHRNA5 heterozygous — moderate nicotine dependence risk", "magnitude": 2},
+            "GG": {"status": "normal", "desc": "CHRNA5 GG — typical nicotine receptor sensitivity", "magnitude": 0},
+        }
+    },
+    "rs1611115": {
+        "gene": "DBH", "category": "Mental Health",
+        "variants": {
+            "TT": {"status": "reduced", "desc": "DBH TT — reduced dopamine-to-norepinephrine conversion, ADHD trait association", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "DBH heterozygous — moderate dopamine/norepinephrine balance", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "DBH heterozygous — moderate dopamine/norepinephrine balance", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "DBH CC — normal dopamine beta-hydroxylase activity", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: SKIN HEALTH & AGING
+    # =========================================================================
+
+    "rs1800255": {
+        "gene": "COL3A1", "category": "Skin Health",
+        "variants": {
+            "GG": {"status": "reduced", "desc": "COL3A1 GG — reduced type III collagen, lower skin elasticity", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "COL3A1 heterozygous — moderate collagen effect", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "COL3A1 heterozygous — moderate collagen effect", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "COL3A1 AA — normal type III collagen production", "magnitude": 0},
+        }
+    },
+    "rs11204681": {
+        "gene": "FLG", "category": "Skin Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "FLG AA — filaggrin loss, impaired skin barrier, eczema/atopic dermatitis risk", "magnitude": 3},
+            "AT": {"status": "carrier", "desc": "FLG heterozygous — carrier for impaired skin barrier", "magnitude": 2},
+            "TA": {"status": "carrier", "desc": "FLG heterozygous — carrier for impaired skin barrier", "magnitude": 2},
+            "TT": {"status": "normal", "desc": "FLG TT — normal filaggrin, intact skin barrier", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: ATHLETIC PERFORMANCE
+    # =========================================================================
+
+    "rs6746030": {
+        "gene": "SCN9A", "category": "Fitness",
+        "variants": {
+            "AA": {"status": "low_pain", "desc": "SCN9A AA — reduced pain sensitivity (sodium channel variant)", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "SCN9A heterozygous — moderate pain sensitivity", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "SCN9A heterozygous — moderate pain sensitivity", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "SCN9A GG — normal pain sensitivity", "magnitude": 0},
+        }
+    },
+    "rs679620": {
+        "gene": "MMP3", "category": "Fitness",
+        "variants": {
+            "AA": {"status": "risk", "desc": "MMP3 AA — increased collagen remodeling, higher tendon/ligament injury risk", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "MMP3 heterozygous — moderate injury recovery", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "MMP3 heterozygous — moderate injury recovery", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "MMP3 GG — normal connective tissue turnover", "magnitude": 0},
+        }
+    },
 }
 
 

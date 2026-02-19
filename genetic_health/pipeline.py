@@ -21,6 +21,11 @@ from .apoe import call_apoe_haplotype
 from .acmg import flag_acmg_findings
 from .carrier_screen import organize_carrier_findings
 from .traits import predict_traits
+from .polypharmacy import assess_polypharmacy
+from .longevity import profile_longevity
+from .sleep_profile import profile_sleep
+from .nutrigenomics import profile_nutrigenomics
+from .mental_health import profile_mental_health
 from .reports import generate_html_report
 
 
@@ -194,6 +199,55 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
           f"{len(insights['narratives'])} narratives, "
           f"{len(insights['genome_highlights'])} highlights")
 
+    # Polypharmacy risk assessment
+    print_step("Assessing polypharmacy risks")
+    polypharmacy = assess_polypharmacy(
+        genome_by_rsid, star_alleles=star_alleles,
+        lifestyle_findings=health_results['findings'])
+    if polypharmacy['total_warnings']:
+        print(f"    {polypharmacy['total_warnings']} polypharmacy warnings")
+        for w in polypharmacy['warnings']:
+            print(f"    - [{w['severity'].upper()}] {w['name']}")
+    else:
+        print("    No polypharmacy risks detected")
+
+    # Longevity profiling
+    print_step("Profiling longevity and healthspan")
+    longevity = profile_longevity(
+        genome_by_rsid, lifestyle_findings=health_results['findings'],
+        apoe=apoe, prs_results=prs_results)
+    print(f"    Longevity score: {longevity['longevity_score']}/100 "
+          f"({longevity['alleles_checked']} longevity alleles checked)")
+
+    # Sleep/circadian profiling
+    print_step("Profiling sleep and circadian rhythm")
+    sleep = profile_sleep(genome_by_rsid, lifestyle_findings=health_results['findings'])
+    print(f"    Chronotype: {sleep['chronotype']} "
+          f"({sleep['confidence']} confidence, {sleep['markers_found']} markers)")
+    print(f"    Optimal sleep: {sleep['optimal_sleep_window']}")
+
+    # Nutrigenomics profiling
+    print_step("Profiling nutrigenomics")
+    nutrigenomics = profile_nutrigenomics(
+        genome_by_rsid, lifestyle_findings=health_results['findings'])
+    high_needs = [n['name'] for n in nutrigenomics['nutrient_needs'] if n['need_level'] == 'high']
+    if high_needs:
+        print(f"    High nutrient needs: {', '.join(high_needs)}")
+    else:
+        print("    No high-priority nutrient deficiency risks")
+
+    # Mental health profiling
+    print_step("Profiling mental health genetics")
+    mental_health = profile_mental_health(
+        genome_by_rsid, lifestyle_findings=health_results['findings'],
+        star_alleles=star_alleles)
+    elevated = [d for d, info in mental_health['domains'].items()
+                if info['risk_level'] == 'elevated']
+    if elevated:
+        print(f"    Elevated domains: {', '.join(elevated)}")
+    else:
+        print("    No elevated mental health genetic signals")
+
     # Save intermediate results for HTML report generator
     results_json = {
         'findings': health_results['findings'],
@@ -216,6 +270,11 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'traits': traits,
         'insights': insights,
         'disease_findings': disease_findings,
+        'polypharmacy': polypharmacy,
+        'longevity': longevity,
+        'sleep_profile': sleep,
+        'nutrigenomics': nutrigenomics,
+        'mental_health': mental_health,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
@@ -285,6 +344,11 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'carrier_screen': carrier_screen,
         'traits': traits,
         'insights': insights,
+        'polypharmacy': polypharmacy,
+        'longevity': longevity,
+        'sleep_profile': sleep,
+        'nutrigenomics': nutrigenomics,
+        'mental_health': mental_health,
     }
 
 

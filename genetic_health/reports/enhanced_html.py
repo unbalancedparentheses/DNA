@@ -2021,8 +2021,13 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <a href="#nutrition">18. Nutrition &amp; Lifestyle</a>
 <a href="#monitoring">19. Monitoring Schedule</a>
 <a href="#protective">20. Protective Variants</a>
-<a href="#doctor-card">21. Doctor Card</a>
-<a href="#references">22. References &amp; Links</a>
+<a href="#polypharmacy">21. Polypharmacy Warnings</a>
+<a href="#longevity">22. Longevity &amp; Healthspan</a>
+<a href="#sleep-profile">23. Sleep &amp; Circadian</a>
+<a href="#nutrigenomics">24. Nutrigenomics</a>
+<a href="#mental-health">25. Mental Health Genetics</a>
+<a href="#doctor-card">26. Doctor Card</a>
+<a href="#references">27. References &amp; Links</a>
 </div>
 </nav>
 
@@ -2134,14 +2139,39 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 {protective_content}
 </div>
 
+<div class="section" id="polypharmacy">
+<h2><span class="section-number">21</span> Polypharmacy Warnings</h2>
+{polypharmacy_content}
+</div>
+
+<div class="section" id="longevity">
+<h2><span class="section-number">22</span> Longevity &amp; Healthspan Profile</h2>
+{longevity_content}
+</div>
+
+<div class="section" id="sleep-profile">
+<h2><span class="section-number">23</span> Sleep &amp; Circadian Profile</h2>
+{sleep_content}
+</div>
+
+<div class="section" id="nutrigenomics">
+<h2><span class="section-number">24</span> Nutrigenomics Profile</h2>
+{nutrigenomics_content}
+</div>
+
+<div class="section" id="mental-health">
+<h2><span class="section-number">25</span> Mental Health Genetics</h2>
+{mental_health_content}
+</div>
+
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">21</span> Doctor Card</h2>
+<h2><span class="section-number">26</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">22</span> References &amp; Links</h2>
+<h2><span class="section-number">27</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -2268,6 +2298,234 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
 # MAIN
 # =============================================================================
 
+def build_polypharmacy_section(data):
+    """Build polypharmacy warnings section."""
+    if not data or not data.get("warnings"):
+        return "<p>No polypharmacy risks detected based on your pharmacogenomic profile.</p>"
+    parts = [
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Drug combination warnings based on your combined pharmacogene profile. '
+        'Share this section with every prescribing physician.</p>'
+    ]
+    severity_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
+    for w in data["warnings"]:
+        color = severity_colors.get(w["severity"], "var(--border)")
+        genes_str = ", ".join(f"{g}: {s}" for g, s in w.get("matched_genes", {}).items())
+        drugs_str = ", ".join(w.get("drugs_affected", []))
+        parts.append(
+            f'<details open class="rec-card" style="border-left:4px solid {color}">'
+            f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
+            f'{w["severity"].upper()}</span> '
+            f'<strong>{_esc(w["name"])}</strong></summary>'
+        )
+        if genes_str:
+            parts.append(f'<p><strong>Your genotype:</strong> {_esc(genes_str)}</p>')
+        parts.append(f'<p><strong>Drugs affected:</strong> {_esc(drugs_str)}</p>')
+        parts.append(f'<p>{_esc(w["warning"])}</p>')
+        parts.append(f'<p><strong>Clinical action:</strong> {_esc(w["action"])}</p>')
+        parts.append("</details>")
+    return "\n".join(parts)
+
+
+def build_longevity_section(data):
+    """Build longevity and healthspan section."""
+    if not data:
+        return "<p>No longevity data available.</p>"
+    parts = []
+    score = data.get("longevity_score", 50)
+    score_color = "#22c55e" if score >= 60 else "#f59e0b" if score >= 40 else "#ef4444"
+    parts.append(
+        f'<div style="text-align:center;margin:1em 0">'
+        f'<span style="font-size:2.5em;font-weight:bold;color:{score_color}">{score}</span>'
+        f'<span style="font-size:1.2em;color:var(--accent2)">/100</span>'
+        f'<p style="color:var(--accent2)">Longevity Genetic Score</p>'
+        f'<p style="font-size:.9em">{_esc(data.get("summary", ""))}</p>'
+        f'</div>'
+    )
+    # Healthspan domains
+    domains = data.get("healthspan_domains", {})
+    if domains:
+        parts.append("<h3>Healthspan Domains</h3>")
+        parts.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1em">')
+        for domain, info in domains.items():
+            s = info["score"]
+            c = "#22c55e" if s >= 60 else "#f59e0b" if s >= 40 else "#ef4444"
+            parts.append(
+                f'<div style="border:1px solid var(--border);border-radius:8px;padding:1em;text-align:center">'
+                f'<strong>{_esc(domain.replace("_", " ").title())}</strong><br>'
+                f'<span style="font-size:1.5em;color:{c}">{s}</span>/90<br>'
+                f'<span style="font-size:.85em;color:var(--accent2)">{info["rating"]}</span>'
+                f'</div>'
+            )
+        parts.append("</div>")
+    # Longevity alleles
+    alleles = data.get("longevity_alleles", [])
+    if alleles:
+        parts.append("<h3>Longevity-Associated Alleles</h3>")
+        parts.append('<table><tr><th>Gene</th><th>Genotype</th><th>Copies</th><th>Status</th></tr>')
+        for a in alleles:
+            status_color = "#22c55e" if a["copies"] == 2 else "#f59e0b" if a["copies"] == 1 else "#ef4444"
+            parts.append(
+                f'<tr><td><strong>{_esc(a["gene"])}</strong></td>'
+                f'<td><code>{_esc(a["genotype"])}</code></td>'
+                f'<td style="color:{status_color}">{a["copies"]}/2</td>'
+                f'<td>{_esc(a["status"].replace("_", " ").title())}</td></tr>'
+            )
+        parts.append("</table>")
+    # Interventions
+    interventions = data.get("interventions", [])
+    if interventions:
+        parts.append("<h3>Genetically-Supported Interventions</h3><ul>")
+        for i in interventions:
+            parts.append(f'<li><strong>{_esc(i["intervention"])}</strong> — {_esc(i["why"])}</li>')
+        parts.append("</ul>")
+    return "\n".join(parts)
+
+
+def build_sleep_section(data):
+    """Build sleep and circadian profile section."""
+    if not data:
+        return "<p>No sleep profile data available.</p>"
+    parts = []
+    parts.append(
+        f'<div style="text-align:center;margin:1em 0">'
+        f'<p style="font-size:1.5em;font-weight:bold">{_esc(data.get("chronotype", "Unknown"))}</p>'
+        f'<p style="color:var(--accent2)">Chronotype Score: {data.get("chronotype_score", 50)}/100 '
+        f'(0=extreme morning, 100=extreme evening)</p>'
+        f'</div>'
+    )
+    parts.append(
+        f'<table>'
+        f'<tr><td><strong>Optimal Sleep Window</strong></td><td>{_esc(data.get("optimal_sleep_window", ""))}</td></tr>'
+        f'<tr><td><strong>Peak Alertness</strong></td><td>{_esc(data.get("peak_alertness", ""))}</td></tr>'
+        f'<tr><td><strong>Last Caffeine By</strong></td><td>{_esc(data.get("caffeine_cutoff", ""))}</td></tr>'
+        f'<tr><td><strong>Caffeine Sensitive</strong></td><td>{"Yes" if data.get("caffeine_sensitive") else "No"}</td></tr>'
+        f'</table>'
+    )
+    if data.get("deep_sleep_note"):
+        parts.append(f'<p style="margin-top:1em"><strong>Note:</strong> {_esc(data["deep_sleep_note"])}</p>')
+    recs = data.get("recommendations", [])
+    if recs:
+        parts.append("<h3>Sleep Recommendations</h3><ul>")
+        for r in recs:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ul>")
+    markers = data.get("sleep_markers", [])
+    if markers:
+        parts.append("<h3>Sleep Gene Markers</h3>")
+        parts.append('<table><tr><th>Gene</th><th>Trait</th><th>Genotype</th><th>Effect</th></tr>')
+        for m in markers:
+            parts.append(
+                f'<tr><td><strong>{_esc(m["gene"])}</strong></td>'
+                f'<td>{_esc(m["trait"])}</td>'
+                f'<td><code>{_esc(m["genotype"])}</code></td>'
+                f'<td>{_esc(m["description"])}</td></tr>'
+            )
+        parts.append("</table>")
+    return "\n".join(parts)
+
+
+def build_nutrigenomics_section(data):
+    """Build nutrigenomics profile section."""
+    if not data:
+        return "<p>No nutrigenomics data available.</p>"
+    parts = []
+    parts.append(f'<p>{_esc(data.get("summary", ""))}</p>')
+    needs = data.get("nutrient_needs", [])
+    if needs:
+        need_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#3b82f6",
+                       "normal": "#22c55e", "caution_excess": "#a855f7"}
+        for n in needs:
+            if n["need_level"] == "normal" and not n["gene_impacts"]:
+                continue
+            color = need_colors.get(n["need_level"], "var(--border)")
+            parts.append(
+                f'<details class="rec-card" style="border-left:4px solid {color}">'
+                f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
+                f'{_esc(n["need_level"].upper().replace("_", " "))}</span> '
+                f'<strong>{_esc(n["name"])}</strong></summary>'
+            )
+            parts.append(f'<p>{_esc(n["recommendation"])}</p>')
+            parts.append(f'<p><strong>Food sources:</strong> {_esc(n["food_sources"])}</p>')
+            for gi in n.get("gene_impacts", []):
+                parts.append(f'<p style="font-size:.9em">— {_esc(gi["gene"])}: {_esc(gi["impact"])}</p>')
+            parts.append("</details>")
+    supps = data.get("supplement_priorities", [])
+    if supps:
+        parts.append("<h3>Supplement Priority List</h3>")
+        parts.append('<table><tr><th>Nutrient</th><th>Form</th><th>Dose</th><th>Priority</th></tr>')
+        for s in supps:
+            parts.append(
+                f'<tr><td><strong>{_esc(s["nutrient"])}</strong></td>'
+                f'<td>{_esc(s["form"])}</td>'
+                f'<td>{_esc(s["dose"])}</td>'
+                f'<td>{_esc(s["priority"])}</td></tr>'
+            )
+        parts.append("</table>")
+    testing = data.get("testing_recommendations", [])
+    if testing:
+        parts.append("<h3>Recommended Lab Tests</h3><ul>")
+        for t in testing:
+            parts.append(f'<li><strong>{_esc(t["nutrient"])}:</strong> {_esc(t["test"])}</li>')
+        parts.append("</ul>")
+    return "\n".join(parts)
+
+
+def build_mental_health_section(data):
+    """Build mental health genetics section."""
+    if not data:
+        return "<p>No mental health genetic data available.</p>"
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Genetic susceptibility markers for mental health domains. '
+        'Genetics is only one factor — environment, lifestyle, and support matter greatly.</p>'
+    )
+    parts.append(f'<p><strong>{_esc(data.get("summary", ""))}</strong></p>')
+    # Domain scores
+    domains = data.get("domains", {})
+    if domains:
+        parts.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1em;margin:1em 0">')
+        level_colors = {"elevated": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
+        for domain, info in domains.items():
+            color = level_colors.get(info["risk_level"], "var(--border)")
+            parts.append(
+                f'<div style="border:1px solid var(--border);border-radius:8px;padding:1em;text-align:center">'
+                f'<strong>{_esc(domain.replace("_", " ").title())}</strong><br>'
+                f'<span style="font-size:1.3em;color:{color}">{_esc(info["risk_level"].title())}</span>'
+                f'</div>'
+            )
+        parts.append("</div>")
+    # Risk and resilience
+    risk = data.get("risk_factors", [])
+    resilience = data.get("resilience_factors", [])
+    if risk:
+        parts.append("<h3>Risk Factors</h3><ul>")
+        for r in risk:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ul>")
+    if resilience:
+        parts.append('<h3>Resilience Factors</h3><ul>')
+        for r in resilience:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ul>")
+    # Treatment notes
+    notes = data.get("treatment_notes", [])
+    if notes:
+        parts.append("<h3>Treatment Matching Notes</h3><ul>")
+        for n in notes:
+            parts.append(f"<li>{_esc(n)}</li>")
+        parts.append("</ul>")
+    # Recommendations
+    recs = data.get("recommendations", [])
+    if recs:
+        parts.append("<h3>Recommendations</h3><ol>")
+        for r in recs:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ol>")
+    return "\n".join(parts)
+
+
 def main():
     print("=" * 60)
     print("Enhanced All-in-One Genetic Health Report")
@@ -2299,6 +2557,11 @@ def main():
     traits_data = data.get("traits", {})
     insights_data = data.get("insights", {})
     disease_findings_data = data.get("disease_findings", {})
+    polypharmacy_data = data.get("polypharmacy", {})
+    longevity_data = data.get("longevity", {})
+    sleep_data = data.get("sleep_profile", {})
+    nutrigenomics_data = data.get("nutrigenomics", {})
+    mental_health_data = data.get("mental_health", {})
 
     # Build each section
     print("\n>>> Building ELI5 summary")
@@ -2371,6 +2634,21 @@ def main():
     print(">>> Building references")
     references = build_references(findings)
 
+    print(">>> Building polypharmacy section")
+    polypharmacy_html = build_polypharmacy_section(polypharmacy_data)
+
+    print(">>> Building longevity section")
+    longevity_html = build_longevity_section(longevity_data)
+
+    print(">>> Building sleep profile section")
+    sleep_html = build_sleep_section(sleep_data)
+
+    print(">>> Building nutrigenomics section")
+    nutrigenomics_html = build_nutrigenomics_section(nutrigenomics_data)
+
+    print(">>> Building mental health section")
+    mental_health_html = build_mental_health_section(mental_health_data)
+
     # Assemble HTML
     print("\n>>> Assembling HTML report")
     html = HTML_TEMPLATE.format(
@@ -2401,6 +2679,11 @@ def main():
         protective_content=protective,
         doctor_card_content=doctor_card,
         references_content=references,
+        polypharmacy_content=polypharmacy_html,
+        longevity_content=longevity_html,
+        sleep_content=sleep_html,
+        nutrigenomics_content=nutrigenomics_html,
+        mental_health_content=mental_health_html,
     )
 
     output_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.html"
