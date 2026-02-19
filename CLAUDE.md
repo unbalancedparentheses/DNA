@@ -22,30 +22,9 @@ python -m pytest tests/ -v
 
 ## Output
 
-The pipeline generates a unified report in the `reports/` directory:
+The pipeline generates a single interactive report in the `reports/` directory:
 
-1. **GENETIC_HEALTH_REPORT.md** — Comprehensive unified Markdown report (18 sections)
-   1. Data Quality (call rate, chromosomes, sex inference)
-   2. Executive Summary (high-impact findings, critical disease variants, carrier count)
-   3. APOE Haplotype (Alzheimer's risk context)
-   4. Blood Type & Traits (ABO + Rh, eye color, hair color, earwax type, freckling)
-   5. Mitochondrial Haplogroup (maternal lineage)
-   6. Ancestry Estimation (5 superpopulations)
-   7. Polygenic Risk Scores (8 conditions)
-   8. Pharmacogenomic Star Alleles (CYP2C19, CYP2C9, CYP2D6, DPYD, TPMT, UGT1A1)
-   9. ACMG Secondary Findings (81 medically actionable genes)
-   10. Gene-Gene Interactions (Epistasis)
-   11. Personalized Recommendations (priorities, supplements, diet, lifestyle, monitoring)
-   12. Complete Lifestyle/Health Findings by Category (~210+ SNPs)
-   13. Pathway Analysis
-   14. Disease Risk Analysis (pathogenic, likely pathogenic, carriers, risk factors, drug response, protective)
-   15. Carrier Screening (organized by disease system, reproductive context)
-   16. Drug-Gene Interactions (PharmGKB + ClinVar combined)
-   17. Doctor Card (print-friendly summary)
-   18. References & Disclaimer
-
-2. **GENETIC_HEALTH_REPORT.html** — Interactive all-in-one HTML report (23 sections)
-   - Everything from the Markdown report, plus:
+1. **GENETIC_HEALTH_REPORT.html** — Interactive all-in-one HTML report (24 sections)
    - SVG charts and dashboards
    - APOE haplotype display with risk context
    - Trait predictions section
@@ -62,7 +41,7 @@ The pipeline generates a unified report in the `reports/` directory:
    - Print-optimized doctor card
    - Database links for every rsID
 
-3. **GENETIC_HEALTH_REPORT.pdf** (optional, with `--pdf` flag)
+2. **GENETIC_HEALTH_REPORT.pdf** (optional, with `--pdf` flag)
 
 ## Directory Structure
 
@@ -99,9 +78,7 @@ DNA/
 │   ├── update_data.py            # ClinVar auto-download + PharmGKB validation
 │   └── reports/
 │       ├── __init__.py            # Re-exports generators
-│       ├── html_converter.py      # Markdown→HTML converter
-│       ├── markdown_reports.py    # Unified Markdown report generator (18 sections)
-│       ├── enhanced_html.py       # Interactive HTML report (23 sections)
+│       ├── enhanced_html.py       # Interactive HTML report (24 sections)
 │       └── pdf_export.py          # PDF export (Chrome headless / weasyprint)
 ├── scripts/
 │   └── setup_reference.sh        # Reference genome setup (shell script)
@@ -135,7 +112,6 @@ DNA/
 ├── reference/
 │   └── human_g1k_v37.fasta.gz    # Reference genome (for WGS pipeline)
 └── reports/                       # Generated output (gitignored)
-    ├── GENETIC_HEALTH_REPORT.md
     ├── GENETIC_HEALTH_REPORT.html
     └── comprehensive_results.json  # Intermediate JSON for HTML generator
 ```
@@ -174,8 +150,7 @@ cp ~/Downloads/genome_mom.txt data/genome_mom.txt
 # Run analysis
 python -m genetic_health data/genome_mom.txt --name "Mom"
 
-# Rename outputs to preserve them
-mv reports/GENETIC_HEALTH_REPORT.md reports/GENETIC_HEALTH_REPORT_MOM.md
+# Rename output to preserve it
 mv reports/GENETIC_HEALTH_REPORT.html reports/GENETIC_HEALTH_REPORT_MOM.html
 ```
 

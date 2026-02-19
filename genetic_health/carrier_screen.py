@@ -4,7 +4,7 @@ Reorganizes heterozygous recessive ClinVar findings into a structured
 carrier screening report grouped by disease system.
 """
 
-from .reports.markdown_reports import classify_zygosity
+from .analysis import classify_zygosity
 
 # Disease system classification by gene
 _GENE_SYSTEMS = {

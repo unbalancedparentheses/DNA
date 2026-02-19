@@ -14,4 +14,5 @@ from .apoe import call_apoe_haplotype
 from .acmg import flag_acmg_findings
 from .carrier_screen import organize_carrier_findings
 from .traits import predict_traits
+from .insights import generate_insights
 from .pipeline import run_full_analysis

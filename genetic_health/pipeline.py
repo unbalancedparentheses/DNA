@@ -12,6 +12,7 @@ from .ancestry import estimate_ancestry
 from .prs import calculate_prs
 from .epistasis import evaluate_epistasis
 from .recommendations import generate_recommendations
+from .insights import generate_insights
 from .quality_metrics import compute_quality_metrics
 from .blood_type import predict_blood_type
 from .mt_haplogroup import estimate_mt_haplogroup
@@ -20,7 +21,7 @@ from .apoe import call_apoe_haplotype
 from .acmg import flag_acmg_findings
 from .carrier_screen import organize_carrier_findings
 from .traits import predict_traits
-from .reports import generate_unified_report
+from .reports import generate_html_report
 
 
 def print_header(text):
@@ -168,11 +169,30 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         ancestry_results=ancestry_results,
         prs_results=prs_results,
         epistasis_results=epistasis_results,
+        star_alleles=star_alleles,
+        acmg=acmg,
     )
     high_count = sum(1 for p in recommendations['priorities'] if p['priority'] == 'high')
     mod_count = sum(1 for p in recommendations['priorities'] if p['priority'] == 'moderate')
     print(f"    {len(recommendations['priorities'])} priority areas "
           f"({high_count} high, {mod_count} moderate)")
+    ref_count = len(recommendations.get('specialist_referrals', []))
+    if ref_count:
+        print(f"    {ref_count} specialist referral(s)")
+
+    # Generate research-backed insights
+    print_step("Generating research-backed insights")
+    insights = generate_insights(
+        health_results['findings'],
+        apoe=apoe,
+        star_alleles=star_alleles,
+        ancestry_results=ancestry_results,
+        epistasis_results=epistasis_results,
+        disease_findings=disease_findings,
+    )
+    print(f"    {len(insights['single_gene'])} gene insights, "
+          f"{len(insights['narratives'])} narratives, "
+          f"{len(insights['genome_highlights'])} highlights")
 
     # Save intermediate results for HTML report generator
     results_json = {
@@ -194,46 +214,21 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'acmg': acmg,
         'carrier_screen': carrier_screen,
         'traits': traits,
+        'insights': insights,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
         json.dump(results_json, f, indent=2)
 
-    # Generate unified Markdown report
-    unified_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.md"
-    generate_unified_report(
-        health_results=health_results,
-        disease_findings=disease_findings,
-        disease_stats=disease_stats,
-        output_path=unified_path,
-        subject_name=subject_name,
-        ancestry_results=ancestry_results,
-        prs_results=prs_results,
-        epistasis_results=epistasis_results,
-        recommendations=recommendations,
-        quality_metrics=quality_metrics,
-        blood_type=blood_type,
-        mt_haplogroup=mt_haplogroup,
-        star_alleles=star_alleles,
-        apoe=apoe,
-        acmg=acmg,
-        carrier_screen=carrier_screen,
-        traits=traits,
-    )
-
-    # Generate enhanced all-in-one HTML report
-    from .reports.enhanced_html import main as generate_enhanced_report
-    print_step("Generating enhanced all-in-one HTML report")
-    generate_enhanced_report()
+    # Generate interactive HTML report
+    print_step("Generating interactive HTML report")
+    generate_html_report()
 
     # PDF export
     if export_pdf:
         from .reports.pdf_export import export_pdf as _export_pdf
         print_step("Exporting reports to PDF")
-        # Prefer the interactive HTML report for PDF; fall back to markdown sidecar
         html_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.html"
-        if not html_path.exists():
-            html_path = unified_path.with_suffix(".html")
         if html_path.exists():
             pdf_path = _export_pdf(html_path)
             if pdf_path:
@@ -242,8 +237,8 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     # Summary
     print_header("ANALYSIS COMPLETE")
     print(f"\nReports generated in: {REPORTS_DIR}")
-    print(f"\n  1. GENETIC_HEALTH_REPORT.md")
-    print(f"     - Unified report with all sections")
+    print(f"\n  GENETIC_HEALTH_REPORT.html")
+    print(f"     - Interactive HTML report (SVG charts, collapsible sections)")
     print(f"     - {len(health_results['findings'])} lifestyle/health findings")
     print(f"     - {len(health_results['pharmgkb_findings'])} drug-gene interactions")
 
@@ -251,9 +246,6 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         print(f"     - {len(disease_findings['pathogenic'])} pathogenic variants")
         print(f"     - {len(disease_findings['likely_pathogenic'])} likely pathogenic")
         print(f"     - {len(disease_findings['risk_factor'])} risk factors")
-
-    print(f"\n  2. GENETIC_HEALTH_REPORT.html")
-    print(f"     - Interactive HTML report (SVG charts, collapsible sections)")
 
     if ancestry_results:
         print(f"\n  Ancestry: {ancestry_results['top_ancestry']} "
@@ -291,6 +283,7 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'acmg': acmg,
         'carrier_screen': carrier_screen,
         'traits': traits,
+        'insights': insights,
     }
 
 

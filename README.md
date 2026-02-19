@@ -2,7 +2,7 @@
 
 Turn raw DNA data into actionable health reports. Works with **23andMe exports** (instant) or **whole-genome sequencing FASTQ files** (full pipeline: QC, alignment, variant calling, analysis).
 
-The pipeline cross-references your genome against ClinVar (340K+ clinical variants), PharmGKB (drug-gene interactions), and a curated database of ~210+ lifestyle/health SNPs to produce four detailed reports: an exhaustive genetic report, a disease risk report, an actionable health protocol, and an interactive HTML dashboard with SVG charts.
+The pipeline cross-references your genome against ClinVar (340K+ clinical variants), PharmGKB (drug-gene interactions), and a curated database of ~210+ lifestyle/health SNPs to produce a single interactive HTML report with SVG charts, searchable findings, and a print-optimized doctor card.
 
 ## Why This Exists
 
@@ -40,9 +40,8 @@ cp ~/Downloads/genome_Your_Name_*.txt data/genome.txt
 # 4. Run the analysis
 python -m genetic_health --name "Your Name"
 
-# 5. Open reports
-open reports/ENHANCED_HEALTH_REPORT.html    # Interactive HTML dashboard
-open reports/ACTIONABLE_HEALTH_PROTOCOL_V3.md  # Actionable protocol
+# 5. Open report
+open reports/GENETIC_HEALTH_REPORT.html
 ```
 
 ### Option B: Whole-Genome Sequencing (FASTQ)
@@ -83,79 +82,39 @@ Place these in the `data/` directory:
 
 If ClinVar or PharmGKB files are missing, those analysis sections are skipped gracefully -- the pipeline still runs.
 
-## Output Reports
+## Output
 
-The pipeline generates four reports in `reports/`:
+The pipeline generates a single interactive report in `reports/`:
 
-### 1. Exhaustive Genetic Report (`EXHAUSTIVE_GENETIC_REPORT.md`)
+### `GENETIC_HEALTH_REPORT.html`
 
-Detailed analysis of ~210+ lifestyle and health-relevant SNPs organized by 16 categories:
+A self-contained HTML file with 24 sections -- no external dependencies, works offline:
 
-- **Drug Metabolism** -- CYP2D6, CYP2C19, CYP2C9, CYP3A5 enzyme activity; warfarin, clopidogrel, statin sensitivity
-- **Methylation** -- MTHFR, COMT, MTRR, MTR, AHCY variants and folate cycle status
-- **Neurotransmitters** -- MAO-A, BDNF, OXTR, DRD2 and behavioral/mood associations
-- **Nutrition** -- Vitamin D receptor (VDR FokI, BsmI), omega-3 metabolism, lactose tolerance, celiac predisposition, caffeine sensitivity
-- **Fitness** -- ACTN3 muscle fiber type, ACE endurance, PPARGC1A mitochondrial function, COL5A1 injury risk
-- **Cardiovascular** -- Blood pressure genes, Factor V Leiden, prothrombin, clotting factors
-- **Sleep/Circadian** -- CLOCK, PER2 chronotype variants
-- **Blood Type** -- ABO group and Rh factor from proxy SNPs
-- **Taste** -- TAS2R38 bitter taste perception (3 variants)
-- **Autoimmune** -- HLA-DRB1 (RA/T1D), HLA-B27 (ankylosing spondylitis), HLA-DQ2.5 (celiac), PTPN22, STAT4
-- **PharmGKB Drug-Gene Interactions** -- Cross-referenced with the PharmGKB clinical annotations database
-
-Each finding includes gene name, genotype, functional status, clinical significance, impact magnitude (0-6 scale), and links to dbSNP/ClinVar.
-
-### 2. Disease Risk Report (`EXHAUSTIVE_DISEASE_RISK_REPORT.md`)
-
-Scans your genome against 340K+ ClinVar variants, categorized by clinical significance:
-
-- **Pathogenic** -- Variants classified as disease-causing (affected status, zygosity, inheritance)
-- **Likely Pathogenic** -- Strong evidence for pathogenicity
-- **Carrier Status** -- Heterozygous recessive variants (reproductive implications)
-- **Risk Factors** -- Variants that increase disease susceptibility
-- **Drug Response** -- Pharmacogenomic variants affecting medication response
-- **Protective** -- Variants conferring reduced disease risk
-
-Each variant includes ClinVar confidence (0-4 gold stars), review status, associated conditions, and population context warnings.
-
-### 3. Actionable Health Protocol (`ACTIONABLE_HEALTH_PROTOCOL_V3.md`)
-
-A consolidated, action-oriented protocol that synthesizes all findings:
-
-- **Data quality metrics** -- call rate, chromosome coverage, heterozygosity, sex inference
-- **Critical findings summary** with pathogenic variants and carrier status
-- **Blood type prediction** -- ABO group + Rh factor with confidence assessment
-- **Mitochondrial haplogroup** -- maternal lineage and migration history
-- **Ancestry estimation** with population proportions and confidence level
-- **Polygenic risk scores** for 5 conditions with percentiles and risk categories
-- **Pharmacogenomic star alleles** -- CYP2C19, CYP2C9, CYP2D6 diplotypes and metabolizer phenotypes
-- **Gene-gene interactions** (epistasis) with mechanism explanations and specific recommendations
-- **Supplement protocol** derived from methylation, nutrition, and metabolic findings
-- **Dietary guidance** based on nutrient metabolism variants
-- **Exercise recommendations** matched to muscle fiber type and injury risk
-- **Blood pressure management** if cardiovascular variants are found
-- **Comprehensive drug interaction card** (PharmGKB + ClinVar drug-response combined)
-- **Testing and monitoring schedule** with priority conditions and recommended intervals
-
-### 4. Interactive HTML Dashboard (`ENHANCED_HEALTH_REPORT.html`)
-
-A single self-contained HTML file with 20 sections -- no external dependencies, works offline:
-
+- **ELI5 summary** -- plain-language overview of key findings
 - **Data quality dashboard** -- call rate badge, chromosome coverage bar chart, sex inference
-- **Blood type display** -- large blood type indicator with ABO/Rh breakdown
-- **Mitochondrial haplogroup** -- haplogroup name, maternal lineage description
-- **Star allele gauges** -- metabolizer phenotype visualizations for CYP2C19, CYP2C9, CYP2D6
-- **SVG dashboard** with category donut chart and metabolism gauges
-- **Ancestry donut chart** showing superpopulation proportions
-- **PRS gauge visualizations** for each condition (green/blue/orange/red zones)
-- **Population frequency badges** -- allele frequencies shown on annotated finding cards
+- **Research-backed insights** -- multi-gene narratives and gene-specific findings with references
+- **APOE haplotype** -- Alzheimer's risk context with visual display
+- **Personalized recommendations** -- prioritized actions, drug card, monitoring schedule, specialist referrals
+- **SVG dashboard** with impact bar chart, category donut chart, and metabolism gauges
+- **Ancestry donut chart** showing superpopulation proportions from ~55 AIMs
+- **Blood type & traits** -- ABO/Rh prediction, eye/hair color, earwax type, freckling
+- **Mitochondrial haplogroup** -- maternal lineage description
+- **PRS gauge visualizations** for 8 conditions (green/blue/orange/red zones)
+- **Pharmacogenomic star alleles** -- metabolizer gauges for 6 genes (CYP2C19, CYP2C9, CYP2D6, DPYD, TPMT, UGT1A1)
+- **ACMG secondary findings** -- 81 medically actionable genes screened
+- **Gene-gene interactions** (epistasis) -- 10 multi-gene interaction models
+- **Carrier screening** -- organized by disease system with reproductive context
+- **All lifestyle findings** (~210+ SNPs) with population frequency badges, database links, and paper references
+- **Drug-gene interactions** -- PharmGKB annotations
+- **Print-optimized doctor card**
 - **Search box** -- real-time filtering across all findings and table rows
 - **Sortable tables** -- click any column header to sort (numeric-aware, toggle asc/desc)
 - **CSV export** -- copy findings to clipboard as CSV
 - **Collapsible sections** -- expand/collapse each analysis category
 - **Dark mode** -- respects system preference
-- **Print-optimized** -- doctor-card layout for printing
-- **Database links** -- every rsID links to dbSNP and ClinVar
+- **Database links** -- every rsID links to dbSNP, ClinVar, SNPedia, and PharmGKB
+
+An optional **PDF** can be generated with `--pdf`.
 
 ## Ancestry Estimation
 
@@ -358,11 +317,8 @@ make data-status
 # Run for each person
 python -m genetic_health data/genome_mom.txt --name "Mom"
 
-# Rename outputs before running the next person
-mv reports/EXHAUSTIVE_GENETIC_REPORT.md reports/GENETIC_REPORT_MOM.md
-mv reports/EXHAUSTIVE_DISEASE_RISK_REPORT.md reports/DISEASE_RISK_MOM.md
-mv reports/ACTIONABLE_HEALTH_PROTOCOL_V3.md reports/PROTOCOL_MOM.md
-mv reports/ENHANCED_HEALTH_REPORT.html reports/REPORT_MOM.html
+# Rename output before running the next person
+mv reports/GENETIC_HEALTH_REPORT.html reports/GENETIC_HEALTH_REPORT_MOM.html
 
 python -m genetic_health data/genome_dad.txt --name "Dad"
 ```
@@ -391,7 +347,7 @@ make test
 # Or: python -m pytest tests/ -v
 ```
 
-283 tests covering:
+355 tests covering:
 
 - Genome file parsing and loading
 - SNP database validation (all ~210+ entries)
@@ -443,16 +399,13 @@ DNA/
 │   ├── update_data.py              # ClinVar auto-download + PharmGKB validation
 │   └── reports/
 │       ├── __init__.py              # Re-exports report generators
-│       ├── html_converter.py        # Markdown -> HTML converter (zero dependencies)
-│       ├── section_builders.py      # Section generators for exhaustive report
-│       ├── markdown_reports.py      # 3 Markdown report generators
-│       ├── enhanced_html.py         # Interactive HTML dashboard (SVG, search, sort)
+│       ├── enhanced_html.py         # Interactive HTML report (SVG, search, sort)
 │       └── pdf_export.py           # PDF export (Chrome headless / weasyprint)
 │
 ├── scripts/
 │   └── setup_reference.sh           # GRCh37 reference genome download + indexing
 │
-├── tests/                            # 283 tests (pytest)
+├── tests/                            # 355 tests (pytest)
 │   ├── conftest.py
 │   ├── test_genome_loading.py
 │   ├── test_snp_analysis.py
@@ -488,13 +441,7 @@ DNA/
 │   └── target_regions.bed            # Targeted calling positions
 │
 └── reports/                          # Generated output (gitignored)
-    ├── EXHAUSTIVE_GENETIC_REPORT.md
-    ├── EXHAUSTIVE_GENETIC_REPORT.html
-    ├── EXHAUSTIVE_DISEASE_RISK_REPORT.md
-    ├── EXHAUSTIVE_DISEASE_RISK_REPORT.html
-    ├── ACTIONABLE_HEALTH_PROTOCOL_V3.md
-    ├── ACTIONABLE_HEALTH_PROTOCOL_V3.html
-    ├── ENHANCED_HEALTH_REPORT.html
+    ├── GENETIC_HEALTH_REPORT.html
     └── comprehensive_results.json
 ```
 

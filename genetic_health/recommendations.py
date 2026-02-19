@@ -8,6 +8,8 @@ that a genetic counselor would give.
 
 from collections import defaultdict
 
+from .clinical_context import get_clinical_context, get_related_pathways, PATHWAYS
+
 
 # =========================================================================
 # RISK GROUP DEFINITIONS
@@ -66,7 +68,8 @@ RISK_GROUPS = {
         "title": "Lung & Respiratory Health",
         "genes": set(),
         "prs_condition": None,
-        "disease_keywords": ["alpha-1 antitrypsin", "SERPINA1", "emphysema", "COPD"],
+        "disease_keywords": ["alpha-1 antitrypsin", "alpha-1-antitrypsin",
+                            "emphysema", "copd"],
         "actions": [
             "Absolutely avoid smoking and second-hand smoke",
             "Request AAT (alpha-1 antitrypsin) level blood test",
@@ -188,9 +191,9 @@ RISK_GROUPS = {
     },
     "cancer_screening": {
         "title": "Cancer Screening Awareness",
-        "genes": {"TP53", "XRCC3"},
+        "genes": {"XRCC3"},
         "prs_condition": "breast_cancer",
-        "disease_keywords": ["cancer", "carcinoma", "neoplasm", "tumor"],
+        "disease_keywords": ["cancer", "carcinoma", "malignant neoplasm"],
         "actions": [
             "Follow age-appropriate cancer screening guidelines rigorously",
             "Discuss enhanced screening schedule with oncologist if high-risk",
@@ -222,6 +225,216 @@ RISK_GROUPS = {
         "monitoring": [],
     },
 }
+
+
+# =========================================================================
+# SPECIALIST REFERRAL TRIGGERS
+# =========================================================================
+
+SPECIALIST_REFERRALS = {
+    "pulmonologist": {
+        "title": "Pulmonologist",
+        "triggers": [
+            {"source": "acmg", "genes": ["SERPINA1"]},
+            {"source": "disease", "keywords": ["alpha-1 antitrypsin", "COPD", "emphysema"]},
+        ],
+        "reason_template": "{gene}: {condition} — baseline pulmonary function assessment",
+    },
+    "genetic_counselor": {
+        "title": "Genetic Counselor",
+        "triggers": [
+            {"source": "acmg", "any": True},
+            {"source": "pathogenic_count", "min": 1},
+        ],
+        "reason_template": "Medically actionable genetic finding(s) detected",
+    },
+    "cardiologist": {
+        "title": "Cardiologist",
+        "triggers": [
+            {"source": "priority", "group": "blood_pressure", "min_priority": "high"},
+            {"source": "priority", "group": "cardiovascular", "min_priority": "high"},
+        ],
+        "reason_template": "Converging genetic signals in cardiovascular/BP pathways",
+    },
+    "hematologist": {
+        "title": "Hematologist",
+        "triggers": [
+            {"source": "gene_status", "gene": "HFE",
+             "statuses": ["carrier", "at_risk", "high_risk"]},
+        ],
+        "reason_template": "HFE variant — monitor iron studies, refer if ferritin elevated",
+    },
+    "pharmacist_pgx": {
+        "title": "Pharmacist (PGx Review)",
+        "triggers": [
+            {"source": "star_alleles_actionable", "any": True},
+        ],
+        "reason_template": "Actionable pharmacogenomic variants: {genes}",
+    },
+    "dermatologist": {
+        "title": "Dermatologist",
+        "triggers": [
+            {"source": "priority", "group": "skin", "min_priority": "low"},
+        ],
+        "reason_template": "MC1R variant — annual skin screening recommended",
+    },
+}
+
+
+def _build_specialist_referrals(priorities, acmg, disease_findings,
+                                star_alleles, gene_findings):
+    """Evaluate specialist referral triggers and return matched referrals."""
+    referrals = []
+    priority_map = {p["id"]: p for p in priorities}
+    priority_rank = {"high": 0, "moderate": 1, "low": 2}
+
+    pathogenic_count = 0
+    if disease_findings:
+        pathogenic_count = (len(disease_findings.get("pathogenic", []))
+                           + len(disease_findings.get("likely_pathogenic", [])))
+
+    acmg_findings = (acmg or {}).get("acmg_findings", [])
+    acmg_genes = {f.get("gene", "") for f in acmg_findings}
+
+    actionable_star = []
+    if star_alleles:
+        for gene, r in star_alleles.items():
+            if r.get("phenotype") in ("poor", "intermediate", "rapid", "ultrarapid"):
+                actionable_star.append(gene)
+
+    for ref_id, ref in SPECIALIST_REFERRALS.items():
+        triggered = False
+        reason = ref["reason_template"]
+
+        for trigger in ref["triggers"]:
+            src = trigger["source"]
+
+            if src == "acmg":
+                if trigger.get("any") and acmg_findings:
+                    triggered = True
+                elif trigger.get("genes"):
+                    matched = acmg_genes & set(trigger["genes"])
+                    if matched:
+                        triggered = True
+                        gene = next(iter(matched))
+                        condition = next(
+                            (f.get("traits", "variant detected")
+                             for f in acmg_findings if f.get("gene") == gene),
+                            "variant detected",
+                        )
+                        reason = reason.format(gene=gene, condition=condition)
+
+            elif src == "pathogenic_count":
+                if pathogenic_count >= trigger.get("min", 1):
+                    triggered = True
+
+            elif src == "disease":
+                if disease_findings:
+                    for cat in ("pathogenic", "likely_pathogenic"):
+                        for f in disease_findings.get(cat, []):
+                            traits = (f.get("traits", "") or "").lower()
+                            if any(kw in traits for kw in trigger["keywords"]):
+                                triggered = True
+                                break
+                        if triggered:
+                            break
+
+            elif src == "priority":
+                group_id = trigger["group"]
+                min_pri = trigger["min_priority"]
+                if group_id in priority_map:
+                    p = priority_map[group_id]
+                    if priority_rank.get(p["priority"], 3) <= priority_rank.get(min_pri, 3):
+                        triggered = True
+
+            elif src == "gene_status":
+                gene = trigger["gene"]
+                if gene in gene_findings:
+                    status = gene_findings[gene].get("status", "")
+                    if status in trigger["statuses"]:
+                        triggered = True
+
+            elif src == "star_alleles_actionable":
+                if trigger.get("any") and actionable_star:
+                    triggered = True
+                    reason = reason.format(genes=", ".join(actionable_star))
+
+            if triggered:
+                break
+
+        if triggered:
+            urgency = "routine"
+            if ref_id in ("genetic_counselor", "pulmonologist"):
+                urgency = "soon"
+            referrals.append({
+                "specialist": ref["title"],
+                "reason": reason,
+                "urgency": urgency,
+            })
+
+    return referrals
+
+
+# =========================================================================
+# CLINICAL CONTEXT INTEGRATION
+# =========================================================================
+
+def _build_clinical_insights(gene_findings):
+    """Extract clinical context insights for findings with context entries.
+
+    Returns a list of per-gene insight dicts (mechanism, implications, actions)
+    for all findings that have clinical context data.
+    """
+    insights = []
+    for gene, gf in gene_findings.items():
+        status = gf.get("status", "")
+        mag = gf.get("magnitude", 0)
+        if mag < 1:
+            continue
+        ctx = get_clinical_context(gene, status)
+        if not ctx:
+            continue
+        insights.append({
+            "gene": gene,
+            "status": status,
+            "magnitude": mag,
+            "mechanism": ctx.get("mechanism", ""),
+            "implications": ctx.get("implications", []),
+            "actions": ctx.get("actions", []),
+            "interactions": ctx.get("interactions", []),
+            "pathways": get_related_pathways(gene),
+        })
+    insights.sort(key=lambda x: -x["magnitude"])
+    return insights
+
+
+def _overlay_clinical_actions(priorities, gene_findings):
+    """Augment priority group actions with specific clinical_context actions.
+
+    For each priority group, find matching gene findings that have clinical
+    context and append their specific actions (deduplicating against existing).
+    """
+    for p in priorities:
+        group_id = p["id"]
+        group_def = RISK_GROUPS.get(group_id)
+        if not group_def:
+            continue
+
+        extra_actions = []
+        for gene in group_def["genes"]:
+            if gene not in gene_findings:
+                continue
+            gf = gene_findings[gene]
+            status = gf.get("status", "")
+            ctx = get_clinical_context(gene, status)
+            if not ctx or not ctx.get("actions"):
+                continue
+            for action in ctx["actions"]:
+                if action not in p["actions"] and action not in extra_actions:
+                    extra_actions.append(action)
+
+        if extra_actions:
+            p["clinical_actions"] = extra_actions
 
 
 # =========================================================================
@@ -335,18 +548,22 @@ def _build_good_news(findings, disease_findings):
 
 def generate_recommendations(findings, disease_findings=None,
                              ancestry_results=None, prs_results=None,
-                             epistasis_results=None):
+                             epistasis_results=None,
+                             star_alleles=None, acmg=None):
     """Analyze ALL results to generate prioritized, convergent recommendations.
 
     Args:
         findings: list of lifestyle/health finding dicts
         disease_findings: dict with 'pathogenic', 'risk_factor', etc.
-        ancestry_results: ancestry estimation dict (unused for now, reserved)
+        ancestry_results: ancestry estimation dict
         prs_results: dict of PRS condition_id -> result dict
         epistasis_results: list of epistasis interaction dicts
+        star_alleles: dict of gene -> star allele result
+        acmg: dict with ACMG secondary findings
 
     Returns:
-        dict with keys: priorities, drug_card, monitoring_schedule, good_news
+        dict with keys: priorities, drug_card, monitoring_schedule,
+        good_news, specialist_referrals, clinical_insights
     """
     if findings is None:
         findings = []
@@ -373,8 +590,8 @@ def generate_recommendations(findings, disease_findings=None,
                 gf = gene_findings[gene]
                 mag = gf.get("magnitude", 0)
                 status = gf.get("status", "")
-                # Skip 'normal' / reference statuses
-                if status in ("normal", "reference", "typical", ""):
+                # Skip normal/reference statuses and low-magnitude polymorphisms
+                if status in ("normal", "reference", "typical", "") or mag < 2:
                     continue
                 signals.append("gene_signal")
                 if mag >= 3:
@@ -404,18 +621,28 @@ def generate_recommendations(findings, disease_findings=None,
             for category in ("pathogenic", "likely_pathogenic"):
                 for f in disease_findings.get(category, []):
                     gene_name = (f.get("gene", "") or "").upper()
-                    traits = (f.get("traits", "") or "").lower()
+                    # Use only the primary conditions (first 3 pipe-
+                    # separated fields) to avoid matching on loosely
+                    # associated somatic conditions that ClinVar appends
+                    # later in the traits field (COSMIC annotations etc.)
+                    full_traits = (f.get("traits", "") or "").lower()
+                    parts = full_traits.split("|")
+                    primary_trait = "|".join(parts[:3]).strip()
                     # Match by gene in group genes
                     if gene_name in {g.upper() for g in group["genes"]}:
                         signals.append("pathogenic")
                         signals_detail.append(
                             f"Pathogenic variant: {f.get('gene', '')} "
                             f"({f.get('traits', 'unknown')})")
-                    # Match by disease keywords
-                    elif any(kw in traits for kw in group["disease_keywords"]):
+                    # Match by disease keywords on primary condition only
+                    # (require gold_stars >= 2 to avoid low-evidence entries)
+                    elif f.get('gold_stars', 0) >= 2 and any(
+                        kw in primary_trait for kw in group["disease_keywords"]
+                    ):
                         signals.append("pathogenic")
                         signals_detail.append(
-                            f"Pathogenic variant: {f.get('gene', '')} ({traits[:60]})")
+                            f"Pathogenic variant: {f.get('gene', '')} "
+                            f"({primary_trait[:60]})")
 
             for f in disease_findings.get("risk_factor", []):
                 traits = (f.get("traits", "") or "").lower()
@@ -460,6 +687,9 @@ def generate_recommendations(findings, disease_findings=None,
     priorities.sort(key=lambda p: (priority_order.get(p["priority"], 3),
                                    -p["signal_count"]))
 
+    # Overlay clinical_context actions onto matching priority groups
+    _overlay_clinical_actions(priorities, gene_findings)
+
     # Build drug card
     drug_card = _build_drug_card(findings, disease_findings)
 
@@ -469,11 +699,20 @@ def generate_recommendations(findings, disease_findings=None,
     # Build good news
     good_news = _build_good_news(findings, disease_findings)
 
+    # Build specialist referrals
+    specialist_referrals = _build_specialist_referrals(
+        priorities, acmg, disease_findings, star_alleles, gene_findings)
+
+    # Build clinical insights
+    clinical_insights = _build_clinical_insights(gene_findings)
+
     return {
         "priorities": priorities,
         "drug_card": drug_card,
         "monitoring_schedule": monitoring_schedule,
         "good_news": good_news,
+        "specialist_referrals": specialist_referrals,
+        "clinical_insights": clinical_insights,
     }
 
 

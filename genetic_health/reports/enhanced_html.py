@@ -1,13 +1,9 @@
 """
-Enhanced All-in-One Genetic Health Report Generator
+Interactive All-in-One Genetic Health Report Generator
 
-Produces a single self-contained HTML file merging:
-  - Lifestyle/health findings (comprehensive_results.json)
-  - Disease risk analysis (EXHAUSTIVE_DISEASE_RISK_REPORT.md)
-  - Actionable protocol (ACTIONABLE_HEALTH_PROTOCOL_V3.md)
-  - Personal health summary (PERSONAL_HEALTH_SUMMARY.md)
+Produces a single self-contained HTML file from comprehensive_results.json.
 
-Output: reports/ENHANCED_HEALTH_REPORT.html
+Output: reports/GENETIC_HEALTH_REPORT.html
   - Zero external dependencies (all CSS/JS/SVG inline)
   - Dark/light mode via prefers-color-scheme
   - Collapsible sections (vanilla JS)
@@ -17,7 +13,6 @@ Output: reports/ENHANCED_HEALTH_REPORT.html
 """
 
 import json
-import re
 import sys
 from datetime import datetime
 from collections import defaultdict
@@ -153,98 +148,6 @@ def load_json(path):
         return json.load(f)
 
 
-def load_text(path):
-    if path.exists():
-        return path.read_text(encoding="utf-8")
-    return ""
-
-
-def parse_disease_report(md_text):
-    """Parse the disease risk Markdown report into structured data."""
-    sections = {
-        "pathogenic": [],
-        "unclear_inheritance": [],
-        "risk_factors": [],
-        "drug_response": [],
-        "protective": [],
-    }
-    current = None
-
-    for line in md_text.split("\n"):
-        stripped = line.strip()
-
-        if "Pathogenic Variants - Affected Status" in stripped:
-            current = "pathogenic"
-            continue
-        elif "Pathogenic/Likely Pathogenic - Inheritance Unclear" in stripped:
-            current = "unclear_inheritance"
-            continue
-        elif "Risk Factor Variants" in stripped:
-            current = "risk_factors"
-            continue
-        elif "Drug Response Variants" in stripped:
-            current = "drug_response"
-            continue
-        elif "Protective Variants" in stripped and "Good News" not in stripped:
-            current = "protective"
-            continue
-        elif stripped.startswith("## Disclaimer") or stripped.startswith("## Executive Summary"):
-            current = None
-            continue
-
-        if current is None:
-            continue
-
-        # Parse ### headers as variant entries (pathogenic / unclear)
-        if current in ("pathogenic", "unclear_inheritance"):
-            m = re.match(r"^###\s+(.+?)\s*-\s*(.+)", stripped)
-            if m:
-                gene = m.group(1).strip()
-                condition = m.group(2).strip()
-                sections[current].append({"gene": gene, "condition": condition, "details": {}})
-                continue
-            if sections[current]:
-                entry = sections[current][-1]
-                m2 = re.match(r"^-\s+\*\*(.+?)\*\*:?\s*(.*)", stripped)
-                if m2:
-                    key = m2.group(1).strip()
-                    val = m2.group(2).strip()
-                    entry["details"][key] = val
-
-        # Parse bullet list entries (risk, drug, protective)
-        if current in ("risk_factors", "drug_response", "protective"):
-            m = re.match(r"^-\s+\*\*(.+?)\*\*\s*\((.+?)\):\s*`?([^`]*)`?\s*-\s*(.*)", stripped)
-            if m:
-                sections[current].append({
-                    "gene": m.group(1).strip(),
-                    "rsid": m.group(2).strip(),
-                    "genotype": m.group(3).strip(),
-                    "description": m.group(4).strip(),
-                })
-
-    return sections
-
-
-def parse_protocol_summary(md_text):
-    """Parse the actionable protocol for risk factor summary table."""
-    risk_table = []
-    in_risk_table = False
-    for line in md_text.split("\n"):
-        stripped = line.strip()
-        if "| Condition |" in stripped or "| Area |" in stripped:
-            in_risk_table = True
-            continue
-        if in_risk_table:
-            if stripped.startswith("|---"):
-                continue
-            if not stripped.startswith("|"):
-                in_risk_table = False
-                continue
-            parts = [p.strip() for p in stripped.split("|") if p.strip()]
-            if len(parts) >= 2:
-                risk_table.append({"condition": parts[0], "genes": parts[1],
-                                   "notes": parts[2] if len(parts) > 2 else ""})
-    return risk_table
 
 
 # =============================================================================
@@ -789,6 +692,23 @@ def build_recommendations_section(recs_data):
             )
         parts.append("</table>")
 
+    # Specialist referrals
+    referrals = recs_data.get("specialist_referrals", [])
+    if referrals:
+        parts.append("<h3>Specialist Referrals</h3>")
+        urgency_colors = {
+            "soon": "#ef4444",
+            "routine": "#f59e0b",
+        }
+        for ref in referrals:
+            color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
+            parts.append(
+                f'<div class="finding-card" style="border-left-color:{color}">'
+                f'<strong>{ref["specialist"]}</strong>: {ref["reason"]}'
+                f' <span class="badge" style="background:{color};color:#fff">'
+                f'{ref.get("urgency", "routine")}</span></div>'
+            )
+
     # Good news
     good_news = recs_data.get("good_news", [])
     if good_news:
@@ -1135,15 +1055,101 @@ def build_traits_section(traits_data):
     return "\n".join(parts)
 
 
-def build_eli5(findings, disease_sections, personal_text):
-    """Build ELI5 (explain like I'm 5) summary."""
-    high_impact = [f for f in findings if f.get("magnitude", 0) >= 3]
+def build_insights_section(insights_data):
+    """Build HTML for research-backed insights section."""
+    if not insights_data:
+        return "<p>Insights module not run.</p>"
 
+    parts = []
+
+    # Genome highlights
+    highlights = insights_data.get("genome_highlights", [])
+    if highlights:
+        parts.append("<h3>Your Genome Highlights</h3>")
+        parts.append('<p style="font-size:.9em;color:var(--accent2)">'
+                     'The most notable findings from your DNA.</p>')
+        type_colors = {
+            "protective": "var(--green)",
+            "clinical": "var(--warn)",
+            "pharmacogenomic": "var(--accent)",
+            "lifestyle": "var(--accent2)",
+        }
+        for h in highlights:
+            color = type_colors.get(h.get("type", ""), "var(--border)")
+            parts.append(
+                f'<div class="finding-card" style="border-left-color:{color}">'
+                f'<strong>{h["title"]}</strong><br>'
+                f'<span style="font-size:.9em">{h["detail"]}</span></div>'
+            )
+
+    # Multi-gene narratives
+    narratives = insights_data.get("narratives", [])
+    if narratives:
+        parts.append("<h3>Multi-Gene Stories</h3>")
+        for n in narratives:
+            genes_str = ", ".join(n["matched_genes"])
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid var(--accent2)">'
+                f'<summary><strong>{n["title"]}</strong> '
+                f'<span class="badge" style="background:var(--accent2)">'
+                f'{len(n["matched_genes"])} genes</span></summary>'
+                f'<p><strong>Genes:</strong> {genes_str}</p>'
+                f'<p>{n["narrative"]}</p>'
+                f'<p><strong>What this means for you:</strong> {n["practical"]}</p>'
+            )
+            if n.get("references"):
+                parts.append('<div class="paper-refs">References: ')
+                ref_links = []
+                for ref in n["references"]:
+                    # Extract PMID if present
+                    if "PMID:" in ref:
+                        pmid = ref.split("PMID:")[1].strip().rstrip(",.")
+                        ref_links.append(
+                            f'<a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" '
+                            f'target="_blank" rel="noopener">{ref}</a>'
+                        )
+                    else:
+                        ref_links.append(ref)
+                parts.append(" | ".join(ref_links) + "</div>")
+            parts.append("</details>")
+
+    # Single-gene insights
+    single = insights_data.get("single_gene", [])
+    if single:
+        parts.append("<h3>Gene-Specific Insights</h3>")
+        for entry in single:
+            parts.append(
+                f'<details class="rec-card">'
+                f'<summary><strong>{entry["gene"]}</strong> — {entry["title"]}</summary>'
+                f'<p>{entry["finding"]}</p>'
+                f'<p><strong>Practical:</strong> {entry["practical"]}</p>'
+                f'<div class="paper-refs">Ref: {entry["reference"]}</div>'
+                f'</details>'
+            )
+
+    # Protective findings
+    protective = insights_data.get("protective_findings", [])
+    if protective:
+        parts.append("<h3>Protective Findings</h3>")
+        parts.append('<div class="good-news-grid">')
+        for p in protective:
+            status = p["status"].replace("_", " ").title()
+            parts.append(
+                f'<div class="good-news-card">'
+                f'<strong>{p["gene"]}</strong> ({status}): {p["title"]}</div>'
+            )
+        parts.append("</div>")
+
+    return "\n".join(parts)
+
+
+def build_eli5(findings):
+    """Build ELI5 (explain like I'm 5) summary."""
     # Detect key topics from data
     has_bp = any(f["gene"] in ("AGTR1", "AGT", "ADRB1", "ACE", "GNB3")
                  for f in findings if f.get("magnitude", 0) >= 1)
     has_drug = any(f["gene"].startswith("CYP") for f in findings)
-    has_lung = "SERPINA1" in personal_text
+    has_lung = any(f["gene"] == "SERPINA1" for f in findings)
     has_caffeine = any(f.get("category") == "Caffeine Response" for f in findings)
 
     parts = []
@@ -1192,7 +1198,7 @@ def build_eli5(findings, disease_sections, personal_text):
     return "\n".join(parts)
 
 
-def build_dashboard(findings, personal_text):
+def build_dashboard(findings):
     """Build dashboard section with SVG charts."""
     parts = []
 
@@ -1209,7 +1215,7 @@ def build_dashboard(findings, personal_text):
     parts.append("</div>")  # end chart-grid
 
     parts.append("<h3>Risk Overview</h3>")
-    parts.append(svg_risk_cards(personal_text))
+    parts.append(svg_risk_cards(""))
 
     # Drug metabolism gauges
     parts.append("<h3>Drug Metabolism</h3>")
@@ -1243,133 +1249,16 @@ def build_dashboard(findings, personal_text):
     return "\n".join(parts)
 
 
-def build_critical_findings(personal_text):
-    """Build critical findings from personal summary."""
-    # Extract ## Critical Findings and ## Asthma-Specific sections
-    parts = []
-
-    # Parse sections from personal summary
-    current_section = None
-    section_lines = []
-
-    for line in personal_text.split("\n"):
-        if line.startswith("## Critical Findings"):
-            current_section = "critical"
-            section_lines = []
-            continue
-        elif line.startswith("## Asthma") or line.startswith("## Nutrition") or line.startswith("## Exercise"):
-            if current_section == "critical" and section_lines:
-                parts.append(_personal_section_to_html(section_lines))
-            current_section = None
-            section_lines = []
-            continue
-
-        if current_section == "critical":
-            section_lines.append(line)
-
-    if current_section == "critical" and section_lines:
-        parts.append(_personal_section_to_html(section_lines))
-
-    return "\n".join(parts) if parts else "<p>See lifestyle findings below.</p>"
+def build_critical_findings():
+    """Build critical findings placeholder."""
+    return "<p>See lifestyle findings below.</p>"
 
 
-def build_asthma_section(personal_text):
-    """Extract asthma-specific findings from personal summary."""
-    parts = []
-    in_section = False
-    lines = []
-
-    for line in personal_text.split("\n"):
-        if line.startswith("## Asthma"):
-            in_section = True
-            lines = []
-            continue
-        elif in_section and line.startswith("## "):
-            break
-        if in_section:
-            lines.append(line)
-
-    if lines:
-        return _personal_section_to_html(lines)
-    return "<p>No asthma-specific findings in personal summary.</p>"
+def build_asthma_section():
+    """Asthma section placeholder."""
+    return "<p>No asthma-specific findings available.</p>"
 
 
-def _personal_section_to_html(lines):
-    """Convert personal summary markdown lines to HTML."""
-    html = []
-    in_list = False
-    in_table = False
-    table_rows = []
-
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            if in_list:
-                html.append("</ul>")
-                in_list = False
-            if in_table:
-                html.append(_render_table(table_rows))
-                in_table = False
-                table_rows = []
-            continue
-
-        if stripped.startswith("---"):
-            continue
-
-        # Table
-        if stripped.startswith("|"):
-            in_table = True
-            if not stripped.startswith("|---"):
-                table_rows.append(stripped)
-            continue
-
-        # Headers
-        m = re.match(r"^(#{1,6})\s+(.*)", stripped)
-        if m:
-            level = min(len(m.group(1)) + 1, 6)  # shift down one level
-            text = _inline_md(m.group(2))
-            html.append(f"<h{level}>{text}</h{level}>")
-            continue
-
-        # List items
-        if stripped.startswith("- "):
-            if not in_list:
-                html.append("<ul>")
-                in_list = True
-            html.append(f"<li>{_inline_md(stripped[2:])}</li>")
-            continue
-
-        # Paragraph
-        html.append(f"<p>{_inline_md(stripped)}</p>")
-
-    if in_list:
-        html.append("</ul>")
-    if in_table and table_rows:
-        html.append(_render_table(table_rows))
-
-    return "\n".join(html)
-
-
-def _render_table(rows):
-    """Render markdown table rows to HTML."""
-    if not rows:
-        return ""
-    parts = ['<table>']
-    for i, row in enumerate(rows):
-        cells = [c.strip() for c in row.split("|") if c.strip()]
-        tag = "th" if i == 0 else "td"
-        tr = "".join(f"<{tag}>{_inline_md(c)}</{tag}>" for c in cells)
-        parts.append(f"<tr>{tr}</tr>")
-    parts.append("</table>")
-    return "\n".join(parts)
-
-
-def _inline_md(text):
-    """Convert inline markdown (bold, code, links) to HTML."""
-    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
-    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
-    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2" target="_blank">\1</a>', text)
-    return text
 
 
 def build_lifestyle_findings(findings):
@@ -1457,89 +1346,12 @@ def build_lifestyle_findings(findings):
     return "\n".join(parts)
 
 
-def build_disease_risk(disease_sections):
-    """Build disease risk section from parsed data."""
-    parts = []
-
-    # Pathogenic
-    path = disease_sections.get("pathogenic", [])
-    unclear = disease_sections.get("unclear_inheritance", [])
-    parts.append(
-        f'<p><strong>{len(path)}</strong> pathogenic (affected), '
-        f'<strong>{len(unclear)}</strong> unclear inheritance</p>'
-    )
-
-    if path:
-        parts.append('<details open><summary><strong>Pathogenic — Affected Status '
-                     f'({len(path)})</strong></summary>')
-        parts.append('<table><tr><th>Gene</th><th>Condition</th>'
-                     '<th>Genotype</th><th>Confidence</th></tr>')
-        for v in path:
-            d = v.get("details", {})
-            gt = d.get("Genotype", "")
-            conf = d.get("Confidence", "")
-            parts.append(
-                f'<tr><td><strong>{v["gene"]}</strong></td>'
-                f'<td>{v["condition"]}</td>'
-                f'<td><code>{gt}</code></td>'
-                f'<td>{conf}</td></tr>'
-            )
-        parts.append("</table></details>")
-
-    if unclear:
-        parts.append(f'<details><summary><strong>Inheritance Unclear ({len(unclear)})</strong></summary>')
-        parts.append('<table><tr><th>Gene</th><th>Condition</th>'
-                     '<th>Genotype</th><th>Confidence</th></tr>')
-        for v in unclear:
-            d = v.get("details", {})
-            gt = d.get("Genotype", "")
-            conf = d.get("Confidence", "")
-            parts.append(
-                f'<tr><td><strong>{v["gene"]}</strong></td>'
-                f'<td>{v["condition"]}</td>'
-                f'<td><code>{gt}</code></td>'
-                f'<td>{conf}</td></tr>'
-            )
-        parts.append("</table></details>")
-
-    # Risk factors
-    risk = disease_sections.get("risk_factors", [])
-    if risk:
-        parts.append(
-            f'<details><summary><strong>Risk Factor Variants ({len(risk)})</strong></summary>'
-        )
-        parts.append('<table><tr><th>Gene</th><th>RSID</th><th>Genotype</th>'
-                     '<th>Description</th></tr>')
-        for v in risk:
-            parts.append(
-                f'<tr><td><strong>{v["gene"]}</strong></td>'
-                f'<td><code>{v["rsid"]}</code></td>'
-                f'<td><code>{v["genotype"]}</code></td>'
-                f'<td>{v["description"][:120]}...</td></tr>'
-            )
-        parts.append("</table></details>")
-
-    # Drug response
-    drug = disease_sections.get("drug_response", [])
-    if drug:
-        parts.append(
-            f'<details><summary><strong>Drug Response Variants ({len(drug)})</strong></summary>'
-        )
-        parts.append('<table><tr><th>Gene</th><th>RSID</th><th>Genotype</th>'
-                     '<th>Response</th></tr>')
-        for v in drug:
-            parts.append(
-                f'<tr><td><strong>{v["gene"]}</strong></td>'
-                f'<td><code>{v["rsid"]}</code></td>'
-                f'<td><code>{v["genotype"]}</code></td>'
-                f'<td>{v["description"][:120]}...</td></tr>'
-            )
-        parts.append("</table></details>")
-
-    return "\n".join(parts)
+def build_disease_risk():
+    """Build disease risk section placeholder (data comes from JSON sections)."""
+    return "<p>See lifestyle findings and carrier screening sections for disease risk data.</p>"
 
 
-def build_drug_gene(findings, pharmgkb_findings, disease_drug):
+def build_drug_gene(findings, pharmgkb_findings):
     """Build drug-gene interaction section."""
     parts = []
 
@@ -1557,24 +1369,6 @@ def build_drug_gene(findings, pharmgkb_findings, disease_drug):
             )
         parts.append("</table>")
 
-    # ClinVar drug response from disease sections
-    if disease_drug:
-        parts.append("<h3>ClinVar Drug Response Variants</h3>")
-        parts.append('<table><tr><th>Gene</th><th>RSID</th><th>Genotype</th>'
-                     '<th>Response</th></tr>')
-        for v in disease_drug[:20]:  # show first 20
-            parts.append(
-                f'<tr><td><strong>{v["gene"]}</strong></td>'
-                f'<td><code>{v["rsid"]}</code></td>'
-                f'<td><code>{v["genotype"]}</code></td>'
-                f'<td>{v["description"][:100]}...</td></tr>'
-            )
-        if len(disease_drug) > 20:
-            parts.append(
-                f'<tr><td colspan="4"><em>...and {len(disease_drug)-20} more</em></td></tr>'
-            )
-        parts.append("</table>")
-
     parts.append(
         '<div class="doctor-callout">Share this entire drug-gene section with '
         "every prescribing physician. Print it or save as PDF.</div>"
@@ -1583,115 +1377,24 @@ def build_drug_gene(findings, pharmgkb_findings, disease_drug):
     return "\n".join(parts)
 
 
-def build_nutrition_section(personal_text):
-    """Extract nutrition, supplement, and exercise info from personal summary."""
-    sections_to_extract = ["Nutrition & Supplements", "Exercise", "Skin"]
-    parts = []
-    current = None
-    lines = []
-
-    for line in personal_text.split("\n"):
-        if any(line.startswith(f"## {s}") for s in sections_to_extract):
-            if current and lines:
-                parts.append(_personal_section_to_html(lines))
-            current = line
-            lines = []
-            parts.append(f"<h3>{line.replace('## ', '')}</h3>")
-            continue
-        elif current and line.startswith("## "):
-            if lines:
-                parts.append(_personal_section_to_html(lines))
-            current = None
-            lines = []
-            continue
-        if current:
-            lines.append(line)
-
-    if current and lines:
-        parts.append(_personal_section_to_html(lines))
-
-    return "\n".join(parts) if parts else "<p>See personal summary for details.</p>"
+def build_nutrition_section():
+    """Nutrition section placeholder."""
+    return "<p>See personalized recommendations section for nutrition and supplement guidance.</p>"
 
 
-def build_monitoring(personal_text):
-    """Extract monitoring schedule from personal summary."""
-    in_section = False
-    lines = []
-    for line in personal_text.split("\n"):
-        if line.startswith("## Monitoring"):
-            in_section = True
-            lines = []
-            continue
-        elif in_section and line.startswith("## "):
-            break
-        if in_section:
-            lines.append(line)
-
-    if lines:
-        return _personal_section_to_html(lines)
-    return "<p>See actionable protocol for monitoring details.</p>"
+def build_monitoring():
+    """Monitoring section placeholder."""
+    return "<p>See personalized recommendations section for monitoring schedule.</p>"
 
 
-def build_protective(disease_sections, personal_text):
-    """Build protective variants section."""
-    prot = disease_sections.get("protective", [])
-    parts = []
-
-    # Also pull from personal summary
-    in_prot = False
-    personal_prot_lines = []
-    for line in personal_text.split("\n"):
-        if "Protective Variants" in line and line.startswith("## "):
-            in_prot = True
-            continue
-        elif in_prot and line.startswith("## "):
-            break
-        if in_prot:
-            personal_prot_lines.append(line)
-
-    if personal_prot_lines:
-        parts.append(_personal_section_to_html(personal_prot_lines))
-
-    if prot:
-        parts.append(f'<h3>All {len(prot)} ClinVar Protective Variants</h3>')
-        parts.append('<table><tr><th>Gene</th><th>RSID</th><th>Genotype</th>'
-                     '<th>Protection</th></tr>')
-        for v in prot:
-            parts.append(
-                f'<tr><td><strong>{v["gene"]}</strong></td>'
-                f'<td><code>{v["rsid"]}</code></td>'
-                f'<td><code>{v["genotype"]}</code></td>'
-                f'<td>{v["description"][:150]}</td></tr>'
-            )
-        parts.append("</table>")
-
-    return "\n".join(parts)
+def build_protective():
+    """Protective variants section placeholder."""
+    return "<p>See lifestyle findings and research-backed insights for protective variants.</p>"
 
 
-def build_doctor_card(personal_text):
-    """Build print-optimized doctor card."""
-    parts = []
-    in_doctor = False
-    lines = []
-
-    for line in personal_text.split("\n"):
-        if "What to Share with Your Doctors" in line:
-            in_doctor = True
-            lines = []
-            continue
-        elif in_doctor and line.startswith("## Important"):
-            break
-        elif in_doctor and line.startswith("## ") and "Disclaim" not in line:
-            break
-        if in_doctor:
-            lines.append(line)
-
-    if lines:
-        parts.append(_personal_section_to_html(lines))
-    else:
-        parts.append("<p>See personal summary for doctor-specific notes.</p>")
-
-    return "\n".join(parts)
+def build_doctor_card():
+    """Doctor card placeholder."""
+    return "<p>See personalized recommendations and ACMG sections for doctor-relevant findings.</p>"
 
 
 def build_references(findings):
@@ -1965,27 +1668,28 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <div class="toc">
 <a href="#eli5">1. Simple Summary</a>
 <a href="#quality">2. Data Quality</a>
-<a href="#apoe">3. APOE Haplotype</a>
-<a href="#recommendations">4. Personalized Recommendations</a>
-<a href="#dashboard">5. Dashboard</a>
-<a href="#ancestry">6. Ancestry</a>
-<a href="#blood-type">7. Blood Type &amp; Traits</a>
-<a href="#mt-haplogroup">8. Maternal Haplogroup</a>
-<a href="#prs">9. Polygenic Risk Scores</a>
-<a href="#star-alleles">10. Pharmacogenomic Star Alleles</a>
-<a href="#acmg">11. ACMG Secondary Findings</a>
-<a href="#epistasis">12. Gene-Gene Interactions</a>
-<a href="#critical">13. Critical Findings</a>
-<a href="#carrier-screen">14. Carrier Screening</a>
-<a href="#asthma">15. Asthma &amp; Medications</a>
-<a href="#lifestyle">16. Lifestyle Findings</a>
-<a href="#disease">17. Disease Risk</a>
-<a href="#drugs">18. Drug-Gene Interactions</a>
-<a href="#nutrition">19. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">20. Monitoring Schedule</a>
-<a href="#protective">21. Protective Variants</a>
-<a href="#doctor-card">22. Doctor Card</a>
-<a href="#references">23. References &amp; Links</a>
+<a href="#insights">3. Research-Backed Insights</a>
+<a href="#apoe">4. APOE Haplotype</a>
+<a href="#recommendations">5. Personalized Recommendations</a>
+<a href="#dashboard">6. Dashboard</a>
+<a href="#ancestry">7. Ancestry</a>
+<a href="#blood-type">8. Blood Type &amp; Traits</a>
+<a href="#mt-haplogroup">9. Maternal Haplogroup</a>
+<a href="#prs">10. Polygenic Risk Scores</a>
+<a href="#star-alleles">11. Pharmacogenomic Star Alleles</a>
+<a href="#acmg">12. ACMG Secondary Findings</a>
+<a href="#epistasis">13. Gene-Gene Interactions</a>
+<a href="#critical">14. Critical Findings</a>
+<a href="#carrier-screen">15. Carrier Screening</a>
+<a href="#asthma">16. Asthma &amp; Medications</a>
+<a href="#lifestyle">17. Lifestyle Findings</a>
+<a href="#disease">18. Disease Risk</a>
+<a href="#drugs">19. Drug-Gene Interactions</a>
+<a href="#nutrition">20. Nutrition &amp; Lifestyle</a>
+<a href="#monitoring">21. Monitoring Schedule</a>
+<a href="#protective">22. Protective Variants</a>
+<a href="#doctor-card">23. Doctor Card</a>
+<a href="#references">24. References &amp; Links</a>
 </div>
 </nav>
 
@@ -2006,110 +1710,115 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 {quality_content}
 </div>
 
+<div class="section" id="insights">
+<h2><span class="section-number">3</span> Research-Backed Insights</h2>
+{insights_content}
+</div>
+
 <div class="section" id="apoe">
-<h2><span class="section-number">3</span> APOE Haplotype</h2>
+<h2><span class="section-number">4</span> APOE Haplotype</h2>
 {apoe_content}
 </div>
 
 <div class="section" id="recommendations">
-<h2><span class="section-number">4</span> Personalized Recommendations</h2>
+<h2><span class="section-number">5</span> Personalized Recommendations</h2>
 {recommendations_content}
 </div>
 
 <div class="section no-print" id="dashboard">
-<h2><span class="section-number">5</span> Dashboard</h2>
+<h2><span class="section-number">6</span> Dashboard</h2>
 {dashboard_content}
 </div>
 
 <div class="section" id="ancestry">
-<h2><span class="section-number">6</span> Ancestry Estimation</h2>
+<h2><span class="section-number">7</span> Ancestry Estimation</h2>
 {ancestry_content}
 </div>
 
 <div class="section" id="blood-type">
-<h2><span class="section-number">7</span> Blood Type &amp; Traits</h2>
+<h2><span class="section-number">8</span> Blood Type &amp; Traits</h2>
 {blood_type_content}
 {traits_content}
 </div>
 
 <div class="section" id="mt-haplogroup">
-<h2><span class="section-number">8</span> Maternal Haplogroup</h2>
+<h2><span class="section-number">9</span> Maternal Haplogroup</h2>
 {mt_haplogroup_content}
 </div>
 
 <div class="section" id="prs">
-<h2><span class="section-number">9</span> Polygenic Risk Scores</h2>
+<h2><span class="section-number">10</span> Polygenic Risk Scores</h2>
 {prs_content}
 </div>
 
 <div class="section" id="star-alleles">
-<h2><span class="section-number">10</span> Pharmacogenomic Star Alleles</h2>
+<h2><span class="section-number">11</span> Pharmacogenomic Star Alleles</h2>
 {star_alleles_content}
 </div>
 
 <div class="section" id="acmg">
-<h2><span class="section-number">11</span> ACMG Secondary Findings</h2>
+<h2><span class="section-number">12</span> ACMG Secondary Findings</h2>
 {acmg_content}
 </div>
 
 <div class="section" id="epistasis">
-<h2><span class="section-number">12</span> Gene-Gene Interactions</h2>
+<h2><span class="section-number">13</span> Gene-Gene Interactions</h2>
 {epistasis_content}
 </div>
 
 <div class="section" id="critical">
-<h2><span class="section-number">13</span> Critical Findings</h2>
+<h2><span class="section-number">14</span> Critical Findings</h2>
 {critical_content}
 </div>
 
 <div class="section" id="carrier-screen">
-<h2><span class="section-number">14</span> Carrier Screening</h2>
+<h2><span class="section-number">15</span> Carrier Screening</h2>
 {carrier_screen_content}
 </div>
 
 <div class="section" id="asthma">
-<h2><span class="section-number">15</span> Asthma &amp; Medications</h2>
+<h2><span class="section-number">16</span> Asthma &amp; Medications</h2>
 {asthma_content}
 </div>
 
 <div class="section" id="lifestyle">
-<h2><span class="section-number">16</span> All Lifestyle Findings</h2>
+<h2><span class="section-number">17</span> All Lifestyle Findings</h2>
 {lifestyle_content}
 </div>
 
 <div class="section" id="disease">
-<h2><span class="section-number">17</span> Disease Risk</h2>
+<h2><span class="section-number">18</span> Disease Risk</h2>
 {disease_content}
 </div>
 
 <div class="section" id="drugs">
-<h2><span class="section-number">18</span> Drug-Gene Interactions</h2>
+<h2><span class="section-number">19</span> Drug-Gene Interactions</h2>
 {drugs_content}
 </div>
 
 <div class="section" id="nutrition">
-<h2><span class="section-number">19</span> Nutrition, Supplements &amp; Lifestyle</h2>
+<h2><span class="section-number">20</span> Nutrition, Supplements &amp; Lifestyle</h2>
 {nutrition_content}
 </div>
 
 <div class="section" id="monitoring">
-<h2><span class="section-number">20</span> Monitoring Schedule</h2>
+<h2><span class="section-number">21</span> Monitoring Schedule</h2>
 {monitoring_content}
 </div>
 
 <div class="section" id="protective">
-<h2><span class="section-number">21</span> Protective Variants (Good News)</h2>
+<h2><span class="section-number">22</span> Protective Variants (Good News)</h2>
 {protective_content}
 </div>
 
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">22</span> Doctor Card</h2>
+<h2><span class="section-number">23</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">23</span> References &amp; Links</h2>
+<h2><span class="section-number">24</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -2243,9 +1952,6 @@ def main():
 
     # Load data sources
     results_path = REPORTS_DIR / "comprehensive_results.json"
-    disease_path = REPORTS_DIR / "EXHAUSTIVE_DISEASE_RISK_REPORT.md"
-    protocol_path = REPORTS_DIR / "ACTIONABLE_HEALTH_PROTOCOL_V3.md"
-    personal_path = REPORTS_DIR / "PERSONAL_HEALTH_SUMMARY.md"
 
     if not results_path.exists():
         print(f"ERROR: {results_path} not found. Run run_full_analysis.py first.")
@@ -2268,26 +1974,20 @@ def main():
     acmg_data = data.get("acmg", {})
     carrier_screen_data = data.get("carrier_screen", {})
     traits_data = data.get("traits", {})
-
-    print(f">>> Loading {disease_path.name}")
-    disease_text = load_text(disease_path)
-    disease_sections = parse_disease_report(disease_text)
-
-    print(f">>> Loading {protocol_path.name}")
-    protocol_text = load_text(protocol_path)
-
-    print(f">>> Loading {personal_path.name}")
-    personal_text = load_text(personal_path)
+    insights_data = data.get("insights", {})
 
     # Build each section
     print("\n>>> Building ELI5 summary")
-    eli5 = build_eli5(findings, disease_sections, personal_text)
+    eli5 = build_eli5(findings)
 
     print(">>> Building dashboard")
-    dashboard = build_dashboard(findings, personal_text)
+    dashboard = build_dashboard(findings)
 
     print(">>> Building quality section")
     quality = build_quality_section(quality_data)
+
+    print(">>> Building insights section")
+    insights_html = build_insights_section(insights_data)
 
     print(">>> Building APOE section")
     apoe_html = build_apoe_section(apoe_data)
@@ -2323,34 +2023,31 @@ def main():
     recommendations = build_recommendations_section(recommendations_data)
 
     print(">>> Building critical findings")
-    critical = build_critical_findings(personal_text)
+    critical = build_critical_findings()
 
     print(">>> Building asthma section")
-    asthma = build_asthma_section(personal_text)
+    asthma = build_asthma_section()
 
     print(">>> Building lifestyle findings")
     lifestyle = build_lifestyle_findings(findings)
 
     print(">>> Building disease risk")
-    disease = build_disease_risk(disease_sections)
+    disease = build_disease_risk()
 
     print(">>> Building drug-gene interactions")
-    drugs = build_drug_gene(
-        findings, pharmgkb_findings,
-        disease_sections.get("drug_response", []),
-    )
+    drugs = build_drug_gene(findings, pharmgkb_findings)
 
     print(">>> Building nutrition section")
-    nutrition = build_nutrition_section(personal_text)
+    nutrition = build_nutrition_section()
 
     print(">>> Building monitoring schedule")
-    monitoring = build_monitoring(personal_text)
+    monitoring = build_monitoring()
 
     print(">>> Building protective variants")
-    protective = build_protective(disease_sections, personal_text)
+    protective = build_protective()
 
     print(">>> Building doctor card")
-    doctor_card = build_doctor_card(personal_text)
+    doctor_card = build_doctor_card()
 
     print(">>> Building references")
     references = build_references(findings)
@@ -2364,6 +2061,7 @@ def main():
         num_pharmgkb=len(pharmgkb_findings),
         eli5_content=eli5,
         quality_content=quality,
+        insights_content=insights_html,
         apoe_content=apoe_html,
         recommendations_content=recommendations,
         dashboard_content=dashboard,

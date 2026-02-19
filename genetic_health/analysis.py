@@ -22,6 +22,22 @@ def _safe_int(value, default=0):
         return default
 
 
+def classify_zygosity(finding):
+    """Classify zygosity impact."""
+    inheritance = finding['inheritance'].lower() if finding['inheritance'] else ''
+
+    if finding['is_homozygous']:
+        return 'AFFECTED', 'Homozygous for variant'
+    elif finding['is_heterozygous']:
+        if 'recessive' in inheritance:
+            return 'CARRIER', 'Heterozygous carrier (recessive)'
+        elif 'dominant' in inheritance:
+            return 'AFFECTED', 'Heterozygous (dominant)'
+        else:
+            return 'HETEROZYGOUS', 'Heterozygous (inheritance unclear)'
+    return 'UNKNOWN', 'Zygosity unclear'
+
+
 def analyze_lifestyle_health(genome_by_rsid: dict, pharmgkb: dict) -> dict:
     """Analyze genome against lifestyle/health SNP database."""
     print("\n>>> Running lifestyle/health analysis")
