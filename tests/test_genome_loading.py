@@ -78,6 +78,25 @@ class TestGenomeLoading:
         by_rsid, _ = load_genome(path)
         assert by_rsid["rs999"]["genotype"] == "A"
 
+    def test_invalid_genotype_skipped(self, genome_file):
+        """Genotypes with non-ACGT bases or wrong length should be skipped."""
+        path = genome_file([
+            "# header",
+            "rs100\t1\t100\tAG",   # valid
+            "rs200\t1\t200\tXY",   # invalid bases
+            "rs300\t1\t300\tAGC",  # too long
+            "rs400\t1\t400\t",     # empty
+            "rs500\t1\t500\tNN",   # invalid bases
+            "rs600\t1\t600\tCC",   # valid
+        ])
+        by_rsid, _ = load_genome(path)
+        assert "rs100" in by_rsid
+        assert "rs200" not in by_rsid
+        assert "rs300" not in by_rsid
+        assert "rs500" not in by_rsid
+        assert "rs600" in by_rsid
+        assert len(by_rsid) == 2
+
 
 class TestPharmGKBLoading:
     def test_missing_annotations_file(self, tmp_path, capsys):

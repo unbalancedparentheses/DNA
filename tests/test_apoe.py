@@ -78,3 +78,24 @@ class TestCallApoeHaplotype:
         genome = _make_genome({"rs429358": "TC", "rs7412": "CC"})
         result = call_apoe_haplotype(genome)
         assert result["apoe_type"] == "e3/e4"
+
+    def test_all_six_haplotypes_deterministic(self):
+        """All 6 canonical haplotypes should be correctly decoded."""
+        cases = [
+            (("TT", "TT"), "e2/e2"),
+            (("TT", "CT"), "e2/e3"),
+            (("TT", "CC"), "e3/e3"),
+            (("CT", "CC"), "e3/e4"),
+            (("CT", "CT"), "e2/e4"),
+            (("CC", "CC"), "e4/e4"),
+        ]
+        for (g358, g7412), expected in cases:
+            genome = _make_genome({"rs429358": g358, "rs7412": g7412})
+            result = call_apoe_haplotype(genome)
+            assert result["apoe_type"] == expected, f"Failed for ({g358}, {g7412})"
+
+    def test_reversed_both_alleles(self):
+        """TC/TC should decode to e2/e4."""
+        genome = _make_genome({"rs429358": "TC", "rs7412": "TC"})
+        result = call_apoe_haplotype(genome)
+        assert result["apoe_type"] == "e2/e4"

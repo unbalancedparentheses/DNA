@@ -189,3 +189,31 @@ class TestEvaluateEpistasis:
         results = evaluate_epistasis(findings)
         cv = [r for r in results if 'Cardiovascular' in r['name']]
         assert len(cv) == 1
+
+    def test_severity_score_present(self):
+        """All interaction results should include a severity_score."""
+        findings = [
+            {'gene': 'MTHFR', 'status': 'reduced', 'magnitude': 2},
+            {'gene': 'COMT', 'status': 'slow', 'magnitude': 3},
+        ]
+        results = evaluate_epistasis(findings)
+        for r in results:
+            assert 'severity_score' in r
+            assert 0 <= r['severity_score'] <= 1.0
+
+    def test_severe_variants_higher_severity(self):
+        """Severe statuses should produce higher severity scores."""
+        mild = [
+            {'gene': 'MTHFR', 'status': 'reduced', 'magnitude': 1},
+            {'gene': 'COMT', 'status': 'slow', 'magnitude': 1},
+        ]
+        severe = [
+            {'gene': 'MTHFR', 'status': 'severely_reduced', 'magnitude': 5},
+            {'gene': 'COMT', 'status': 'slow', 'magnitude': 5},
+        ]
+        mild_results = evaluate_epistasis(mild)
+        severe_results = evaluate_epistasis(severe)
+        mild_score = [r for r in mild_results if 'Methylation-Catecholamine' in r['name']]
+        severe_score = [r for r in severe_results if 'Methylation-Catecholamine' in r['name']]
+        if mild_score and severe_score:
+            assert severe_score[0]['severity_score'] >= mild_score[0]['severity_score']

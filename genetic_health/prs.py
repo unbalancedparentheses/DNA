@@ -261,7 +261,8 @@ def _count_risk_allele(genotype: str, risk_allele: str) -> int:
 
 def _z_to_percentile(z: float) -> float:
     """Convert Z-score to percentile using error function (stdlib math)."""
-    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0))) * 100
+    raw = 0.5 * (1.0 + math.erf(z / math.sqrt(2.0))) * 100
+    return max(0.1, min(99.9, raw))
 
 
 def _categorize_percentile(percentile: float) -> str:

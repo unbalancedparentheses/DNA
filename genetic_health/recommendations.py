@@ -475,15 +475,31 @@ def _build_why(signals_detail):
 # DRUG CARD
 # =========================================================================
 
-def _build_drug_card(findings, disease_findings):
+def _build_drug_card(findings, disease_findings, star_alleles=None):
     """Build a consolidated drug-gene interaction card.
 
-    Groups CYP/drug-metabolism findings + ClinVar drug response by gene.
+    Groups CYP/drug-metabolism findings + ClinVar drug response + star allele
+    results by gene.
     """
     card = {}
 
     drug_genes = {"CYP2C9", "CYP2C19", "CYP1A2", "CYP2D6", "CYP3A4",
                   "VKORC1", "DPYD", "TPMT", "UGT1A1", "SLCO1B1"}
+
+    # Include actionable star allele results (non-normal phenotypes)
+    if star_alleles:
+        for gene, result in star_alleles.items():
+            phenotype = result.get("phenotype", "normal")
+            if phenotype in ("poor", "intermediate", "ultrarapid", "rapid"):
+                if gene not in card:
+                    card[gene] = {"gene": gene, "entries": []}
+                card[gene]["entries"].append({
+                    "rsid": "",
+                    "genotype": result.get("diplotype", ""),
+                    "status": f"{phenotype} metabolizer",
+                    "description": result.get("clinical_note", ""),
+                    "source": "Star Allele (CPIC)",
+                })
 
     for f in findings:
         gene = f.get("gene", "")
@@ -691,7 +707,7 @@ def generate_recommendations(findings, disease_findings=None,
     _overlay_clinical_actions(priorities, gene_findings)
 
     # Build drug card
-    drug_card = _build_drug_card(findings, disease_findings)
+    drug_card = _build_drug_card(findings, disease_findings, star_alleles)
 
     # Build deduplicated monitoring schedule
     monitoring_schedule = _deduplicate_monitoring(priorities)

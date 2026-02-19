@@ -222,3 +222,32 @@ class TestCalculatePRS:
         results = calculate_prs(genome)
         for r in results.values():
             assert 0.0 <= r["percentile"] <= 100.0
+
+    def test_confidence_intervals_present(self):
+        """PRS results should include 95% CI bounds."""
+        genome = self._make_genome({"rs7903146": "TT"})
+        results = calculate_prs(genome)
+        for r in results.values():
+            assert "ci_95_lower" in r
+            assert "ci_95_upper" in r
+            assert r["ci_95_lower"] <= r["percentile"]
+            assert r["ci_95_upper"] >= r["percentile"]
+
+    def test_percentile_clamped(self):
+        """Percentile should be clamped between 0.1 and 99.9."""
+        assert 0.1 <= _z_to_percentile(10.0) <= 99.9
+        assert 0.1 <= _z_to_percentile(-10.0) <= 99.9
+
+    def test_no_duplicate_rsids_in_models(self):
+        """Each model should have unique rsIDs."""
+        for cid, model in PRS_MODELS.items():
+            rsids = [s["rsid"] for s in model["snps"]]
+            assert len(rsids) == len(set(rsids)), f"{cid} has duplicate rsIDs"
+
+    def test_ancestry_none_treated_as_eur(self):
+        """Passing None ancestry should treat as fully EUR (no adjustment)."""
+        genome = self._make_genome({"rs7903146": "TT"})
+        results_none = calculate_prs(genome, ancestry_proportions=None)
+        results_eur = calculate_prs(genome, ancestry_proportions={"EUR": 1.0})
+        for cid in results_none:
+            assert results_none[cid]["percentile"] == results_eur[cid]["percentile"]

@@ -922,3 +922,18 @@ COMPREHENSIVE_SNPS = {
         }
     },
 }
+
+
+def _validate_snp_database():
+    """Validate all SNP entries at import time."""
+    for rsid, info in COMPREHENSIVE_SNPS.items():
+        assert "gene" in info, f"{rsid} missing 'gene'"
+        assert "category" in info, f"{rsid} missing 'category'"
+        assert "variants" in info, f"{rsid} missing 'variants'"
+        for gt, variant in info["variants"].items():
+            mag = variant.get("magnitude", 0)
+            assert 0 <= mag <= 6, f"{rsid}/{gt} has invalid magnitude {mag}"
+            assert "status" in variant, f"{rsid}/{gt} missing 'status'"
+            assert "desc" in variant, f"{rsid}/{gt} missing 'desc'"
+
+_validate_snp_database()

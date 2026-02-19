@@ -32,7 +32,8 @@ def compute_quality_metrics(genome_by_rsid, genome_path=None):
             continue
         chromosomes[chrom] = chromosomes.get(chrom, 0) + 1
 
-        # Heterozygosity rate on autosomes (chr 1-22)
+        # Heterozygosity rate on autosomes (chr 1-22).
+        # Haploid SNPs (MT, X in males) are excluded since they can't be het.
         if chrom.isdigit() and 1 <= int(chrom) <= 22:
             autosomal_total += 1
             gt = entry.get("genotype", "")

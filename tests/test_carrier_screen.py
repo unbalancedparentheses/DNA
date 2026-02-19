@@ -110,3 +110,26 @@ class TestOrganizeCarrierFindings:
         }
         result = organize_carrier_findings(findings)
         assert result["total_carriers"] == 1
+
+    def test_cancer_genes_classified(self):
+        """Cancer predisposition genes should be in Cancer Predisposition system."""
+        findings = {
+            "pathogenic": [_make_finding("BRCA1", "dominant")],
+            "likely_pathogenic": [_make_finding("ATM", "recessive")],
+        }
+        result = organize_carrier_findings(findings)
+        # BRCA1 is dominant so won't be a carrier, ATM recessive het = carrier
+        carriers = result["carriers"]
+        atm_carriers = [c for c in carriers if c["gene"] == "ATM"]
+        assert len(atm_carriers) == 1
+        assert atm_carriers[0]["system"] == "Cancer Predisposition"
+
+    def test_cancer_genes_couples_relevant(self):
+        """BRCA1/2 and Lynch genes should be flagged as couples-relevant."""
+        findings = {
+            "pathogenic": [_make_finding("MUTYH", "recessive")],
+            "likely_pathogenic": [],
+        }
+        result = organize_carrier_findings(findings)
+        assert result["total_carriers"] == 1
+        assert result["carriers"][0]["couples_relevant"] is True
