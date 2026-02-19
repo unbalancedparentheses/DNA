@@ -604,6 +604,12 @@ def build_recommendations_section(recs_data):
 
     parts = []
     priorities = recs_data.get("priorities", [])
+    clinical_insights = recs_data.get("clinical_insights", [])
+
+    # Index clinical insights by gene for lookup
+    insights_by_gene = {}
+    for ci in clinical_insights:
+        insights_by_gene[ci["gene"]] = ci
 
     if not priorities:
         parts.append("<p>No convergent risk patterns detected.</p>")
@@ -640,6 +646,12 @@ def build_recommendations_section(recs_data):
                 parts.append(f"<li>{action}</li>")
             parts.append("</ol>")
 
+            if p.get("clinical_actions"):
+                parts.append("<p><strong>Clinical actions:</strong></p><ul>")
+                for ca in p["clinical_actions"]:
+                    parts.append(f"<li>{ca}</li>")
+                parts.append("</ul>")
+
             if p.get("doctor_note"):
                 parts.append(
                     f'<div class="doctor-callout" style="text-align:left;font-weight:normal">'
@@ -656,6 +668,28 @@ def build_recommendations_section(recs_data):
                         f'<td>{m["reason"]}</td></tr>'
                     )
                 parts.append("</table>")
+
+            # Clinical context from clinical_insights matching this priority
+            title_words = set(p["title"].lower().split())
+            matched_insights = [
+                ci for gene, ci in insights_by_gene.items()
+                if gene.lower() in p["title"].lower()
+                or gene.lower() in p.get("why", "").lower()
+            ]
+            if matched_insights:
+                parts.append(
+                    '<details style="margin-top:.5em">'
+                    '<summary style="font-size:.85em;color:var(--accent2)">'
+                    'Clinical Context</summary>'
+                )
+                for ci in matched_insights:
+                    parts.append(f'<p><strong>{ci["gene"]}:</strong> {ci["mechanism"]}</p>')
+                    if ci.get("actions"):
+                        parts.append("<ul>")
+                        for a in ci["actions"]:
+                            parts.append(f"<li>{a}</li>")
+                        parts.append("</ul>")
+                parts.append("</details>")
 
             parts.append("</details>")
 
@@ -1249,15 +1283,6 @@ def build_dashboard(findings):
     return "\n".join(parts)
 
 
-def build_critical_findings():
-    """Build critical findings placeholder."""
-    return "<p>See lifestyle findings below.</p>"
-
-
-def build_asthma_section():
-    """Asthma section placeholder."""
-    return "<p>No asthma-specific findings available.</p>"
-
 
 
 
@@ -1346,9 +1371,77 @@ def build_lifestyle_findings(findings):
     return "\n".join(parts)
 
 
-def build_disease_risk():
-    """Build disease risk section placeholder (data comes from JSON sections)."""
-    return "<p>See lifestyle findings and carrier screening sections for disease risk data.</p>"
+def build_disease_risk(disease_findings):
+    """Build disease risk section from ClinVar findings."""
+    if not disease_findings:
+        return "<p>No ClinVar disease risk data available.</p>"
+
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Variants identified by scanning your genome against the ClinVar database. '
+        'Only true SNPs are analyzed (indels filtered to prevent false positives).</p>'
+    )
+
+    def _variant_table(variants, label, color):
+        if not variants:
+            return ""
+        rows = []
+        rows.append(
+            f'<h3>{label} '
+            f'<span class="badge" style="background:{color}">{len(variants)}</span></h3>'
+        )
+        rows.append(
+            '<table><tr><th>Gene</th><th>Condition</th><th>Genotype</th>'
+            '<th>Stars</th><th>Zygosity</th></tr>'
+        )
+        for v in variants[:50]:
+            gene = v.get("gene", "Unknown")
+            condition = (v.get("traits") or "Unknown").split(";")[0].strip()[:80]
+            genotype = v.get("user_genotype", "")
+            stars = v.get("gold_stars", 0)
+            star_str = "&#9733;" * stars + "&#9734;" * (4 - stars)
+            zyg = v.get("zygosity", "").replace("_", " ").title()
+            rows.append(
+                f'<tr><td><strong>{gene}</strong></td>'
+                f'<td>{condition}</td>'
+                f'<td><code>{genotype}</code></td>'
+                f'<td>{star_str}</td>'
+                f'<td>{zyg}</td></tr>'
+            )
+        rows.append("</table>")
+        if len(variants) > 50:
+            rows.append(f'<p style="font-size:.85em;color:var(--accent2)">'
+                        f'Showing 50 of {len(variants)} variants.</p>')
+        return "\n".join(rows)
+
+    parts.append(_variant_table(
+        disease_findings.get("pathogenic", []), "Pathogenic Variants", "#ef4444"))
+    parts.append(_variant_table(
+        disease_findings.get("likely_pathogenic", []), "Likely Pathogenic Variants", "#f97316"))
+    parts.append(_variant_table(
+        disease_findings.get("risk_factor", []), "Risk Factor Variants", "#f59e0b"))
+    parts.append(_variant_table(
+        disease_findings.get("drug_response", []), "Drug Response Variants", "#3b82f6"))
+
+    # Protective variants as good-news cards
+    protective = disease_findings.get("protective", [])
+    if protective:
+        parts.append(
+            f'<h3>Protective Variants '
+            f'<span class="badge" style="background:var(--green)">{len(protective)}</span></h3>'
+        )
+        parts.append('<div class="good-news-grid">')
+        for v in protective:
+            gene = v.get("gene", "Unknown")
+            condition = (v.get("traits") or "").split(";")[0].strip()[:80]
+            parts.append(
+                f'<div class="good-news-card">'
+                f'<strong>{gene}</strong>: {condition}</div>'
+            )
+        parts.append("</div>")
+
+    return "\n".join(parts)
 
 
 def build_drug_gene(findings, pharmgkb_findings):
@@ -1377,24 +1470,259 @@ def build_drug_gene(findings, pharmgkb_findings):
     return "\n".join(parts)
 
 
-def build_nutrition_section():
-    """Nutrition section placeholder."""
-    return "<p>See personalized recommendations section for nutrition and supplement guidance.</p>"
+def build_nutrition_section(recommendations_data, insights_data):
+    """Build nutrition section from recommendations priorities and insight narratives."""
+    if not recommendations_data and not insights_data:
+        return "<p>No nutrition data available.</p>"
+
+    parts = []
+    nutrition_groups = {
+        "methylation", "iron_metabolism", "caffeine", "metabolic_diabetes",
+        "nutrition", "vitamin_d", "iron",
+    }
+    nutrition_narrative_ids = {
+        "methylation_choline", "vitamin_d_profile", "iron_profile",
+        "caffeine_metabolism",
+    }
+
+    # Filter nutrition-relevant priorities
+    priorities = (recommendations_data or {}).get("priorities", [])
+    nutrition_priorities = [
+        p for p in priorities
+        if any(g in p.get("id", "").lower() for g in nutrition_groups)
+    ]
+
+    if nutrition_priorities:
+        parts.append(
+            '<p style="font-size:.9em;color:var(--accent2)">'
+            'Supplement and dietary guidance based on your genetic variants.</p>'
+        )
+        priority_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
+        for p in nutrition_priorities:
+            color = priority_colors.get(p["priority"], "var(--border)")
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid {color}">'
+                f'<summary>'
+                f'<span class="mag-badge" style="background:{color};color:#fff">'
+                f'{p["priority"].upper()}</span> '
+                f'<strong>{p["title"]}</strong></summary>'
+            )
+            parts.append(f'<p><strong>Why:</strong> {p["why"]}</p>')
+            parts.append("<p><strong>Actions:</strong></p><ol>")
+            for action in p["actions"]:
+                parts.append(f"<li>{action}</li>")
+            parts.append("</ol>")
+            if p.get("clinical_actions"):
+                parts.append("<p><strong>Clinical guidance:</strong></p><ul>")
+                for ca in p["clinical_actions"]:
+                    parts.append(f"<li>{ca}</li>")
+                parts.append("</ul>")
+            parts.append("</details>")
+
+    # Matching insight narratives
+    narratives = (insights_data or {}).get("narratives", [])
+    nutrition_narratives = [
+        n for n in narratives
+        if n.get("id", "") in nutrition_narrative_ids
+    ]
+    if nutrition_narratives:
+        parts.append("<h3>Nutritional Gene Stories</h3>")
+        for n in nutrition_narratives:
+            genes_str = ", ".join(n["matched_genes"])
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid var(--accent2)">'
+                f'<summary><strong>{n["title"]}</strong> '
+                f'<span class="badge" style="background:var(--accent2)">'
+                f'{len(n["matched_genes"])} genes</span></summary>'
+                f'<p><strong>Genes:</strong> {genes_str}</p>'
+                f'<p>{n["narrative"]}</p>'
+                f'<p><strong>What this means for you:</strong> {n["practical"]}</p>'
+                f'</details>'
+            )
+
+    if not parts:
+        parts.append("<p>No nutrition-specific genetic findings identified.</p>")
+
+    return "\n".join(parts)
 
 
-def build_monitoring():
-    """Monitoring section placeholder."""
-    return "<p>See personalized recommendations section for monitoring schedule.</p>"
+def build_monitoring(recommendations_data):
+    """Build monitoring schedule section from recommendations.monitoring_schedule."""
+    schedule = (recommendations_data or {}).get("monitoring_schedule", [])
+    if not schedule:
+        return "<p>No monitoring tests recommended based on your genetic profile.</p>"
+
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Consolidated and deduplicated monitoring schedule based on all genetic findings.</p>'
+    )
+
+    freq_colors = {
+        "weekly": "#ef4444", "monthly": "#f97316", "quarterly": "#f59e0b",
+        "semi-annually": "#3b82f6", "annually": "#3b82f6", "baseline": "#22c55e",
+    }
+
+    parts.append(
+        '<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>'
+    )
+    for m in schedule:
+        freq = m.get("frequency", "").lower()
+        color = next(
+            (c for key, c in freq_colors.items() if key in freq),
+            "var(--accent2)"
+        )
+        parts.append(
+            f'<tr><td><strong>{m["test"]}</strong></td>'
+            f'<td><span class="mag-badge" style="background:{color};color:#fff">'
+            f'{m["frequency"]}</span></td>'
+            f'<td>{m["reason"]}</td></tr>'
+        )
+    parts.append("</table>")
+
+    parts.append(
+        '<div class="doctor-callout" style="border-color:var(--accent)">'
+        'Print this monitoring schedule and bring it to your next doctor visit.</div>'
+    )
+
+    return "\n".join(parts)
 
 
-def build_protective():
-    """Protective variants section placeholder."""
-    return "<p>See lifestyle findings and research-backed insights for protective variants.</p>"
+def build_protective(recommendations_data, insights_data):
+    """Build protective variants section from good_news + protective_findings."""
+    good_news = (recommendations_data or {}).get("good_news", [])
+    protective = (insights_data or {}).get("protective_findings", [])
+
+    if not good_news and not protective:
+        return "<p>No protective variants identified.</p>"
+
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Genetic variants that confer protection or favorable outcomes.</p>'
+    )
+
+    if good_news:
+        parts.append('<div class="good-news-grid">')
+        for g in good_news:
+            parts.append(
+                f'<div class="good-news-card">'
+                f'<strong>{g["gene"]}</strong>: {g["description"]}</div>'
+            )
+        parts.append("</div>")
+
+    if protective:
+        parts.append("<h3>Research-Backed Protective Findings</h3>")
+        for p in protective:
+            status = p["status"].replace("_", " ").title()
+            parts.append(
+                f'<details class="rec-card" style="border-left:4px solid var(--green)">'
+                f'<summary><strong>{p["gene"]}</strong> ({status}): {p["title"]}</summary>'
+                f'<p>{p["finding"]}</p>'
+                f'<div class="paper-refs">Ref: {p["reference"]}</div>'
+                f'</details>'
+            )
+
+    return "\n".join(parts)
 
 
-def build_doctor_card():
-    """Doctor card placeholder."""
-    return "<p>See personalized recommendations and ACMG sections for doctor-relevant findings.</p>"
+def build_doctor_card(recommendations_data, star_alleles_data, apoe_data, acmg_data):
+    """Build print-optimized doctor card with key clinical findings."""
+    parts = []
+    parts.append('<div style="border:2px solid var(--accent);border-radius:8px;padding:1.5em">')
+    parts.append('<h3 style="margin-top:0;color:var(--accent)">Patient Genetic Summary</h3>')
+
+    # High-priority conditions
+    priorities = (recommendations_data or {}).get("priorities", [])
+    high_priorities = [p for p in priorities if p["priority"] == "high"]
+    if high_priorities:
+        parts.append("<h4>High-Priority Conditions</h4>")
+        parts.append('<table><tr><th>Condition</th><th>Doctor Note</th></tr>')
+        for p in high_priorities:
+            note = p.get("doctor_note", "") or p.get("why", "")
+            parts.append(
+                f'<tr><td><strong>{p["title"]}</strong></td>'
+                f'<td>{note}</td></tr>'
+            )
+        parts.append("</table>")
+
+    # Specialist referrals
+    referrals = (recommendations_data or {}).get("specialist_referrals", [])
+    if referrals:
+        parts.append("<h4>Specialist Referrals</h4>")
+        urgency_colors = {"soon": "#ef4444", "routine": "#f59e0b"}
+        for ref in referrals:
+            color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
+            parts.append(
+                f'<p><strong>{ref["specialist"]}</strong>: {ref["reason"]} '
+                f'<span class="mag-badge" style="background:{color};color:#fff">'
+                f'{ref.get("urgency", "routine")}</span></p>'
+            )
+
+    # Pharmacogenomic card
+    if star_alleles_data:
+        parts.append("<h4>Pharmacogenomic Profile</h4>")
+        parts.append('<table><tr><th>Gene</th><th>Diplotype</th><th>Phenotype</th></tr>')
+        for gene, r in star_alleles_data.items():
+            phenotype = r["phenotype"].replace("_", " ").title()
+            parts.append(
+                f'<tr><td><strong>{gene}</strong></td>'
+                f'<td><code>{r["diplotype"]}</code></td>'
+                f'<td>{phenotype}</td></tr>'
+            )
+        parts.append("</table>")
+
+    # APOE status
+    if apoe_data and apoe_data.get("apoe_type") != "Unknown":
+        risk_colors = {
+            "reduced": "var(--green)", "average": "#3b82f6",
+            "moderate": "#f59e0b", "elevated": "#f97316", "high": "#ef4444",
+        }
+        color = risk_colors.get(apoe_data.get("risk_level", ""), "var(--accent2)")
+        parts.append(
+            f'<h4>APOE Status</h4>'
+            f'<p><strong>{apoe_data["apoe_type"]}</strong> — '
+            f'<span class="mag-badge" style="background:{color};color:#fff">'
+            f'{apoe_data["risk_level"].title()} Risk</span></p>'
+        )
+
+    # ACMG actionable findings
+    acmg_findings = (acmg_data or {}).get("acmg_findings", [])
+    if acmg_findings:
+        parts.append("<h4>ACMG Medically Actionable Findings</h4>")
+        parts.append('<table><tr><th>Gene</th><th>Condition</th><th>Actionability</th></tr>')
+        for f in acmg_findings:
+            gene = f.get("gene", "Unknown")
+            condition = (f.get("traits") or "Unknown").split(";")[0].strip()
+            action = f.get("acmg_actionability", "")
+            parts.append(
+                f'<tr><td><strong>{gene}</strong></td>'
+                f'<td>{condition}</td>'
+                f'<td>{action}</td></tr>'
+            )
+        parts.append("</table>")
+        parts.append(
+            '<div class="doctor-callout" style="border-color:var(--warn)">'
+            'ACMG actionable findings detected. Refer to genetic counselor.</div>'
+        )
+
+    # Monitoring schedule
+    schedule = (recommendations_data or {}).get("monitoring_schedule", [])
+    if schedule:
+        parts.append("<h4>Recommended Monitoring</h4>")
+        parts.append('<table><tr><th>Test</th><th>Frequency</th></tr>')
+        for m in schedule:
+            parts.append(
+                f'<tr><td>{m["test"]}</td><td>{m["frequency"]}</td></tr>'
+            )
+        parts.append("</table>")
+
+    parts.append("</div>")
+
+    if not any([high_priorities, referrals, star_alleles_data, acmg_findings]):
+        return "<p>No significant clinical findings for doctor review.</p>"
+
+    return "\n".join(parts)
 
 
 def build_references(findings):
@@ -1679,17 +2007,15 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <a href="#star-alleles">11. Pharmacogenomic Star Alleles</a>
 <a href="#acmg">12. ACMG Secondary Findings</a>
 <a href="#epistasis">13. Gene-Gene Interactions</a>
-<a href="#critical">14. Critical Findings</a>
-<a href="#carrier-screen">15. Carrier Screening</a>
-<a href="#asthma">16. Asthma &amp; Medications</a>
-<a href="#lifestyle">17. Lifestyle Findings</a>
-<a href="#disease">18. Disease Risk</a>
-<a href="#drugs">19. Drug-Gene Interactions</a>
-<a href="#nutrition">20. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">21. Monitoring Schedule</a>
-<a href="#protective">22. Protective Variants</a>
-<a href="#doctor-card">23. Doctor Card</a>
-<a href="#references">24. References &amp; Links</a>
+<a href="#carrier-screen">14. Carrier Screening</a>
+<a href="#lifestyle">15. Lifestyle Findings</a>
+<a href="#disease">16. Disease Risk</a>
+<a href="#drugs">17. Drug-Gene Interactions</a>
+<a href="#nutrition">18. Nutrition &amp; Lifestyle</a>
+<a href="#monitoring">19. Monitoring Schedule</a>
+<a href="#protective">20. Protective Variants</a>
+<a href="#doctor-card">21. Doctor Card</a>
+<a href="#references">22. References &amp; Links</a>
 </div>
 </nav>
 
@@ -1766,59 +2092,49 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 {epistasis_content}
 </div>
 
-<div class="section" id="critical">
-<h2><span class="section-number">14</span> Critical Findings</h2>
-{critical_content}
-</div>
-
 <div class="section" id="carrier-screen">
-<h2><span class="section-number">15</span> Carrier Screening</h2>
+<h2><span class="section-number">14</span> Carrier Screening</h2>
 {carrier_screen_content}
 </div>
 
-<div class="section" id="asthma">
-<h2><span class="section-number">16</span> Asthma &amp; Medications</h2>
-{asthma_content}
-</div>
-
 <div class="section" id="lifestyle">
-<h2><span class="section-number">17</span> All Lifestyle Findings</h2>
+<h2><span class="section-number">15</span> All Lifestyle Findings</h2>
 {lifestyle_content}
 </div>
 
 <div class="section" id="disease">
-<h2><span class="section-number">18</span> Disease Risk</h2>
+<h2><span class="section-number">16</span> Disease Risk</h2>
 {disease_content}
 </div>
 
 <div class="section" id="drugs">
-<h2><span class="section-number">19</span> Drug-Gene Interactions</h2>
+<h2><span class="section-number">17</span> Drug-Gene Interactions</h2>
 {drugs_content}
 </div>
 
 <div class="section" id="nutrition">
-<h2><span class="section-number">20</span> Nutrition, Supplements &amp; Lifestyle</h2>
+<h2><span class="section-number">18</span> Nutrition, Supplements &amp; Lifestyle</h2>
 {nutrition_content}
 </div>
 
 <div class="section" id="monitoring">
-<h2><span class="section-number">21</span> Monitoring Schedule</h2>
+<h2><span class="section-number">19</span> Monitoring Schedule</h2>
 {monitoring_content}
 </div>
 
 <div class="section" id="protective">
-<h2><span class="section-number">22</span> Protective Variants (Good News)</h2>
+<h2><span class="section-number">20</span> Protective Variants (Good News)</h2>
 {protective_content}
 </div>
 
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">23</span> Doctor Card</h2>
+<h2><span class="section-number">21</span> Doctor Card</h2>
 <p><em>Print this page — only this section will appear in the printout.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">24</span> References &amp; Links</h2>
+<h2><span class="section-number">22</span> References &amp; Links</h2>
 {references_content}
 </div>
 
@@ -1975,6 +2291,7 @@ def main():
     carrier_screen_data = data.get("carrier_screen", {})
     traits_data = data.get("traits", {})
     insights_data = data.get("insights", {})
+    disease_findings_data = data.get("disease_findings", {})
 
     # Build each section
     print("\n>>> Building ELI5 summary")
@@ -2022,32 +2339,27 @@ def main():
     print(">>> Building recommendations section")
     recommendations = build_recommendations_section(recommendations_data)
 
-    print(">>> Building critical findings")
-    critical = build_critical_findings()
-
-    print(">>> Building asthma section")
-    asthma = build_asthma_section()
-
     print(">>> Building lifestyle findings")
     lifestyle = build_lifestyle_findings(findings)
 
     print(">>> Building disease risk")
-    disease = build_disease_risk()
+    disease = build_disease_risk(disease_findings_data)
 
     print(">>> Building drug-gene interactions")
     drugs = build_drug_gene(findings, pharmgkb_findings)
 
     print(">>> Building nutrition section")
-    nutrition = build_nutrition_section()
+    nutrition = build_nutrition_section(recommendations_data, insights_data)
 
     print(">>> Building monitoring schedule")
-    monitoring = build_monitoring()
+    monitoring = build_monitoring(recommendations_data)
 
     print(">>> Building protective variants")
-    protective = build_protective()
+    protective = build_protective(recommendations_data, insights_data)
 
     print(">>> Building doctor card")
-    doctor_card = build_doctor_card()
+    doctor_card = build_doctor_card(
+        recommendations_data, star_alleles_data, apoe_data, acmg_data)
 
     print(">>> Building references")
     references = build_references(findings)
@@ -2074,8 +2386,6 @@ def main():
         acmg_content=acmg_html,
         epistasis_content=epistasis,
         carrier_screen_content=carrier_screen_html,
-        critical_content=critical,
-        asthma_content=asthma,
         lifestyle_content=lifestyle,
         disease_content=disease,
         drugs_content=drugs,

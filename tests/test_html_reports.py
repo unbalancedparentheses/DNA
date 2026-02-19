@@ -4,6 +4,11 @@ from genetic_health.reports.enhanced_html import (
     build_ancestry_section,
     build_prs_section,
     build_epistasis_section,
+    build_disease_risk,
+    build_monitoring,
+    build_doctor_card,
+    build_nutrition_section,
+    build_protective,
     svg_ancestry_donut,
     svg_prs_gauge,
 )
@@ -177,3 +182,254 @@ class TestEpistasisSection:
     def test_none_epistasis(self):
         html = build_epistasis_section(None)
         assert "No significant" in html
+
+
+class TestDiseaseRiskSection:
+    MOCK_DISEASE = {
+        "pathogenic": [
+            {"gene": "BRCA1", "traits": "Breast cancer;Ovarian cancer",
+             "user_genotype": "AG", "gold_stars": 3, "zygosity": "heterozygous"},
+        ],
+        "likely_pathogenic": [
+            {"gene": "MLH1", "traits": "Lynch syndrome",
+             "user_genotype": "CT", "gold_stars": 2, "zygosity": "heterozygous"},
+        ],
+        "risk_factor": [
+            {"gene": "APOE", "traits": "Alzheimer disease",
+             "user_genotype": "CT", "gold_stars": 4, "zygosity": "heterozygous"},
+        ],
+        "drug_response": [
+            {"gene": "CYP2C19", "traits": "Clopidogrel response",
+             "user_genotype": "GA", "gold_stars": 3, "zygosity": "heterozygous"},
+        ],
+        "protective": [
+            {"gene": "PCSK9", "traits": "Lower LDL cholesterol"},
+        ],
+        "carriers": [],
+    }
+
+    def test_builds_tables(self):
+        html = build_disease_risk(self.MOCK_DISEASE)
+        assert "BRCA1" in html
+        assert "MLH1" in html
+        assert "APOE" in html
+        assert "CYP2C19" in html
+        assert "<table>" in html
+
+    def test_pathogenic_shown(self):
+        html = build_disease_risk(self.MOCK_DISEASE)
+        assert "Pathogenic Variants" in html
+        assert "Breast cancer" in html
+
+    def test_protective_cards(self):
+        html = build_disease_risk(self.MOCK_DISEASE)
+        assert "Protective Variants" in html
+        assert "PCSK9" in html
+        assert "good-news-card" in html
+
+    def test_empty_disease(self):
+        html = build_disease_risk({})
+        assert "No ClinVar" in html
+
+    def test_none_disease(self):
+        html = build_disease_risk(None)
+        assert "No ClinVar" in html
+
+    def test_partial_data(self):
+        data = {"pathogenic": [], "likely_pathogenic": [], "risk_factor": [],
+                "drug_response": [], "protective": [], "carriers": []}
+        html = build_disease_risk(data)
+        assert "ClinVar" in html
+
+
+class TestMonitoringSection:
+    MOCK_RECS = {
+        "monitoring_schedule": [
+            {"test": "Blood pressure", "frequency": "Weekly (home)", "reason": "Multiple BP genes"},
+            {"test": "Lipid panel", "frequency": "Annually", "reason": "APOE e4 carrier"},
+            {"test": "Iron panel", "frequency": "Baseline", "reason": "HFE carrier"},
+        ],
+    }
+
+    def test_builds_table(self):
+        html = build_monitoring(self.MOCK_RECS)
+        assert "Blood pressure" in html
+        assert "Lipid panel" in html
+        assert "<table>" in html
+
+    def test_frequency_badges(self):
+        html = build_monitoring(self.MOCK_RECS)
+        assert "Weekly" in html
+        assert "Annually" in html
+        assert "mag-badge" in html
+
+    def test_print_callout(self):
+        html = build_monitoring(self.MOCK_RECS)
+        assert "Print this" in html or "doctor visit" in html
+
+    def test_empty_schedule(self):
+        html = build_monitoring({"monitoring_schedule": []})
+        assert "No monitoring" in html
+
+    def test_none_data(self):
+        html = build_monitoring(None)
+        assert "No monitoring" in html
+
+
+class TestDoctorCardSection:
+    MOCK_RECS = {
+        "priorities": [
+            {"id": "blood_pressure", "title": "Blood Pressure", "priority": "high",
+             "why": "AGTR1+AGT", "actions": ["Monitor BP"], "doctor_note": "Check BP meds",
+             "monitoring": [], "signal_count": 3},
+        ],
+        "specialist_referrals": [
+            {"specialist": "Cardiologist", "reason": "Multiple CV risk genes", "urgency": "soon"},
+        ],
+        "monitoring_schedule": [
+            {"test": "Blood pressure", "frequency": "Weekly", "reason": "BP genes"},
+        ],
+    }
+    MOCK_STAR = {
+        "CYP2C19": {"diplotype": "*1/*2", "phenotype": "intermediate",
+                     "snps_found": 4, "snps_total": 5, "clinical_note": "Reduced clopidogrel"},
+    }
+    MOCK_APOE = {"apoe_type": "e3/e4", "risk_level": "elevated",
+                 "alzheimer_or": 2.8, "confidence": "high", "description": "One e4 allele"}
+    MOCK_ACMG = {
+        "genes_screened": 81, "genes_with_variants": 1,
+        "acmg_findings": [
+            {"gene": "BRCA2", "traits": "Breast cancer", "user_genotype": "AG",
+             "gold_stars": 3, "acmg_actionability": "Enhanced screening"},
+        ],
+    }
+
+    def test_builds_doctor_card(self):
+        html = build_doctor_card(self.MOCK_RECS, self.MOCK_STAR, self.MOCK_APOE, self.MOCK_ACMG)
+        assert "Patient Genetic Summary" in html
+        assert "Blood Pressure" in html
+
+    def test_pharmacogenomic_table(self):
+        html = build_doctor_card(self.MOCK_RECS, self.MOCK_STAR, self.MOCK_APOE, self.MOCK_ACMG)
+        assert "CYP2C19" in html
+        assert "*1/*2" in html
+        assert "Intermediate" in html
+
+    def test_apoe_shown(self):
+        html = build_doctor_card(self.MOCK_RECS, self.MOCK_STAR, self.MOCK_APOE, self.MOCK_ACMG)
+        assert "e3/e4" in html
+        assert "Elevated" in html
+
+    def test_acmg_findings(self):
+        html = build_doctor_card(self.MOCK_RECS, self.MOCK_STAR, self.MOCK_APOE, self.MOCK_ACMG)
+        assert "BRCA2" in html
+        assert "genetic counselor" in html.lower()
+
+    def test_specialist_referrals(self):
+        html = build_doctor_card(self.MOCK_RECS, self.MOCK_STAR, self.MOCK_APOE, self.MOCK_ACMG)
+        assert "Cardiologist" in html
+        assert "soon" in html
+
+    def test_empty_data(self):
+        html = build_doctor_card({}, {}, {}, {})
+        assert "No significant" in html
+
+    def test_none_data(self):
+        html = build_doctor_card(None, None, None, None)
+        assert "No significant" in html
+
+
+class TestNutritionSection:
+    MOCK_RECS = {
+        "priorities": [
+            {"id": "methylation", "title": "Methylation Support", "priority": "high",
+             "why": "MTHFR+COMT", "actions": ["Take methylfolate 400mcg"],
+             "clinical_actions": ["Monitor homocysteine"], "doctor_note": "",
+             "monitoring": [], "signal_count": 2},
+            {"id": "blood_pressure", "title": "Blood Pressure", "priority": "high",
+             "why": "AGTR1", "actions": ["Reduce sodium"], "doctor_note": "",
+             "monitoring": [], "signal_count": 3},
+        ],
+    }
+    MOCK_INSIGHTS = {
+        "narratives": [
+            {"id": "methylation_choline", "title": "Methylation & Choline",
+             "matched_genes": ["MTHFR", "PEMT"],
+             "narrative": "Your methylation cycle genes suggest...",
+             "references": ["PMID:12345"],
+             "practical": "Eat eggs and leafy greens"},
+        ],
+    }
+
+    def test_builds_nutrition_content(self):
+        html = build_nutrition_section(self.MOCK_RECS, self.MOCK_INSIGHTS)
+        assert "Methylation" in html
+        assert "methylfolate" in html
+
+    def test_filters_nutrition_priorities(self):
+        html = build_nutrition_section(self.MOCK_RECS, self.MOCK_INSIGHTS)
+        # Blood pressure is not a nutrition group, so should be excluded
+        assert "Blood Pressure" not in html
+
+    def test_shows_narratives(self):
+        html = build_nutrition_section(self.MOCK_RECS, self.MOCK_INSIGHTS)
+        assert "Methylation &amp; Choline" in html or "Methylation & Choline" in html
+        assert "eggs" in html
+
+    def test_clinical_actions(self):
+        html = build_nutrition_section(self.MOCK_RECS, self.MOCK_INSIGHTS)
+        assert "homocysteine" in html
+
+    def test_empty_data(self):
+        html = build_nutrition_section({}, {})
+        assert "No nutrition" in html
+
+    def test_none_data(self):
+        html = build_nutrition_section(None, None)
+        assert "No nutrition" in html
+
+
+class TestProtectiveSection:
+    MOCK_RECS = {
+        "good_news": [
+            {"gene": "FOXO3", "description": "Longevity-associated variant"},
+            {"gene": "APOE", "description": "No e4 alleles — average Alzheimer's risk"},
+        ],
+    }
+    MOCK_INSIGHTS = {
+        "protective_findings": [
+            {"gene": "CHRNA5", "status": "favorable",
+             "title": "Reduced nicotine dependence",
+             "finding": "Your variant is associated with lower addiction risk.",
+             "reference": "Thorgeirsson 2010, PMID: 20418890"},
+        ],
+    }
+
+    def test_builds_good_news_cards(self):
+        html = build_protective(self.MOCK_RECS, self.MOCK_INSIGHTS)
+        assert "FOXO3" in html
+        assert "Longevity" in html
+        assert "good-news-card" in html
+
+    def test_builds_research_backed(self):
+        html = build_protective(self.MOCK_RECS, self.MOCK_INSIGHTS)
+        assert "CHRNA5" in html
+        assert "nicotine" in html
+        assert "Thorgeirsson" in html
+
+    def test_empty_data(self):
+        html = build_protective({}, {})
+        assert "No protective" in html
+
+    def test_none_data(self):
+        html = build_protective(None, None)
+        assert "No protective" in html
+
+    def test_good_news_only(self):
+        html = build_protective(self.MOCK_RECS, {})
+        assert "FOXO3" in html
+        assert "good-news-card" in html
+
+    def test_protective_findings_only(self):
+        html = build_protective({}, self.MOCK_INSIGHTS)
+        assert "CHRNA5" in html

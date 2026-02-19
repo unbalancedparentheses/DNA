@@ -192,6 +192,10 @@ def load_clinvar_and_analyze(genome_by_position: dict, data_dir: Path = None) ->
                 'xrefs': row.get('xrefs', '')
             }
 
+            status, zygosity_desc = classify_zygosity(finding)
+            finding['zygosity'] = zygosity_desc
+            finding['zygosity_status'] = status
+
             if 'pathogenic' in clinical_sig and 'likely' not in clinical_sig and 'conflict' not in clinical_sig:
                 findings['pathogenic'].append(finding)
                 stats['pathogenic_matched'] += 1

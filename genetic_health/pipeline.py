@@ -202,7 +202,7 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'ancestry': ancestry_results,
         'prs': prs_results,
         'epistasis': [
-            {k: v for k, v in e.items() if k != 'genes_involved' or True}
+            {k: v for k, v in e.items() if k != 'genes_involved'}
             for e in epistasis_results
         ],
         'recommendations': recommendations,
@@ -215,6 +215,7 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'carrier_screen': carrier_screen,
         'traits': traits,
         'insights': insights,
+        'disease_findings': disease_findings,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
