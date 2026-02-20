@@ -2035,7 +2035,451 @@ COMPREHENSIVE_SNPS = {
         }
     },
 
-    # --- BLOOD PRESSURE SALT SENSITIVITY ---
+    # =========================================================================
+    # MASSIVE EXPANSION: DISEASES, MENTAL HEALTH, LONGEVITY
+    # =========================================================================
+
+    # --- ALZHEIMER'S / NEURODEGENERATION ---
+    "rs744373": {
+        "gene": "BIN1", "category": "Neurodegeneration",
+        "variants": {
+            "GG": {"status": "risk", "desc": "BIN1 GG — 2nd strongest Alzheimer's risk gene after APOE, synaptic endocytosis", "magnitude": 3},
+            "GA": {"status": "intermediate", "desc": "BIN1 heterozygous — moderate AD risk", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "BIN1 heterozygous — moderate AD risk", "magnitude": 2},
+            "AA": {"status": "normal", "desc": "BIN1 AA — lower AD risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs3851179": {
+        "gene": "PICALM", "category": "Neurodegeneration",
+        "variants": {
+            "CC": {"status": "risk", "desc": "PICALM CC — impaired amyloid-beta clearance, Alzheimer's susceptibility", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "PICALM heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "PICALM heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "PICALM TT — normal amyloid clearance", "magnitude": 0},
+        }
+    },
+    "rs3764650": {
+        "gene": "ABCA7", "category": "Neurodegeneration",
+        "variants": {
+            "GG": {"status": "risk", "desc": "ABCA7 GG — lipid transport variant, elevated Alzheimer's risk (especially African ancestry)", "magnitude": 3},
+            "GT": {"status": "intermediate", "desc": "ABCA7 heterozygous", "magnitude": 2},
+            "TG": {"status": "intermediate", "desc": "ABCA7 heterozygous", "magnitude": 2},
+            "TT": {"status": "normal", "desc": "ABCA7 TT — normal lipid transport", "magnitude": 0},
+        }
+    },
+    "rs11136000": {
+        "gene": "CLU", "category": "Neurodegeneration",
+        "variants": {
+            "TT": {"status": "risk", "desc": "CLU/clusterin TT — reduced amyloid clearance chaperone, AD susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CLU heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CLU heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CLU CC — normal clusterin function", "magnitude": 0},
+        }
+    },
+    "rs6656401": {
+        "gene": "CR1", "category": "Neurodegeneration",
+        "variants": {
+            "AA": {"status": "risk", "desc": "CR1 AA — complement receptor 1, impaired amyloid clearance, AD risk", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "CR1 heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "CR1 heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "CR1 GG — normal complement-mediated clearance", "magnitude": 0},
+        }
+    },
+    "rs610932": {
+        "gene": "MS4A6A", "category": "Neurodegeneration",
+        "variants": {
+            "GG": {"status": "risk", "desc": "MS4A6A GG — microglial activation variant, Alzheimer's susceptibility", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "MS4A6A heterozygous", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "MS4A6A heterozygous", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "MS4A6A AA — normal microglial function", "magnitude": 0},
+        }
+    },
+    "rs9331896": {
+        "gene": "CLU", "category": "Neurodegeneration",
+        "variants": {
+            "CC": {"status": "protective", "desc": "CLU CC — protective clusterin variant, enhanced amyloid clearance", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CLU heterozygous", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "CLU heterozygous", "magnitude": 0},
+            "TT": {"status": "risk", "desc": "CLU TT — reduced amyloid clearance", "magnitude": 2},
+        }
+    },
+    "rs983392": {
+        "gene": "MS4A6A", "category": "Neurodegeneration",
+        "variants": {
+            "GG": {"status": "protective", "desc": "MS4A cluster GG — protective against Alzheimer's disease", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "MS4A heterozygous", "magnitude": 0},
+            "AG": {"status": "intermediate", "desc": "MS4A heterozygous", "magnitude": 0},
+            "AA": {"status": "risk", "desc": "MS4A AA — increased AD susceptibility", "magnitude": 2},
+        }
+    },
+
+    # --- PARKINSON'S DISEASE ---
+    "rs34637584": {
+        "gene": "LRRK2", "category": "Neurodegeneration",
+        "variants": {
+            "AA": {"status": "high_risk", "desc": "LRRK2 G2019S AA — strongest Parkinson's disease risk variant, kinase hyperactivity", "magnitude": 5},
+            "AG": {"status": "risk", "desc": "LRRK2 G2019S heterozygous — elevated PD risk (incomplete penetrance)", "magnitude": 4},
+            "GA": {"status": "risk", "desc": "LRRK2 G2019S heterozygous — elevated PD risk (incomplete penetrance)", "magnitude": 4},
+            "GG": {"status": "normal", "desc": "LRRK2 GG — no G2019S variant", "magnitude": 0},
+        },
+        "note": "LRRK2 G2019S is the most common genetic cause of Parkinson's disease, especially in Ashkenazi Jewish and North African populations."
+    },
+    "rs356182": {
+        "gene": "SNCA", "category": "Neurodegeneration",
+        "variants": {
+            "AA": {"status": "risk", "desc": "SNCA AA — alpha-synuclein variant, Parkinson's disease susceptibility", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "SNCA heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "SNCA heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "SNCA GG — normal alpha-synuclein regulation", "magnitude": 0},
+        }
+    },
+    "rs11931074": {
+        "gene": "SNCA", "category": "Neurodegeneration",
+        "variants": {
+            "TT": {"status": "risk", "desc": "SNCA TT — alpha-synuclein expression variant, PD susceptibility", "magnitude": 2},
+            "TG": {"status": "intermediate", "desc": "SNCA heterozygous", "magnitude": 1},
+            "GT": {"status": "intermediate", "desc": "SNCA heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "SNCA GG — typical alpha-synuclein levels", "magnitude": 0},
+        }
+    },
+    "rs76763715": {
+        "gene": "GBA", "category": "Neurodegeneration",
+        "variants": {
+            "TT": {"status": "risk", "desc": "GBA N370S TT — glucocerebrosidase variant, 5-20x Parkinson's risk, also Gaucher carrier", "magnitude": 4},
+            "TC": {"status": "risk", "desc": "GBA N370S heterozygous — elevated PD risk + Gaucher carrier", "magnitude": 3},
+            "CT": {"status": "risk", "desc": "GBA N370S heterozygous — elevated PD risk + Gaucher carrier", "magnitude": 3},
+            "CC": {"status": "normal", "desc": "GBA CC — no N370S variant", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED MENTAL HEALTH ---
+    "rs4570625": {
+        "gene": "TPH2", "category": "Mental Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "TPH2 TT — brain tryptophan hydroxylase 2, reduced serotonin synthesis, depression/anxiety", "magnitude": 2},
+            "TG": {"status": "intermediate", "desc": "TPH2 heterozygous — moderate serotonin effect", "magnitude": 1},
+            "GT": {"status": "intermediate", "desc": "TPH2 heterozygous — moderate serotonin effect", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "TPH2 GG — normal brain serotonin synthesis", "magnitude": 0},
+        }
+    },
+    "rs6311": {
+        "gene": "HTR2A", "category": "Mental Health",
+        "variants": {
+            "CC": {"status": "risk", "desc": "HTR2A -1438G>A CC — altered serotonin 2A receptor density, depression and SSRI response", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "HTR2A heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "HTR2A heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "HTR2A TT — typical serotonin 2A receptor expression", "magnitude": 0},
+        }
+    },
+    "rs1386494": {
+        "gene": "NR3C1", "category": "Mental Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "Glucocorticoid receptor TT — altered cortisol signaling, stress vulnerability, depression risk", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "NR3C1 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "NR3C1 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "NR3C1 CC — normal glucocorticoid receptor function", "magnitude": 0},
+        }
+    },
+
+    "rs1799913": {
+        "gene": "TPH1", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "TPH1 A779C AA — altered serotonin synthesis, aggression and mood disorder susceptibility", "magnitude": 2},
+            "AC": {"status": "intermediate", "desc": "TPH1 heterozygous", "magnitude": 1},
+            "CA": {"status": "intermediate", "desc": "TPH1 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "TPH1 CC — normal tryptophan hydroxylase activity", "magnitude": 0},
+        }
+    },
+    "rs7997012": {
+        "gene": "HTR2A", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "ssri_responsive", "desc": "HTR2A intron 2 AA — better SSRI antidepressant response predicted", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "HTR2A heterozygous — moderate SSRI response", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "HTR2A heterozygous — moderate SSRI response", "magnitude": 1},
+            "GG": {"status": "reduced_response", "desc": "HTR2A GG — may have reduced SSRI response", "magnitude": 2},
+        }
+    },
+    "rs6313": {
+        "gene": "HTR2A", "category": "Mental Health",
+        "variants": {
+            "CC": {"status": "risk", "desc": "HTR2A T102C CC — altered 5-HT2A receptor, schizophrenia and antipsychotic response", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "HTR2A heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "HTR2A heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "HTR2A TT — typical 5-HT2A expression", "magnitude": 0},
+        }
+    },
+
+    # --- BIPOLAR / SCHIZOPHRENIA ---
+    "rs1006737": {
+        "gene": "CACNA1C", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "CACNA1C AA — calcium channel variant, bipolar disorder and schizophrenia cross-disorder risk", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "CACNA1C heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "CACNA1C heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "CACNA1C GG — normal calcium channel function", "magnitude": 0},
+        }
+    },
+    "rs10994359": {
+        "gene": "ANK3", "category": "Mental Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "ANK3 TT — ankyrin 3, bipolar disorder and lithium response susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "ANK3 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "ANK3 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "ANK3 CC — typical neuronal ion channel function", "magnitude": 0},
+        }
+    },
+
+    # --- PTSD / TRAUMA ---
+    "rs2267735": {
+        "gene": "CRHR1", "category": "Mental Health",
+        "variants": {
+            "CC": {"status": "protective", "desc": "CRHR1 CC — CRH receptor variant, may be protective against PTSD after trauma", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CRHR1 heterozygous", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "CRHR1 heterozygous", "magnitude": 0},
+            "TT": {"status": "risk", "desc": "CRHR1 TT — increased PTSD vulnerability after trauma exposure", "magnitude": 2},
+        }
+    },
+
+    # --- EXPANDED LONGEVITY ---
+    "rs1800795_longevity": {
+        "gene": "IL6", "category": "Longevity",
+        "variants": {
+            "CC": {"status": "protective", "desc": "IL-6 -174 CC — lower chronic inflammation, associated with longevity in multiple cohorts", "magnitude": 2},
+            "CG": {"status": "intermediate", "desc": "IL-6 heterozygous — moderate inflammatory profile", "magnitude": 1},
+            "GC": {"status": "intermediate", "desc": "IL-6 heterozygous — moderate inflammatory profile", "magnitude": 1},
+            "GG": {"status": "pro_inflammatory", "desc": "IL-6 GG — higher chronic inflammation, accelerated aging", "magnitude": 2},
+        }
+    },
+    "rs1042714": {
+        "gene": "ADRB2", "category": "Longevity",
+        "variants": {
+            "CC": {"status": "protective", "desc": "ADRB2 Gln27Glu CC — associated with longevity in centenarian studies", "magnitude": 1},
+            "CG": {"status": "intermediate", "desc": "ADRB2 heterozygous", "magnitude": 0},
+            "GC": {"status": "intermediate", "desc": "ADRB2 heterozygous", "magnitude": 0},
+            "GG": {"status": "normal", "desc": "ADRB2 GG — typical adrenergic receptor function", "magnitude": 0},
+        }
+    },
+
+    "rs11741327": {
+        "gene": "GHSR", "category": "Longevity",
+        "variants": {
+            "AA": {"status": "protective", "desc": "Growth hormone secretagogue receptor AA — favorable growth hormone axis, centenarian-enriched", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "GHSR heterozygous", "magnitude": 0},
+            "GA": {"status": "intermediate", "desc": "GHSR heterozygous", "magnitude": 0},
+            "GG": {"status": "normal", "desc": "GHSR GG — typical GH axis regulation", "magnitude": 0},
+        }
+    },
+
+    # --- CANCER RISK (EXPANDED) ---
+    "rs6983267": {
+        "gene": "8q24/MYC", "category": "Cancer Risk",
+        "variants": {
+            "GG": {"status": "risk", "desc": "8q24 GG — colorectal, prostate, and bladder cancer susceptibility (MYC enhancer)", "magnitude": 2},
+            "GT": {"status": "intermediate", "desc": "8q24 heterozygous — moderate multi-cancer risk", "magnitude": 1},
+            "TG": {"status": "intermediate", "desc": "8q24 heterozygous — moderate multi-cancer risk", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "8q24 TT — lower risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs401681": {
+        "gene": "TERT-CLPTM1L", "category": "Cancer Risk",
+        "variants": {
+            "CC": {"status": "risk", "desc": "TERT-CLPTM1L CC — multiple cancer risk (lung, bladder, pancreas, melanoma)", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "TERT-CLPTM1L heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "TERT-CLPTM1L heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "TERT-CLPTM1L TT — lower multi-cancer risk", "magnitude": 0},
+        }
+    },
+    "rs2981582": {
+        "gene": "FGFR2", "category": "Cancer Risk",
+        "variants": {
+            "AA": {"status": "risk", "desc": "FGFR2 AA — fibroblast growth factor receptor, breast cancer susceptibility", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "FGFR2 heterozygous — moderate breast cancer risk", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "FGFR2 heterozygous — moderate breast cancer risk", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "FGFR2 GG — lower breast cancer risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs13281615": {
+        "gene": "8q24", "category": "Cancer Risk",
+        "variants": {
+            "GG": {"status": "risk", "desc": "8q24 GG — breast cancer susceptibility locus", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "8q24 heterozygous", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "8q24 heterozygous", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "8q24 AA — lower risk", "magnitude": 0},
+        }
+    },
+    "rs10993994": {
+        "gene": "MSMB", "category": "Cancer Risk",
+        "variants": {
+            "TT": {"status": "risk", "desc": "MSMB TT — microseminoprotein beta, prostate cancer risk (reduced PSP94 secretion)", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "MSMB heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "MSMB heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "MSMB CC — normal PSP94 levels", "magnitude": 0},
+        }
+    },
+
+    # --- TYPE 2 DIABETES (EXPANDED) ---
+    "rs5219": {
+        "gene": "KCNJ11", "category": "Metabolic",
+        "variants": {
+            "TT": {"status": "risk", "desc": "KCNJ11 E23K TT — reduced insulin secretion from pancreatic beta cells, T2D risk", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "KCNJ11 heterozygous — moderate beta cell effect", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "KCNJ11 heterozygous — moderate beta cell effect", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "KCNJ11 CC — normal insulin secretion", "magnitude": 0},
+        }
+    },
+    "rs13266634": {
+        "gene": "SLC30A8", "category": "Metabolic",
+        "variants": {
+            "CC": {"status": "risk", "desc": "SLC30A8 CC — zinc transporter variant, reduced insulin crystallization, T2D risk", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "SLC30A8 heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "SLC30A8 heterozygous", "magnitude": 1},
+            "TT": {"status": "protective", "desc": "SLC30A8 TT — loss-of-function protective against T2D", "magnitude": 1},
+        }
+    },
+    "rs1111875": {
+        "gene": "HHEX", "category": "Metabolic",
+        "variants": {
+            "CC": {"status": "risk", "desc": "HHEX CC — transcription factor variant, impaired beta cell development, T2D susceptibility", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "HHEX heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "HHEX heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "HHEX TT — normal beta cell function", "magnitude": 0},
+        }
+    },
+
+    # --- HEART FAILURE / CARDIOMYOPATHY ---
+    "rs1799722": {
+        "gene": "BDKRB2", "category": "Cardiovascular",
+        "variants": {
+            "TT": {"status": "risk", "desc": "Bradykinin receptor B2 TT — reduced ACE inhibitor response, less cardiac protection", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "BDKRB2 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "BDKRB2 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "BDKRB2 CC — normal bradykinin signaling, good ACE-I response", "magnitude": 0},
+        }
+    },
+
+    # --- STROKE (EXPANDED) ---
+    "rs2200733": {
+        "gene": "PITX2", "category": "Stroke",
+        "variants": {
+            "TT": {"status": "high_risk", "desc": "PITX2 4q25 TT — strongest atrial fibrillation and cardioembolic stroke locus", "magnitude": 3},
+            "TC": {"status": "risk", "desc": "PITX2 heterozygous — elevated AF and stroke risk", "magnitude": 2},
+            "CT": {"status": "risk", "desc": "PITX2 heterozygous — elevated AF and stroke risk", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "PITX2 CC — lower AF/stroke risk", "magnitude": 0},
+        }
+    },
+
+    # --- LUPUS ---
+    "rs1270942": {
+        "gene": "HLA-DRB1", "category": "Autoimmune",
+        "variants": {
+            "TT": {"status": "risk", "desc": "HLA-DRB1 TT — systemic lupus erythematosus (SLE) susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "HLA-DRB1 heterozygous — moderate lupus risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "HLA-DRB1 heterozygous — moderate lupus risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "HLA-DRB1 CC — lower lupus risk", "magnitude": 0},
+        }
+    },
+
+    "rs2241880": {
+        "gene": "ATG16L1", "category": "Autoimmune",
+        "variants": {
+            "GG": {"status": "risk", "desc": "ATG16L1 T300A GG — impaired autophagy, Crohn's disease susceptibility", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "ATG16L1 heterozygous — moderate Crohn's risk", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "ATG16L1 heterozygous — moderate Crohn's risk", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "ATG16L1 AA — normal autophagy", "magnitude": 0},
+        }
+    },
+    "rs17234657": {
+        "gene": "NOD2", "category": "Autoimmune",
+        "variants": {
+            "GG": {"status": "risk", "desc": "NOD2 region GG — innate immune pattern recognition, Crohn's disease susceptibility", "magnitude": 2},
+            "GT": {"status": "intermediate", "desc": "NOD2 heterozygous", "magnitude": 1},
+            "TG": {"status": "intermediate", "desc": "NOD2 heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "NOD2 TT — normal mucosal immunity", "magnitude": 0},
+        }
+    },
+
+    # --- ASTHMA / ALLERGY ---
+    "rs7216389": {
+        "gene": "ORMDL3", "category": "Allergy",
+        "variants": {
+            "TT": {"status": "risk", "desc": "ORMDL3/GSDMB TT — strongest childhood asthma locus (17q21), sphingolipid metabolism", "magnitude": 3},
+            "TC": {"status": "intermediate", "desc": "ORMDL3 heterozygous — moderate asthma risk", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "ORMDL3 heterozygous — moderate asthma risk", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "ORMDL3 CC — lower asthma risk", "magnitude": 0},
+        }
+    },
+    "rs1342326": {
+        "gene": "IL33", "category": "Allergy",
+        "variants": {
+            "AA": {"status": "risk", "desc": "IL-33 AA — alarmin cytokine, asthma and allergic inflammation susceptibility", "magnitude": 2},
+            "AC": {"status": "intermediate", "desc": "IL-33 heterozygous", "magnitude": 1},
+            "CA": {"status": "intermediate", "desc": "IL-33 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "IL-33 CC — normal allergic inflammation threshold", "magnitude": 0},
+        }
+    },
+    "rs20541": {
+        "gene": "IL13", "category": "Allergy",
+        "variants": {
+            "AA": {"status": "risk", "desc": "IL-13 R130Q AA — gain-of-function, increased IgE, asthma and atopy susceptibility", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "IL-13 heterozygous — moderate allergic tendency", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "IL-13 heterozygous — moderate allergic tendency", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "IL-13 GG — normal IgE regulation", "magnitude": 0},
+        }
+    },
+
+    # --- VENOUS THROMBOEMBOLISM ---
+    "rs8176750": {
+        "gene": "ABO", "category": "Blood Clotting",
+        "variants": {
+            "CC": {"status": "non_O", "desc": "ABO CC — non-O blood type, elevated von Willebrand factor and factor VIII, VTE risk", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "ABO heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "ABO heterozygous", "magnitude": 1},
+            "TT": {"status": "type_O", "desc": "ABO TT — type O, lower clotting factors, reduced VTE risk", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED EYE HEALTH ---
+    "rs2230199": {
+        "gene": "C3", "category": "Eye Health",
+        "variants": {
+            "GG": {"status": "risk", "desc": "Complement C3 R102G GG — complement overactivation, AMD progression risk", "magnitude": 2},
+            "GC": {"status": "intermediate", "desc": "C3 heterozygous", "magnitude": 1},
+            "CG": {"status": "intermediate", "desc": "C3 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "C3 CC — normal complement regulation", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED THYROID ---
+    "rs179247": {
+        "gene": "TSHR", "category": "Thyroid",
+        "variants": {
+            "AA": {"status": "risk", "desc": "TSHR intron 1 AA — Graves' disease susceptibility, TSH receptor autoantibody target", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "TSHR heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "TSHR heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "TSHR GG — lower Graves' risk", "magnitude": 0},
+        }
+    },
+    "rs925489": {
+        "gene": "CTLA4", "category": "Thyroid",
+        "variants": {
+            "TT": {"status": "risk", "desc": "CTLA4 TT — immune checkpoint variant, Hashimoto's thyroiditis susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CTLA4 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CTLA4 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CTLA4 CC — normal thyroid immune regulation", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED KIDNEY ---
+    "rs4236": {
+        "gene": "APOL1", "category": "Kidney",
+        "variants": {
+            "GG": {"status": "risk", "desc": "APOL1 G1 GG — kidney disease susceptibility (FSGS, HIVAN), primarily African ancestry", "magnitude": 3},
+            "GA": {"status": "intermediate", "desc": "APOL1 G1 carrier — moderate kidney risk if second risk allele present", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "APOL1 G1 carrier — moderate kidney risk if second risk allele present", "magnitude": 2},
+            "AA": {"status": "normal", "desc": "APOL1 AA — no G1 risk allele", "magnitude": 0},
+        },
+        "note": "APOL1 risk variants are common in African-descent populations (~13% carry two risk alleles) and protective against trypanosomiasis."
+    },
 }
 
 
