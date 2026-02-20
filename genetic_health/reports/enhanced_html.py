@@ -2715,6 +2715,7 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <span>{num_findings} lifestyle findings</span>
 <span>{num_pharmgkb} drug interactions</span>
 </div>
+{low_coverage_warning}
 </header>
 
 <nav class="no-print">
@@ -3066,12 +3067,27 @@ def main():
     # Assemble HTML
     print("\n>>> Assembling HTML report")
     subject_title = f" — {_esc(subject_name)}" if subject_name else ""
+
+    # Low-coverage warning for WGS data with few SNPs
+    total_snps = summary.get("total_snps", 0)
+    low_coverage_warning = ""
+    if total_snps < 100000:
+        pct = (total_snps / 600000) * 100 if total_snps else 0
+        low_coverage_warning = (
+            '<div class="doctor-callout" style="border-color:var(--warn);text-align:left;font-weight:normal">'
+            f'<strong style="color:var(--warn)">Low Data Coverage</strong>: '
+            f'Only {total_snps:,} SNPs loaded ({pct:.0f}% of a typical 23andMe/30x WGS dataset). '
+            'Many analysis modules may show "no data available". '
+            'For comprehensive results, use a 30x whole genome sequencing dataset or 23andMe raw data.</div>'
+        )
+
     html = HTML_TEMPLATE.format(
         generated_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
         total_snps=summary.get("total_snps", 0),
         num_findings=len(findings),
         num_pharmgkb=len(pharmgkb_findings),
         subject_title=subject_title,
+        low_coverage_warning=low_coverage_warning,
         key_findings_content=key_findings,
         action_plan_content=action_plan,
         drug_guide_content=drug_guide,

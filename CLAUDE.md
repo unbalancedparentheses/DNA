@@ -60,26 +60,34 @@ DNA/
 │   ├── config.py                 # Centralized paths (BASE_DIR, DATA_DIR, etc.)
 │   ├── loading.py                # load_genome(), load_pharmgkb()
 │   ├── analysis.py               # analyze_lifestyle_health(), load_clinvar_and_analyze()
-│   ├── snp_database.py           # COMPREHENSIVE_SNPS (~210+ curated variants)
+│   ├── snp_database.py           # COMPREHENSIVE_SNPS (~260 curated variants)
 │   ├── clinical_context.py       # CLINICAL_CONTEXT + PATHWAYS data
-│   ├── ancestry.py               # AIMs database + ancestry estimation
-│   ├── prs.py                    # Polygenic risk score models (8 conditions)
+│   ├── ancestry.py               # AIMs database + ancestry + sub-population estimation
+│   ├── prs.py                    # Polygenic risk score models (25 conditions)
 │   ├── epistasis.py              # Gene-gene interaction detection (10 models)
 │   ├── recommendations.py        # Actionable recommendations from findings
+│   ├── drug_dosing.py            # CPIC/DPWG drug-specific dosing (9 drugs)
+│   ├── preventive_care.py        # Age-based screening timeline from genetic risk
 │   ├── blood_type.py             # ABO + Rh blood type prediction from proxy SNPs
 │   ├── quality_metrics.py        # Call rate, het rate, chromosome coverage, sex inference
 │   ├── mt_haplogroup.py          # Mitochondrial haplogroup estimation (~25 MT SNPs)
-│   ├── star_alleles.py           # CPIC-style star allele calling (6 genes)
+│   ├── star_alleles.py           # CPIC-style star allele calling (11 genes)
 │   ├── apoe.py                   # APOE epsilon haplotype calling (rs429358 + rs7412)
 │   ├── acmg.py                   # ACMG SF v3.2 medically actionable gene filtering
 │   ├── carrier_screen.py         # Carrier screening organizer (by disease system)
-│   ├── traits.py                 # Visible trait predictions (eye/hair color, earwax, freckling)
+│   ├── traits.py                 # Trait predictions (14 traits)
+│   ├── pain_sensitivity.py       # Pain sensitivity profiling (OPRM1, COMT, SCN9A, TRPV1)
+│   ├── histamine.py              # Histamine intolerance risk (DAO, HNMT)
+│   ├── thyroid.py                # Thyroid genetics (FOXE1, TPO, TSHR, DIO1, DIO2)
+│   ├── hormone_metabolism.py     # Hormone metabolism (CYP19A1, ESR1, SRD5A2, AR)
+│   ├── eye_health.py             # Eye health genetics (glaucoma, myopia)
+│   ├── alcohol_profile.py        # Alcohol metabolism (ADH1B, ALDH2, CYP2E1)
 │   ├── pipeline.py               # run_full_analysis() orchestrator + CLI
 │   ├── wgs_pipeline.py           # WGS FASTQ→reports pipeline
 │   ├── update_data.py            # ClinVar auto-download + PharmGKB validation
 │   └── reports/
 │       ├── __init__.py            # Re-exports generators
-│       ├── enhanced_html.py       # Interactive HTML report (24 sections)
+│       ├── enhanced_html.py       # Interactive HTML report (12 sections)
 │       └── pdf_export.py          # PDF export (Chrome headless / weasyprint)
 ├── scripts/
 │   └── setup_reference.sh        # Reference genome setup (shell script)
@@ -103,7 +111,12 @@ DNA/
 │   ├── test_apoe.py               # APOE haplotype calling tests
 │   ├── test_acmg.py               # ACMG secondary findings tests
 │   ├── test_carrier_screen.py     # Carrier screening tests
-│   └── test_traits.py             # Trait prediction tests
+│   ├── test_traits.py             # Trait prediction tests (original 4)
+│   ├── test_new_traits.py         # New trait prediction tests (10 new traits)
+│   ├── test_new_modules.py        # Pain, histamine, thyroid, hormone, eye, alcohol tests
+│   ├── test_drug_dosing.py        # Drug dosing recommendation tests
+│   ├── test_preventive_care.py    # Preventive care timeline tests
+│   └── test_wgs_pipeline.py       # WGS pipeline utility tests
 ├── data/
 │   ├── genome.txt                 # 23andMe raw data file
 │   ├── clinvar_alleles.tsv        # ClinVar database (~341K variants)
@@ -205,7 +218,7 @@ Uses maximum-likelihood scoring with softmax normalization.
 Includes population-specific warnings via `get_population_warnings(gene, status)`.
 
 ### genetic_health.prs
-Calculates Polygenic Risk Scores for 8 conditions using published GWAS effect sizes:
+Calculates Polygenic Risk Scores for 25 conditions using published GWAS effect sizes:
 
 | Condition | Reference |
 |-----------|-----------|
@@ -217,6 +230,23 @@ Calculates Polygenic Risk Scores for 8 conditions using published GWAS effect si
 | Prostate Cancer | Schumacher 2018 |
 | Ischemic Stroke | Malik 2018 |
 | Colorectal Cancer | Huyghe 2019 |
+| Alzheimer's Disease | Jansen 2019, Kunkle 2019 |
+| Atrial Fibrillation | Roselli 2018 |
+| Chronic Kidney Disease | Wuttke 2019 |
+| Obesity (BMI) | Yengo 2018, Locke 2015 |
+| Asthma | Demenais 2018 |
+| Migraine | Gormley 2016 |
+| Osteoporosis | Morris 2019 |
+| Parkinson's Disease | Nalls 2019 |
+| Type 1 Diabetes | Onengut-Gumuscu 2015 |
+| Rheumatoid Arthritis | Okada 2014 |
+| Celiac Disease | Trynka 2011 |
+| Systemic Lupus (SLE) | Bentham 2015 |
+| Multiple Sclerosis | IMSGC 2019 |
+| Hashimoto's Thyroiditis | Eriksson 2012 |
+| Psoriasis | Tsoi 2012 |
+| Gout | Kottgen 2013 |
+| Gallstones | Buch 2007 |
 
 ```python
 from genetic_health.prs import calculate_prs
@@ -289,13 +319,18 @@ result = estimate_mt_haplogroup(genome_by_rsid)
 ```
 
 ### genetic_health.star_alleles
-CPIC-style star allele calling for 6 pharmacogenes with metabolizer phenotype classification:
+CPIC-style star allele calling for 11 pharmacogenes with metabolizer phenotype classification:
 - **CYP2C19** — clopidogrel, PPIs, SSRIs
 - **CYP2C9** — warfarin, NSAIDs, phenytoin
 - **CYP2D6** — codeine, tamoxifen, many antidepressants (caveat: copy number variants undetectable)
 - **DPYD** — fluoropyrimidine chemotherapy (5-FU, capecitabine) — deficiency can be fatal
 - **TPMT** — thiopurines (azathioprine, 6-MP) — deficiency causes myelosuppression
 - **UGT1A1** — irinotecan, atazanavir — *28 causes Gilbert syndrome
+- **NAT2** — isoniazid, sulfonamides, hydralazine — slow acetylator risk
+- **CYP3A5** — tacrolimus, cyclosporine — expresser status affects dosing
+- **CYP3A4** — ~30% of all drugs (statins, opioids, antibiotics)
+- **CYP1A2** — caffeine, theophylline, melatonin
+- **SLCO1B1** — statin transporter — myopathy risk with simvastatin
 
 ```python
 from genetic_health.star_alleles import call_star_alleles
@@ -331,11 +366,21 @@ result = organize_carrier_findings(disease_findings)
 ```
 
 ### genetic_health.traits
-Predicts visible traits from well-established SNP associations:
+Predicts 14 traits from well-established SNP associations:
 - **Eye color** — rs12913832 (HERC2) + rs1800407 (OCA2)
 - **Hair color** — rs1805007, rs1805008 (MC1R)
 - **Earwax type** — rs17822931 (ABCC11)
 - **Freckling** — MC1R variants
+- **Lactose tolerance** — rs4988235 (MCM6/LCT)
+- **Bitter taste** — rs713598, rs1726866, rs10246939 (TAS2R38 haplotype)
+- **Cilantro taste** — rs72921001 (OR6A2)
+- **Asparagus smell** — rs4481887 (near OR2M7)
+- **Muscle fiber type** — rs1815739 (ACTN3 R577X)
+- **FUT2 secretor status** — rs601338
+- **Photic sneeze reflex** — rs10427255
+- **Hair curl** — rs11803731 (TCHH)
+- **Baldness susceptibility** — rs2180439 (20p11)
+- **Unibrow tendency** — rs12651896 (PAX3)
 
 ```python
 from genetic_health.traits import predict_traits

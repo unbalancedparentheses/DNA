@@ -253,8 +253,39 @@ def _collect_all_rsids():
     # APOE
     all_rsids.update(['rs429358', 'rs7412'])
 
-    # Traits
-    all_rsids.update(['rs12913832', 'rs1800407', 'rs1805007', 'rs1805008', 'rs17822931'])
+    # Traits (original + new)
+    all_rsids.update([
+        'rs12913832', 'rs1800407', 'rs1805007', 'rs1805008', 'rs17822931',
+        # New traits
+        'rs4988235',   # lactose tolerance (MCM6)
+        'rs713598', 'rs1726866', 'rs10246939',  # bitter taste (TAS2R38)
+        'rs72921001',  # cilantro taste (OR6A2)
+        'rs4481887',   # asparagus smell
+        'rs1815739',   # muscle fiber type (ACTN3)
+        'rs601338',    # FUT2 secretor status
+        'rs10427255',  # photic sneeze
+        'rs11803731',  # hair curl (TCHH)
+        'rs2180439',   # baldness risk
+        'rs12651896',  # unibrow tendency (PAX3)
+    ])
+
+    # Pain sensitivity
+    all_rsids.update(['rs1799971', 'rs4680', 'rs6746030', 'rs8065080'])
+
+    # Histamine
+    all_rsids.update(['rs10156191', 'rs1049793', 'rs11558538'])
+
+    # Thyroid
+    all_rsids.update(['rs965513', 'rs2071403', 'rs179247', 'rs11206244', 'rs225014'])
+
+    # Hormone metabolism
+    all_rsids.update(['rs4646', 'rs2234693', 'rs523349', 'rs6152'])
+
+    # Eye health
+    all_rsids.update(['rs74315329', 'rs4236601', 'rs1048661', 'rs524952', 'rs8027411'])
+
+    # Alcohol profile
+    all_rsids.update(['rs1229984', 'rs671', 'rs2031920'])
 
     return sorted(all_rsids)
 

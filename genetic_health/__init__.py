@@ -15,4 +15,12 @@ from .acmg import flag_acmg_findings
 from .carrier_screen import organize_carrier_findings
 from .traits import predict_traits
 from .insights import generate_insights
+from .drug_dosing import generate_drug_dosing
+from .preventive_care import generate_preventive_timeline
+from .pain_sensitivity import profile_pain_sensitivity
+from .histamine import profile_histamine
+from .thyroid import profile_thyroid
+from .hormone_metabolism import profile_hormone_metabolism
+from .eye_health import profile_eye_health
+from .alcohol_profile import profile_alcohol
 from .pipeline import run_full_analysis
