@@ -1633,6 +1633,409 @@ COMPREHENSIVE_SNPS = {
             "TT": {"status": "normal", "desc": "TERT TT — typical reproductive aging trajectory", "magnitude": 0},
         }
     },
+
+    # =========================================================================
+    # MASSIVE EXPANSION — ADDITIONAL WELL-ESTABLISHED SNPS
+    # =========================================================================
+
+    # --- MORE CARDIOVASCULAR ---
+
+    "rs1801020": {
+        "gene": "F12", "category": "Cardiovascular",
+        "variants": {
+            "AA": {"status": "reduced", "desc": "Factor XII AA — reduced coagulation factor XII, mild bleeding tendency", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "Factor XII heterozygous", "magnitude": 0},
+            "GA": {"status": "intermediate", "desc": "Factor XII heterozygous", "magnitude": 0},
+            "GG": {"status": "normal", "desc": "Factor XII GG — normal coagulation", "magnitude": 0},
+        }
+    },
+    "rs5918": {
+        "gene": "ITGB3", "category": "Cardiovascular",
+        "variants": {
+            "CC": {"status": "risk", "desc": "GPIIIa PlA2 CC — increased platelet aggregation, higher thrombosis and stent restenosis risk", "magnitude": 3},
+            "CT": {"status": "intermediate", "desc": "GPIIIa PlA2 heterozygous — moderate platelet activation", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "GPIIIa PlA2 heterozygous — moderate platelet activation", "magnitude": 2},
+            "TT": {"status": "normal", "desc": "GPIIIa PlA1/PlA1 — normal platelet function", "magnitude": 0},
+        }
+    },
+
+    # --- MORE INFLAMMATION ---
+    "rs6822844": {
+        "gene": "IL2/IL21", "category": "Inflammation",
+        "variants": {
+            "TT": {"status": "protective", "desc": "IL2/IL21 TT — protective against autoimmune inflammation (celiac, T1D, RA)", "magnitude": 1},
+            "TG": {"status": "intermediate", "desc": "IL2/IL21 heterozygous", "magnitude": 0},
+            "GT": {"status": "intermediate", "desc": "IL2/IL21 heterozygous", "magnitude": 0},
+            "GG": {"status": "risk", "desc": "IL2/IL21 GG — higher autoimmune inflammatory risk", "magnitude": 2},
+        }
+    },
+    "rs4986790": {
+        "gene": "TLR4", "category": "Inflammation",
+        "variants": {
+            "GG": {"status": "reduced_response", "desc": "TLR4 Asp299Gly GG — reduced innate immune LPS response, lower sepsis risk but reduced pathogen detection", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "TLR4 heterozygous — moderate innate immune response", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "TLR4 heterozygous — moderate innate immune response", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "TLR4 AA — normal LPS/pathogen sensing", "magnitude": 0},
+        }
+    },
+
+    # --- MORE AUTOIMMUNE ---
+
+    "rs2395185": {
+        "gene": "HLA-DRA", "category": "Autoimmune",
+        "variants": {
+            "GG": {"status": "risk", "desc": "HLA-DRA GG — multiple sclerosis susceptibility", "magnitude": 2},
+            "GT": {"status": "intermediate", "desc": "HLA-DRA heterozygous — moderate MS risk", "magnitude": 1},
+            "TG": {"status": "intermediate", "desc": "HLA-DRA heterozygous — moderate MS risk", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "HLA-DRA TT — lower MS risk", "magnitude": 0},
+        }
+    },
+
+    # --- MORE NUTRITION ---
+    "rs12272004": {
+        "gene": "SLC23A1", "category": "Nutrition",
+        "variants": {
+            "CC": {"status": "reduced", "desc": "SLC23A1 CC — reduced vitamin C transporter activity, lower plasma ascorbate", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "SLC23A1 heterozygous — moderate vitamin C transport", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "SLC23A1 heterozygous — moderate vitamin C transport", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "SLC23A1 TT — efficient vitamin C absorption", "magnitude": 0},
+        }
+    },
+
+    "rs2304672": {
+        "gene": "CLOCK", "category": "Sleep/Circadian",
+        "variants": {
+            "CC": {"status": "evening", "desc": "CLOCK CC — additional evening chronotype variant", "magnitude": 1},
+            "CG": {"status": "intermediate", "desc": "CLOCK heterozygous — moderate chronotype effect", "magnitude": 0},
+            "GC": {"status": "intermediate", "desc": "CLOCK heterozygous — moderate chronotype effect", "magnitude": 0},
+            "GG": {"status": "morning", "desc": "CLOCK GG — morning tendency at this position", "magnitude": 0},
+        }
+    },
+
+    "rs1805005": {
+        "gene": "MC1R", "category": "Skin",
+        "variants": {
+            "TT": {"status": "risk", "desc": "MC1R V60L TT — mild fair skin variant, reduced tanning, modest UV sensitivity", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "MC1R V60L carrier — slight fair pigmentation", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "MC1R V60L carrier — slight fair pigmentation", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "MC1R CC — normal melanin at this position", "magnitude": 0},
+        }
+    },
+
+    "rs1048943": {
+        "gene": "CYP1A1", "category": "Detoxification",
+        "variants": {
+            "GG": {"status": "induced", "desc": "CYP1A1 Ile462Val GG — increased PAH activation, higher oxidative DNA damage from smoke/grilled foods", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "CYP1A1 heterozygous — moderate PAH activation", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "CYP1A1 heterozygous — moderate PAH activation", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "CYP1A1 AA — normal phase I metabolism", "magnitude": 0},
+        }
+    },
+    "rs4646903": {
+        "gene": "CYP1A1", "category": "Detoxification",
+        "variants": {
+            "CC": {"status": "induced", "desc": "CYP1A1 MspI CC — higher enzyme inducibility by PAHs, increased carcinogen activation", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "CYP1A1 MspI heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "CYP1A1 MspI heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "CYP1A1 TT — normal inducibility", "magnitude": 0},
+        }
+    },
+
+    # --- MORE DRUG METABOLISM ---
+    "rs28371706": {
+        "gene": "CYP2D6", "category": "Drug Metabolism",
+        "variants": {
+            "TT": {"status": "no_function", "desc": "CYP2D6*17 TT — reduced activity variant common in African populations", "magnitude": 3},
+            "TC": {"status": "intermediate", "desc": "CYP2D6*17 heterozygous — moderate activity reduction", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "CYP2D6*17 heterozygous — moderate activity reduction", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "CYP2D6 CC — normal at this position", "magnitude": 0},
+        }
+    },
+    "rs28371725": {
+        "gene": "CYP2D6", "category": "Drug Metabolism",
+        "variants": {
+            "TT": {"status": "reduced", "desc": "CYP2D6*41 TT — decreased function, affects codeine/tamoxifen metabolism", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CYP2D6*41 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CYP2D6*41 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CYP2D6 CC — normal at this position", "magnitude": 0},
+        }
+    },
+
+    # --- MORE FITNESS ---
+
+    "rs7294919": {
+        "gene": "HMGA2", "category": "Fitness",
+        "variants": {
+            "CC": {"status": "taller", "desc": "HMGA2 CC — associated with increased height (+~0.4cm per allele)", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "HMGA2 heterozygous", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "HMGA2 heterozygous", "magnitude": 0},
+            "TT": {"status": "normal", "desc": "HMGA2 TT — typical height contribution", "magnitude": 0},
+        }
+    },
+
+    # --- MORE LIVER ---
+    "rs72613567": {
+        "gene": "HSD17B13", "category": "Liver",
+        "variants": {
+            "AA": {"status": "protective", "desc": "HSD17B13 splice variant AA — protective against NASH, cirrhosis, and liver cancer", "magnitude": 2},
+            "AT": {"status": "intermediate", "desc": "HSD17B13 heterozygous — partial liver protection", "magnitude": 1},
+            "TA": {"status": "intermediate", "desc": "HSD17B13 heterozygous — partial liver protection", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "HSD17B13 TT — no additional liver protection", "magnitude": 0},
+        }
+    },
+
+    # --- MORE KIDNEY ---
+    "rs1260326": {
+        "gene": "GCKR", "category": "Kidney",
+        "variants": {
+            "TT": {"status": "risk", "desc": "GCKR P446L TT — altered glucokinase regulation, affects kidney function and triglycerides", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "GCKR heterozygous", "magnitude": 0},
+            "CT": {"status": "intermediate", "desc": "GCKR heterozygous", "magnitude": 0},
+            "CC": {"status": "normal", "desc": "GCKR CC — normal glucokinase regulation", "magnitude": 0},
+        }
+    },
+
+    # --- MORE GOUT ---
+    "rs2544390": {
+        "gene": "SLC22A12", "category": "Gout",
+        "variants": {
+            "TT": {"status": "reduced_excretion", "desc": "URAT1 TT — reduced renal urate excretion, hyperuricemia and gout susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "URAT1 heterozygous — moderate urate effect", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "URAT1 heterozygous — moderate urate effect", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "URAT1 CC — normal urate excretion", "magnitude": 0},
+        }
+    },
+
+    # --- MORE BONE HEALTH ---
+
+    "rs2062377": {
+        "gene": "TNFRSF11A", "category": "Bone Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "RANK TT — increased osteoclast activity, accelerated bone resorption", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "RANK heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "RANK heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "RANK CC — normal bone remodeling balance", "magnitude": 0},
+        }
+    },
+
+    # --- MORE EYE HEALTH ---
+    "rs10490924": {
+        "gene": "ARMS2", "category": "Eye Health",
+        "variants": {
+            "TT": {"status": "high_risk", "desc": "ARMS2 A69S TT — strongest non-CFH AMD risk locus, 5-10x risk", "magnitude": 4},
+            "TG": {"status": "risk", "desc": "ARMS2 heterozygous — 2-3x increased AMD risk", "magnitude": 3},
+            "GT": {"status": "risk", "desc": "ARMS2 heterozygous — 2-3x increased AMD risk", "magnitude": 3},
+            "GG": {"status": "normal", "desc": "ARMS2 GG — lower AMD risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs1061170": {
+        "gene": "CFH", "category": "Eye Health",
+        "variants": {
+            "CC": {"status": "high_risk", "desc": "CFH Y402H CC — complement dysregulation, 3-7x AMD risk (strongest CFH variant)", "magnitude": 4},
+            "CT": {"status": "risk", "desc": "CFH Y402H heterozygous — 2-3x AMD risk", "magnitude": 3},
+            "TC": {"status": "risk", "desc": "CFH Y402H heterozygous — 2-3x AMD risk", "magnitude": 3},
+            "TT": {"status": "normal", "desc": "CFH TT — normal complement regulation", "magnitude": 0},
+        },
+        "note": "CFH Y402H is the strongest single genetic risk factor for AMD. Regular eye exams critical if carrier."
+    },
+    "rs10033900": {
+        "gene": "CFI", "category": "Eye Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "CFI TT — complement factor I variant, increased AMD susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CFI heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CFI heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CFI CC — normal complement regulation", "magnitude": 0},
+        }
+    },
+
+    # --- MORE DENTAL ---
+    "rs7821494": {
+        "gene": "DLX3", "category": "Dental",
+        "variants": {
+            "TT": {"status": "risk", "desc": "DLX3 TT — altered tooth development gene, higher malocclusion risk", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "DLX3 heterozygous", "magnitude": 0},
+            "CT": {"status": "intermediate", "desc": "DLX3 heterozygous", "magnitude": 0},
+            "CC": {"status": "normal", "desc": "DLX3 CC — normal dental development", "magnitude": 0},
+        }
+    },
+
+    # --- MORE HEARING ---
+    "rs2877561": {
+        "gene": "SIK3", "category": "Hearing",
+        "variants": {
+            "CC": {"status": "risk", "desc": "SIK3 CC — noise-induced hearing loss susceptibility", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "SIK3 heterozygous — moderate noise vulnerability", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "SIK3 heterozygous — moderate noise vulnerability", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "SIK3 TT — typical noise tolerance", "magnitude": 0},
+        }
+    },
+
+    # --- MORE FERTILITY ---
+    "rs2349415": {
+        "gene": "LHCGR", "category": "Fertility",
+        "variants": {
+            "CC": {"status": "risk", "desc": "LHCGR CC — LH receptor variant, PCOS susceptibility in females", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "LHCGR heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "LHCGR heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "LHCGR TT — normal LH receptor function", "magnitude": 0},
+        }
+    },
+    "rs10986105": {
+        "gene": "DENND1A", "category": "Fertility",
+        "variants": {
+            "AA": {"status": "risk", "desc": "DENND1A AA — PCOS susceptibility, androgen excess pathway", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "DENND1A heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "DENND1A heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "DENND1A GG — typical hormonal regulation", "magnitude": 0},
+        }
+    },
+
+    # --- MORE MIGRAINE ---
+    "rs11172113": {
+        "gene": "LRP1", "category": "Migraine",
+        "variants": {
+            "TT": {"status": "risk", "desc": "LRP1 TT — lipoprotein receptor, migraine with aura susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "LRP1 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "LRP1 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "LRP1 CC — lower migraine risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs2651899": {
+        "gene": "PRDM16", "category": "Migraine",
+        "variants": {
+            "CC": {"status": "risk", "desc": "PRDM16 CC — transcription factor variant, migraine susceptibility", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "PRDM16 heterozygous", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "PRDM16 heterozygous", "magnitude": 0},
+            "TT": {"status": "normal", "desc": "PRDM16 TT — lower migraine risk", "magnitude": 0},
+        }
+    },
+
+    # --- DIABETES (TYPE 1) ---
+    "rs2292239": {
+        "gene": "ERBB3", "category": "Autoimmune",
+        "variants": {
+            "TT": {"status": "risk", "desc": "ERBB3 TT — type 1 diabetes susceptibility, immune-mediated beta cell destruction", "magnitude": 2},
+            "TG": {"status": "intermediate", "desc": "ERBB3 heterozygous — moderate T1D risk", "magnitude": 1},
+            "GT": {"status": "intermediate", "desc": "ERBB3 heterozygous — moderate T1D risk", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "ERBB3 GG — lower T1D risk", "magnitude": 0},
+        }
+    },
+    "rs3129889": {
+        "gene": "HLA-DRB1", "category": "Autoimmune",
+        "variants": {
+            "GG": {"status": "high_risk", "desc": "HLA-DRB1 GG — strong type 1 diabetes and celiac disease susceptibility", "magnitude": 3},
+            "GA": {"status": "risk", "desc": "HLA-DRB1 heterozygous — moderate T1D/celiac risk", "magnitude": 2},
+            "AG": {"status": "risk", "desc": "HLA-DRB1 heterozygous — moderate T1D/celiac risk", "magnitude": 2},
+            "AA": {"status": "normal", "desc": "HLA-DRB1 AA — lower T1D risk at this locus", "magnitude": 0},
+        }
+    },
+
+    # --- WEIGHT MANAGEMENT ---
+    "rs571312": {
+        "gene": "MC4R", "category": "Weight Management",
+        "variants": {
+            "AA": {"status": "high_risk", "desc": "MC4R AA — melanocortin-4 receptor, increased appetite and obesity risk (2nd strongest after FTO)", "magnitude": 3},
+            "AC": {"status": "risk", "desc": "MC4R heterozygous — moderate increased appetite", "magnitude": 2},
+            "CA": {"status": "risk", "desc": "MC4R heterozygous — moderate increased appetite", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "MC4R CC — normal appetite regulation", "magnitude": 0},
+        }
+    },
+    "rs17782313": {
+        "gene": "MC4R", "category": "Weight Management",
+        "variants": {
+            "CC": {"status": "risk", "desc": "MC4R CC — increased childhood and adult obesity risk, appetite dysregulation", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "MC4R heterozygous — moderate obesity risk", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "MC4R heterozygous — moderate obesity risk", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "MC4R TT — normal weight regulation", "magnitude": 0},
+        }
+    },
+    "rs10938397": {
+        "gene": "GNPDA2", "category": "Weight Management",
+        "variants": {
+            "GG": {"status": "risk", "desc": "GNPDA2 GG — glucosamine-6-phosphate deaminase, increased BMI", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "GNPDA2 heterozygous", "magnitude": 0},
+            "AG": {"status": "intermediate", "desc": "GNPDA2 heterozygous", "magnitude": 0},
+            "AA": {"status": "normal", "desc": "GNPDA2 AA — normal BMI contribution", "magnitude": 0},
+        }
+    },
+    "rs2867125": {
+        "gene": "TMEM18", "category": "Weight Management",
+        "variants": {
+            "CC": {"status": "risk", "desc": "TMEM18 CC — transmembrane protein 18, strong BMI association (3rd after FTO/MC4R)", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "TMEM18 heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "TMEM18 heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "TMEM18 TT — normal BMI contribution", "magnitude": 0},
+        }
+    },
+
+    # --- PSORIASIS ---
+    "rs12191877": {
+        "gene": "HLA-C", "category": "Autoimmune",
+        "variants": {
+            "TT": {"status": "high_risk", "desc": "HLA-C*06:02 TT — strongest psoriasis risk allele, 9-23x risk", "magnitude": 4},
+            "TC": {"status": "risk", "desc": "HLA-C*06:02 heterozygous — 4-10x psoriasis risk", "magnitude": 3},
+            "CT": {"status": "risk", "desc": "HLA-C*06:02 heterozygous — 4-10x psoriasis risk", "magnitude": 3},
+            "CC": {"status": "normal", "desc": "HLA-C CC — typical psoriasis risk", "magnitude": 0},
+        }
+    },
+
+    # --- VITAMIN K / WARFARIN ---
+
+    "rs182549": {
+        "gene": "MCM6", "category": "Nutrition",
+        "variants": {
+            "CC": {"status": "intolerant", "desc": "MCM6 CC — lactase non-persistence, adult lactose intolerance likely", "magnitude": 2},
+            "CT": {"status": "tolerant", "desc": "MCM6 heterozygous — lactase persistence (lactose tolerant)", "magnitude": 0},
+            "TC": {"status": "tolerant", "desc": "MCM6 heterozygous — lactase persistence (lactose tolerant)", "magnitude": 0},
+            "TT": {"status": "tolerant", "desc": "MCM6 TT — strong lactase persistence, lifelong milk digestion", "magnitude": 0},
+        }
+    },
+
+    # --- CAFFEINE ADDITIONAL ---
+    "rs2472297": {
+        "gene": "CYP1A1/CYP1A2", "category": "Caffeine Response",
+        "variants": {
+            "TT": {"status": "slow", "desc": "CYP1A1/1A2 region TT — reduced caffeine clearance, higher blood levels", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CYP1A1/1A2 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CYP1A1/1A2 heterozygous", "magnitude": 1},
+            "CC": {"status": "fast", "desc": "CYP1A1/1A2 CC — efficient caffeine clearance", "magnitude": 0},
+        }
+    },
+
+    # --- PAIN SENSITIVITY ---
+    "rs4680_pain": {
+        "gene": "COMT", "category": "Pain Sensitivity",
+        "variants": {
+            "AA": {"status": "high_sensitivity", "desc": "COMT Met/Met — higher pain sensitivity, lower pain threshold, slower catecholamine clearance", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "COMT Val/Met — moderate pain sensitivity", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "COMT Val/Met — moderate pain sensitivity", "magnitude": 1},
+            "GG": {"status": "low_sensitivity", "desc": "COMT Val/Val — lower pain sensitivity, higher pain threshold", "magnitude": 1},
+        }
+    },
+
+    # --- IMMUNE RESPONSE ---
+    "rs12979860": {
+        "gene": "IFNL3/IL28B", "category": "Immune Function",
+        "variants": {
+            "CC": {"status": "strong_response", "desc": "IL28B CC — strong interferon-lambda response, better hepatitis C clearance", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "IL28B heterozygous — moderate interferon response", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "IL28B heterozygous — moderate interferon response", "magnitude": 1},
+            "TT": {"status": "weak_response", "desc": "IL28B TT — weaker interferon response, lower HCV spontaneous clearance", "magnitude": 2},
+        }
+    },
+
+    # --- PROSTATE ---
+    "rs1447295": {
+        "gene": "8q24", "category": "Cancer Risk",
+        "variants": {
+            "AA": {"status": "high_risk", "desc": "8q24 AA — prostate cancer susceptibility locus, 1.5-2x risk", "magnitude": 3},
+            "AC": {"status": "risk", "desc": "8q24 heterozygous — moderate prostate cancer risk", "magnitude": 2},
+            "CA": {"status": "risk", "desc": "8q24 heterozygous — moderate prostate cancer risk", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "8q24 CC — typical prostate cancer risk", "magnitude": 0},
+        }
+    },
+
+    # --- BLOOD PRESSURE SALT SENSITIVITY ---
 }
 
 
