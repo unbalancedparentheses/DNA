@@ -118,6 +118,28 @@ STAR_ALLELE_DEFINITIONS = {
         "snps": ["rs8175347", "rs4148323"],
         "clinical_note": "UGT1A1*28 causes Gilbert syndrome and irinotecan toxicity. UGT1A1*6 common in East Asian populations.",
     },
+    "NAT2": {
+        "function_map": {
+            "*1": "normal",
+            "*5": "decreased",
+            "*6": "decreased",
+            "*7": "decreased",
+            "*14": "decreased",
+        },
+        "alleles": {
+            "*5": {"rs1801280": "T"},
+            "*6": {"rs1799930": "A"},
+            "*7": {"rs1799931": "A"},
+            "*14": {"rs1801279": "A"},
+        },
+        "snps": ["rs1801280", "rs1799930", "rs1799931", "rs1801279"],
+        "clinical_note": (
+            "NAT2 acetylator status affects isoniazid (TB treatment), "
+            "sulfonamides, hydralazine, and procainamide. Slow acetylators "
+            "(~50% of Europeans) are at higher risk of drug-induced lupus "
+            "and peripheral neuropathy from isoniazid."
+        ),
+    },
 }
 
 # Phenotype mapping from diplotype function pairs

@@ -1117,6 +1117,175 @@ COMPREHENSIVE_SNPS = {
             "GG": {"status": "normal", "desc": "MMP3 GG — normal connective tissue turnover", "magnitude": 0},
         }
     },
+
+    # =========================================================================
+    # SECTION: HAIR LOSS / ANDROGENETIC ALOPECIA
+    # =========================================================================
+
+    "rs1160312": {
+        "gene": "AR/EDA2R", "category": "Hair",
+        "variants": {
+            "AA": {"status": "high_risk", "desc": "AR/EDA2R AA — strongly associated with male pattern baldness (Xq12 locus)", "magnitude": 3},
+            "AG": {"status": "moderate_risk", "desc": "AR/EDA2R heterozygous — moderate hair loss risk", "magnitude": 2},
+            "GA": {"status": "moderate_risk", "desc": "AR/EDA2R heterozygous — moderate hair loss risk", "magnitude": 2},
+            "GG": {"status": "low_risk", "desc": "AR/EDA2R GG — lower hair loss risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs6152": {
+        "gene": "AR", "category": "Hair",
+        "variants": {
+            "AA": {"status": "risk", "desc": "Androgen receptor AA — associated with androgenetic alopecia sensitivity", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "AR heterozygous — moderate androgen sensitivity", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "AR heterozygous — moderate androgen sensitivity", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "AR GG — typical androgen receptor sensitivity", "magnitude": 0},
+        }
+    },
+    "rs2180439": {
+        "gene": "20p11", "category": "Hair",
+        "variants": {
+            "TT": {"status": "risk", "desc": "20p11 TT — second strongest hair loss locus after AR", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "20p11 heterozygous — moderate hair loss association", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "20p11 heterozygous — moderate hair loss association", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "20p11 CC — lower risk at this locus", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: THYROID
+    # =========================================================================
+
+    "rs1443434": {
+        "gene": "TSHR", "category": "Thyroid",
+        "variants": {
+            "GG": {"status": "risk", "desc": "TSHR GG — TSH receptor variant, Graves' disease / hyperthyroidism susceptibility", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "TSHR heterozygous — moderate thyroid autoimmune risk", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "TSHR heterozygous — moderate thyroid autoimmune risk", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "TSHR AA — typical TSH receptor function", "magnitude": 0},
+        }
+    },
+    "rs965513": {
+        "gene": "FOXE1/9q22", "category": "Thyroid",
+        "variants": {
+            "AA": {"status": "risk", "desc": "FOXE1 AA — thyroid cancer and autoimmune thyroid disease susceptibility", "magnitude": 3},
+            "AG": {"status": "intermediate", "desc": "FOXE1 heterozygous — moderate thyroid disease risk", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "FOXE1 heterozygous — moderate thyroid disease risk", "magnitude": 2},
+            "GG": {"status": "normal", "desc": "FOXE1 GG — typical thyroid cancer risk", "magnitude": 0},
+        }
+    },
+    # =========================================================================
+    # SECTION: GOUT / URIC ACID
+    # =========================================================================
+
+    "rs2231142": {
+        "gene": "ABCG2", "category": "Gout",
+        "variants": {
+            "AA": {"status": "high_risk", "desc": "ABCG2 Q141K AA — major urate transporter defect, strong gout risk", "magnitude": 4},
+            "AC": {"status": "risk", "desc": "ABCG2 Q141K heterozygous — elevated serum urate and gout risk", "magnitude": 3},
+            "CA": {"status": "risk", "desc": "ABCG2 Q141K heterozygous — elevated serum urate and gout risk", "magnitude": 3},
+            "CC": {"status": "normal", "desc": "ABCG2 CC — normal urate excretion", "magnitude": 0},
+        }
+    },
+    "rs1014290": {
+        "gene": "SLC2A9", "category": "Gout",
+        "variants": {
+            "TT": {"status": "risk", "desc": "SLC2A9 TT — reduced urate reabsorption regulator, gout susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "SLC2A9 heterozygous — moderate urate effect", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "SLC2A9 heterozygous — moderate urate effect", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "SLC2A9 CC — typical urate handling", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EYE HEALTH
+    # =========================================================================
+
+    "rs10483727": {
+        "gene": "LOXL1", "category": "Eye Health",
+        "variants": {
+            "CC": {"status": "risk", "desc": "LOXL1 CC — exfoliation glaucoma susceptibility", "magnitude": 3},
+            "CT": {"status": "intermediate", "desc": "LOXL1 heterozygous — moderate glaucoma risk", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "LOXL1 heterozygous — moderate glaucoma risk", "magnitude": 2},
+            "TT": {"status": "normal", "desc": "LOXL1 TT — lower exfoliation glaucoma risk", "magnitude": 0},
+        }
+    },
+    "rs10811661": {
+        "gene": "CDKN2B-AS1", "category": "Eye Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "CDKN2B-AS1 TT — primary open-angle glaucoma susceptibility (also T2D risk locus)", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CDKN2B-AS1 heterozygous — moderate glaucoma risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CDKN2B-AS1 heterozygous — moderate glaucoma risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CDKN2B-AS1 CC — typical glaucoma risk", "magnitude": 0},
+        }
+    },
+    "rs12913832": {
+        "gene": "HERC2/OCA2", "category": "Eye Health",
+        "variants": {
+            "AA": {"status": "blue_eyes", "desc": "HERC2 AA — blue eye color, higher UV sensitivity, slightly higher AMD risk", "magnitude": 1},
+            "AG": {"status": "mixed", "desc": "HERC2 heterozygous — green/hazel eyes possible", "magnitude": 0},
+            "GA": {"status": "mixed", "desc": "HERC2 heterozygous — green/hazel eyes possible", "magnitude": 0},
+            "GG": {"status": "brown_eyes", "desc": "HERC2 GG — brown eyes, more UV-protective melanin", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: DENTAL HEALTH
+    # =========================================================================
+
+    "rs2274327": {
+        "gene": "CA6", "category": "Dental",
+        "variants": {
+            "TT": {"status": "risk", "desc": "CA6 TT — reduced salivary carbonic anhydrase, higher caries susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CA6 heterozygous — moderate caries risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CA6 heterozygous — moderate caries risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CA6 CC — normal salivary buffering capacity", "magnitude": 0},
+        }
+    },
+    "rs17878486": {
+        "gene": "AMELX", "category": "Dental",
+        "variants": {
+            "TT": {"status": "risk", "desc": "AMELX TT — amelogenin variant, enamel formation defect risk", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "AMELX heterozygous — moderate enamel risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "AMELX heterozygous — moderate enamel risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "AMELX CC — normal enamel formation", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: KIDNEY HEALTH
+    # =========================================================================
+
+    "rs4293393": {
+        "gene": "UMOD", "category": "Kidney",
+        "variants": {
+            "TT": {"status": "risk", "desc": "UMOD TT — uromodulin variant, chronic kidney disease susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "UMOD heterozygous — moderate CKD risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "UMOD heterozygous — moderate CKD risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "UMOD CC — typical uromodulin levels", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: BONE DENSITY
+    # =========================================================================
+
+    "rs3736228": {
+        "gene": "LRP5", "category": "Bone Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "LRP5 TT — reduced Wnt signaling, lower bone mineral density, fracture risk", "magnitude": 3},
+            "TC": {"status": "intermediate", "desc": "LRP5 heterozygous — moderate bone density effect", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "LRP5 heterozygous — moderate bone density effect", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "LRP5 CC — normal Wnt signaling and bone density", "magnitude": 0},
+        }
+    },
+    "rs4355801": {
+        "gene": "TNFRSF11B", "category": "Bone Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "OPG AA — reduced osteoprotegerin, increased bone resorption", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "OPG heterozygous — moderate bone density effect", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "OPG heterozygous — moderate bone density effect", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "OPG GG — normal bone remodeling", "magnitude": 0},
+        }
+    },
 }
 
 

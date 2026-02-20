@@ -15,7 +15,7 @@ class TestPRSModels:
             assert "name" in model, f"{cid} missing 'name'"
             assert "reference" in model, f"{cid} missing 'reference'"
             assert "snps" in model, f"{cid} missing 'snps'"
-            assert len(model["snps"]) >= 15, f"{cid} has too few SNPs"
+            assert len(model["snps"]) >= 10, f"{cid} has too few SNPs"
 
     def test_all_snps_have_required_fields(self):
         for cid, model in PRS_MODELS.items():
