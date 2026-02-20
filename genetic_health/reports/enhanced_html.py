@@ -57,6 +57,43 @@ def _esc(text):
     return html_mod.escape(str(text)) if text else ""
 
 
+def _clean_condition(raw):
+    """Clean ClinVar pipe-separated condition text into readable form.
+
+    e.g. 'PI S|Alpha-1-antitrypsin deficiency|not provided' -> 'Alpha-1-antitrypsin deficiency'
+    e.g. 'HYPERTENSION, DIASTOLIC, RESISTANCE TO|KCNMB1-related disorder' -> 'Hypertension, diastolic resistance'
+    """
+    if not raw:
+        return "Unknown"
+    # Split on pipe and semicolons, filter out junk
+    parts = []
+    for segment in raw.replace("|", ";").split(";"):
+        segment = segment.strip()
+        if not segment:
+            continue
+        low = segment.lower()
+        # Skip generic/unhelpful segments
+        if low in ("not provided", "not specified", "unknown", "see cases"):
+            continue
+        if low.endswith("-related disorder") and len(parts) > 0:
+            continue  # Skip generic "GENE-related disorder" if we have a real name
+        parts.append(segment)
+    if not parts:
+        return raw.split("|")[0].split(";")[0].strip()
+    # Pick the most readable one (prefer longer, lowercase-ish names over ALL CAPS)
+    best = parts[0]
+    for p in parts:
+        if not p.isupper() and len(p) > len(best) // 2:
+            best = p
+            break
+    # Clean ALL CAPS into title case
+    if best.isupper():
+        best = best.replace(",", ", ").title()
+        # Clean up common patterns
+        best = best.replace(" To", "").replace("Resistance", "resistance").replace("Susceptibility", "susceptibility")
+    return best
+
+
 # =============================================================================
 # PAPER REFERENCES — curated, hardcoded
 # =============================================================================
@@ -524,7 +561,9 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
     acmg_findings = (acmg_data or {}).get("acmg_findings", [])
     for af in acmg_findings:
         gene = af.get("gene", "Unknown")
-        condition = (af.get("traits") or "Unknown").split(";")[0].strip()
+        # Clean ClinVar pipe-separated text: take first meaningful segment
+        raw = (af.get("traits") or "Unknown")
+        condition = _clean_condition(raw)
         eli5 = _eli5_for_gene(gene)
         text = f'<strong>{gene}</strong>: You carry a variant linked to <em>{condition}</em> that doctors consider medically actionable. You should see a genetic counselor.'
         if eli5:
@@ -535,7 +574,11 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
     for p in priorities:
         if p["priority"] == "high":
             eli5 = _eli5_for_condition(p.get("id", ""))
-            text = f'<strong>{p["title"]}</strong>: {p["why"]}'
+            # Clean pipe-separated ClinVar text from recommendation reasons
+            why = p["why"]
+            if "|" in why:
+                why = _clean_condition(why)
+            text = f'<strong>{p["title"]}</strong>: {why}'
             if eli5:
                 text += f'<br><span class="eli5-inline">{eli5}</span>'
             urgent_bullets.append(text)
@@ -620,16 +663,18 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
         parts.append('</ul>')
 
     # ---- NUTRITION & SUPPLEMENTS ----
+    # Skip items already shown in "Act On These" (high priority)
+    urgent_titles = {p["title"] for p in priorities if p["priority"] == "high"}
     nutrition_bullets = []
     for p in priorities:
-        if p["priority"] in ("high", "moderate"):
+        if p["priority"] in ("high", "moderate") and p["title"] not in urgent_titles:
             nutrition_groups = {"methylation", "iron", "caffeine", "nutrition", "vitamin"}
             if any(g in p.get("id", "").lower() for g in nutrition_groups):
                 eli5 = _eli5_for_condition(p.get("id", ""))
                 text = f'<strong>{p["title"]}</strong>: {p["why"]}'
                 if eli5:
                     text += f'<br><span class="eli5-inline">{eli5}</span>'
-                color = "red" if p["priority"] == "high" else "yellow"
+                color = "yellow"
                 nutrition_bullets.append((color, text))
 
     if nutrigenomics_data:
@@ -727,9 +772,15 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
     if good_news:
         parts.append('<h3>Good News</h3>')
         parts.append('<div class="good-news-grid">')
+        seen_genes = set()
         for g in good_news:
+            # Deduplicate by gene
+            if g["gene"] in seen_genes:
+                continue
+            seen_genes.add(g["gene"])
             eli5 = _eli5_for_gene(g["gene"])
-            desc = g["description"]
+            # Clean ClinVar pipe text in descriptions
+            desc = _clean_condition(g["description"]) if "|" in g.get("description", "") else g["description"]
             if eli5:
                 desc += f' <span class="eli5-inline">({eli5})</span>'
             parts.append(
@@ -1151,7 +1202,7 @@ def build_disease_risk_overview(prs_results, disease_findings_data, acmg_data):
             parts.append('<div class="good-news-grid">')
             for v in protective:
                 gene = _esc(v.get("gene", "Unknown"))
-                condition = _esc((v.get("traits") or "").split(";")[0].strip())
+                condition = _esc(_clean_condition(v.get("traits") or ""))
                 parts.append(
                     f'<div class="good-news-card">'
                     f'<strong>{gene}</strong>: {condition}</div>'
@@ -1986,7 +2037,7 @@ def build_disease_risk(disease_findings):
         parts.append('<div class="good-news-grid">')
         for v in protective:
             gene = _esc(v.get("gene", "Unknown"))
-            condition = _esc((v.get("traits") or "").split(";")[0].strip())
+            condition = _esc(_clean_condition(v.get("traits") or ""))
             parts.append(
                 f'<div class="good-news-card">'
                 f'<strong>{gene}</strong>: {condition}</div>'
@@ -2212,13 +2263,16 @@ p {{ margin: .6em 0; }}
 /* Sections */
 .section {{
   background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: 8px; padding: 1.5em; margin: 1.5em 0;
+  border-radius: 6px; padding: 1.8em 1.6em; margin: 1.8em 0;
   box-shadow: var(--shadow);
+}}
+.section:first-of-type {{
+  border-top: 3px solid var(--accent);
 }}
 .section-number {{
   display: inline-block; background: var(--accent); color: #fff;
-  width: 26px; height: 26px; border-radius: 50%; text-align: center;
-  line-height: 26px; font-size: 13px; font-weight: bold;
+  width: 24px; height: 24px; border-radius: 50%; text-align: center;
+  line-height: 24px; font-size: 12px; font-weight: 700;
   margin-right: .4em; vertical-align: middle;
   font-family: var(--heading-font);
 }}
@@ -2256,12 +2310,19 @@ p {{ margin: .6em 0; }}
 /* Key findings bullets */
 .key-findings {{ list-style: none; padding-left: 0; }}
 .key-findings li {{
-  padding: .6em 1em; margin: .5em 0; border-radius: 6px;
-  border-left: 5px solid var(--border);
+  padding: .7em 1.1em; margin: .4em 0; border-radius: 4px;
+  border-left: 4px solid var(--border);
+  line-height: 1.55;
 }}
-.kf-red {{ border-left-color: #bf4040; background: rgba(191,64,64,0.06); }}
-.kf-yellow {{ border-left-color: #c49a20; background: rgba(196,154,32,0.06); }}
-.kf-green {{ border-left-color: #3a8a5c; background: rgba(58,138,92,0.06); }}
+.key-findings li strong {{ font-family: var(--heading-font); }}
+.kf-red {{ border-left-color: #bf4040; background: rgba(191,64,64,0.05); }}
+.kf-yellow {{ border-left-color: #c49a20; background: rgba(196,154,32,0.05); }}
+.kf-green {{ border-left-color: #3a8a5c; background: rgba(58,138,92,0.04); }}
+@media (prefers-color-scheme: dark) {{
+  .kf-red {{ background: rgba(208,96,80,0.1); }}
+  .kf-yellow {{ background: rgba(196,154,32,0.1); }}
+  .kf-green {{ background: rgba(92,196,122,0.08); }}
+}}
 
 /* Badge */
 .badge {{
@@ -2367,23 +2428,28 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 }}
 .good-news-grid {{
   display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: .75em;
+  gap: .6em;
 }}
 .good-news-card {{
-  background: var(--card-bg); border: 1px solid var(--green);
-  border-left: 4px solid var(--green); border-radius: 0 6px 6px 0;
-  padding: .6em 1em; font-size: .9em;
+  background: var(--card-bg); border: 1px solid rgba(58,138,92,0.3);
+  border-left: 3px solid var(--green); border-radius: 0 4px 4px 0;
+  padding: .5em .9em; font-size: .88em; line-height: 1.5;
 }}
+.good-news-card strong {{ font-family: var(--heading-font); }}
 </style>
 </head>
 <body>
 <a href="#main" class="skip-link">Skip to content</a>
 
+<header style="margin-bottom:2em">
 <h1>Genetic Health Report{subject_title}</h1>
-<p style="font-size:.9em;color:var(--accent2)"><strong>Generated:</strong> {generated_date} &nbsp;|&nbsp;
-<strong>SNPs analyzed:</strong> {total_snps:,} &nbsp;|&nbsp;
-<strong>Lifestyle findings:</strong> {num_findings} &nbsp;|&nbsp;
-<strong>Drug interactions:</strong> {num_pharmgkb}</p>
+<div style="display:flex;flex-wrap:wrap;gap:.5em 1.5em;font-size:.85em;color:var(--accent2);font-family:var(--heading-font)">
+<span><strong>{generated_date}</strong></span>
+<span>{total_snps:,} SNPs analyzed</span>
+<span>{num_findings} lifestyle findings</span>
+<span>{num_pharmgkb} drug interactions</span>
+</div>
+</header>
 
 <nav class="no-print">
 <h2 id="toc-heading">Contents</h2>
