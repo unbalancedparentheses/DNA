@@ -1,7 +1,8 @@
 """
-Interactive All-in-One Genetic Health Report Generator
+Interactive All-in-One Genetic Health Report Generator — Redesigned
 
-Produces a single self-contained HTML file from comprehensive_results.json.
+12-section layout: actionable information first, clinical details last.
+ELI5 plain-language explanations throughout. Paper links on every finding.
 
 Output: reports/GENETIC_HEALTH_REPORT.html
   - Zero external dependencies (all CSS/JS/SVG inline)
@@ -14,19 +15,19 @@ Output: reports/GENETIC_HEALTH_REPORT.html
 
 import html as html_mod
 import json
+import math
 import sys
 from datetime import datetime
 from collections import defaultdict
 from pathlib import Path
+
+from ..config import REPORTS_DIR
 
 
 def _esc(text):
     """Escape text for safe HTML interpolation."""
     return html_mod.escape(str(text)) if text else ""
 
-
-
-from ..config import REPORTS_DIR
 
 # =============================================================================
 # PAPER REFERENCES — curated, hardcoded
@@ -126,7 +127,7 @@ def db_links_html(rsid):
         f'<a href="https://www.snpedia.com/index.php/{rsid}" target="_blank" rel="noopener">SNPedia</a>',
         f'<a href="https://www.pharmgkb.org/search?query={rsid}" target="_blank" rel="noopener">PharmGKB</a>',
     ]
-    return '<span class="db-links">' + " · ".join(links) + "</span>"
+    return '<span class="db-links">' + " &middot; ".join(links) + "</span>"
 
 
 def paper_refs_html(rsid):
@@ -152,8 +153,6 @@ def load_json(path):
         return {}
     with open(path, "r") as f:
         return json.load(f)
-
-
 
 
 # =============================================================================
@@ -210,10 +209,9 @@ def svg_category_donut(findings):
     total = sum(counts.values())
     cx, cy, r = 120, 120, 90
     inner_r = 55
-    angle = -90  # start at top
+    angle = -90
     paths = []
     legend_items = []
-    import math
 
     for idx, (cat, cnt) in enumerate(sorted(counts.items(), key=lambda x: -x[1])):
         color = colors[idx % len(colors)]
@@ -264,54 +262,19 @@ def svg_category_donut(findings):
     )
 
 
-def svg_risk_cards(personal_summary_text):
-    """Colored risk overview cards based on personal summary risk table."""
-    risks = [
-        ("Blood Pressure", "#ef4444", "AGTR1+AGT+ADRB1"),
-        ("Diabetes", "#f59e0b", "KCNJ11, HNF1A"),
-        ("Thrombosis", "#f97316", "F13B, FGA"),
-        ("Eye/Macular", "#8b5cf6", "C3"),
-        ("IBD", "#3b82f6", "ATG16L1, NOD2"),
-        ("Thyroid", "#14b8a6", "TG, CTLA4"),
-    ]
-    cards = []
-    for i, (label, color, genes) in enumerate(risks):
-        x = (i % 3) * 148
-        y = (i // 3) * 80
-        cards.append(
-            f'<rect x="{x}" y="{y}" width="140" height="70" rx="8" '
-            f'fill="{color}" opacity="0.15" stroke="{color}" stroke-width="1.5"/>'
-            f'<text x="{x+70}" y="{y+28}" text-anchor="middle" '
-            f'fill="{color}" font-size="14" font-weight="bold">{label}</text>'
-            f'<text x="{x+70}" y="{y+48}" text-anchor="middle" '
-            f'fill="currentColor" font-size="10">{genes}</text>'
-        )
-    return (
-        '<svg viewBox="0 0 444 170" class="chart" role="img" '
-        'aria-label="Risk area cards">'
-        '<title>Risk Overview</title>' + "".join(cards) + "</svg>"
-    )
-
-
 def svg_metabolism_gauge(label, level, color):
     """Simple gauge for drug metabolism speed. level: 0-2 (slow/intermediate/fast)."""
-    import math
     cx, cy, r = 70, 65, 50
-    # Arc sweeps from 150° to 30° (going counterclockwise through the top)
-    # In SVG coords (y-down): use negative angles for upper half
-    # Points on the arc: (cx + r*cos(a), cy - r*sin(a))  [standard math angles]
-    start_math = 150  # lower-left
-    end_math = 30     # lower-right
-    range_math = start_math - end_math  # 120° sweep
+    start_math = 150
+    end_math = 30
+    range_math = start_math - end_math
 
-    # Pointer angle: 150° (slow) -> 90° (intermediate) -> 30° (fast)
     ptr_math = start_math - (level / 2) * range_math
     ptr_rad = math.radians(ptr_math)
     ptr_r = r - 10
     px = cx + ptr_r * math.cos(ptr_rad)
     py = cy - ptr_r * math.sin(ptr_rad)
 
-    # Arc endpoints
     s_rad = math.radians(start_math)
     e_rad = math.radians(end_math)
     sx = cx + r * math.cos(s_rad)
@@ -322,7 +285,6 @@ def svg_metabolism_gauge(label, level, color):
     speed_labels = {0: "Slow", 1: "Intermediate", 2: "Fast"}
     speed_text = speed_labels.get(level, "Unknown")
 
-    # SVG arc: sweep-flag=0 means counterclockwise (going through the top)
     return (
         f'<svg viewBox="0 0 140 100" class="gauge" role="img" '
         f'aria-label="{label} metabolism gauge">'
@@ -343,7 +305,6 @@ def svg_ancestry_donut(ancestry_results):
     if not ancestry_results or not ancestry_results.get("proportions"):
         return ""
 
-    import math
     proportions = ancestry_results["proportions"]
     colors = {"EUR": "#3b82f6", "AFR": "#f59e0b", "EAS": "#ef4444",
               "SAS": "#8b5cf6", "AMR": "#22c55e"}
@@ -394,7 +355,6 @@ def svg_ancestry_donut(ancestry_results):
             f'{label} ({prop:.1%})</text>'
         )
 
-    # Center text
     top = ancestry_results.get("top_ancestry", "")
     center = (
         f'<text x="{cx}" y="{cy - 5}" text-anchor="middle" '
@@ -414,16 +374,13 @@ def svg_ancestry_donut(ancestry_results):
 
 def svg_prs_gauge(label, percentile, category):
     """Semi-circular gauge for PRS percentile with 4 color zones."""
-    import math
     cx, cy, r = 80, 70, 55
 
-    # Arc from 180° to 0° (left to right through top)
-    # Zone boundaries: low <20th, avg 20-80, elevated 80-95, high >95
     zones = [
-        (0.0, 0.2, "#22c55e"),    # low - green
-        (0.2, 0.8, "#3b82f6"),    # average - blue
-        (0.8, 0.95, "#f59e0b"),   # elevated - orange
-        (0.95, 1.0, "#ef4444"),   # high - red
+        (0.0, 0.2, "#22c55e"),
+        (0.2, 0.8, "#3b82f6"),
+        (0.8, 0.95, "#f59e0b"),
+        (0.95, 1.0, "#ef4444"),
     ]
 
     zone_paths = []
@@ -440,7 +397,6 @@ def svg_prs_gauge(label, percentile, category):
             f'fill="none" stroke="{color}" stroke-width="10" stroke-linecap="butt"/>'
         )
 
-    # Pointer
     frac = max(0.0, min(1.0, percentile / 100.0))
     ptr_angle = math.radians(180 - frac * 180)
     ptr_r = r - 18
@@ -467,184 +423,195 @@ def svg_prs_gauge(label, percentile, category):
     )
 
 
-def build_ancestry_section(ancestry_results):
-    """Build HTML for ancestry estimation section."""
-    if not ancestry_results or ancestry_results.get("markers_found", 0) == 0:
-        return "<p>No ancestry-informative markers found in genome data.</p>"
+# =============================================================================
+# ELI5 HELPERS — plain language for every gene/condition
+# =============================================================================
 
-    parts = []
-    parts.append('<div class="chart-grid">')
-    parts.append("<div>")
-    parts.append("<h3>Ancestry Proportions</h3>")
-    parts.append(svg_ancestry_donut(ancestry_results))
-    parts.append("</div>")
+ELI5_GENES = {
+    "MTHFR": "This gene helps your body use B-vitamins (like folate). A variant here means you may need a special form of folate called methylfolate.",
+    "COMT": "This gene controls how fast your brain clears stress chemicals (like adrenaline). A slow version means caffeine and stress hit you harder, but you may also think more carefully.",
+    "CYP2C9": "This gene controls how fast your liver breaks down certain medicines (like warfarin and ibuprofen). You may need lower doses.",
+    "CYP2C19": "This gene affects how you process common drugs like antidepressants and stomach acid pills. Your doctor should know your type.",
+    "CYP2D6": "This gene affects how you process painkillers (codeine), antidepressants, and other drugs. Copy number variants can't be detected from saliva tests.",
+    "CYP1A2": "This gene controls how fast you break down caffeine. Slow metabolizers should limit coffee to mornings.",
+    "APOE": "This gene affects cholesterol transport in your brain and blood. The e4 version raises Alzheimer's risk, but exercise and heart health can help a lot.",
+    "AGTR1": "This gene is part of your blood pressure control system. A variant here means salt and stress may raise your blood pressure more than average.",
+    "AGT": "Another blood pressure gene. Together with AGTR1, it tells us your blood pressure system needs extra attention.",
+    "SERPINA1": "This gene makes a protein that protects your lungs. A variant means your lungs have less protection — avoid smoke and air pollution.",
+    "HFE": "This gene controls iron absorption. A variant means your body may absorb too much iron — get your iron levels checked.",
+    "FOXO3": "A longevity gene! Certain variants are found more often in people who live past 100.",
+    "ACTN3": "The 'speed gene'. One version is found in most Olympic sprinters; the other favors endurance sports.",
+    "F5": "Factor V Leiden — a blood clotting gene. A variant raises your risk of blood clots, especially during surgery or long flights.",
+    "VKORC1": "This gene affects warfarin (blood thinner) dosing. If you ever need warfarin, your doctor should test this gene.",
+    "DPYD": "This gene processes certain chemotherapy drugs. A deficiency can be life-threatening — always test before fluoropyrimidine chemo.",
+    "TPMT": "This gene processes immune-suppressing drugs (like azathioprine). Deficiency causes dangerous side effects.",
+    "UGT1A1": "This gene processes bilirubin. The *28 variant causes Gilbert syndrome (harmless yellowing) but affects some drug doses.",
+    "BRCA1": "A major cancer-protection gene. Harmful variants significantly raise breast and ovarian cancer risk. Screening is critical.",
+    "BRCA2": "Like BRCA1, this gene repairs DNA damage. Harmful variants raise breast, ovarian, and other cancer risks.",
+    "MC1R": "The 'red hair gene'. Variants affect hair color, skin type, and sun sensitivity.",
+    "HERC2": "The main gene controlling eye color. Variants here are the biggest predictor of blue vs. brown eyes.",
+    "ABCC11": "Controls earwax type (wet vs. dry) and body odor. The dry type is common in East Asian populations.",
+}
 
-    parts.append("<div>")
-    parts.append("<h3>Details</h3>")
-    parts.append(f'<p><strong>Confidence:</strong> {ancestry_results["confidence"].title()} '
-                 f'({ancestry_results["markers_found"]} markers)</p>')
-    parts.append('<table><tr><th>Population</th><th>Proportion</th></tr>')
-    labels = {"EUR": "European", "AFR": "African", "EAS": "East Asian",
-              "SAS": "South Asian", "AMR": "Admixed American"}
-    for pop in sorted(ancestry_results["proportions"],
-                      key=lambda p: -ancestry_results["proportions"][p]):
-        prop = ancestry_results["proportions"][pop]
-        label = labels.get(pop, pop)
-        parts.append(f'<tr><td>{label} ({pop})</td><td>{prop:.1%}</td></tr>')
-    parts.append("</table>")
-    parts.append('<p style="font-size:.85em;color:var(--accent2)">'
-                 'Based on ~55 ancestry-informative markers. '
-                 'This is a rough superpopulation estimate.</p>')
-    parts.append("</div>")
-    parts.append("</div>")
-
-    return "\n".join(parts)
-
-
-def build_prs_section(prs_results):
-    """Build HTML for polygenic risk scores section."""
-    if not prs_results:
-        return "<p>No PRS data available.</p>"
-
-    parts = []
-
-    # Ancestry disclaimer
-    any_non_applicable = any(not r["ancestry_applicable"] for r in prs_results.values())
-    if any_non_applicable:
-        parts.append(
-            '<div class="doctor-callout" style="border-color:var(--warn)">'
-            'PRS models are calibrated on European-ancestry populations. '
-            'Your ancestry profile is substantially non-European — interpret with caution.'
-            '</div>'
-        )
-
-    # Gauge row
-    parts.append('<div class="gauge-row" style="justify-content:center">')
-    for cid, r in prs_results.items():
-        short_name = r["name"].replace("Age-Related ", "").replace("Macular Degeneration", "AMD")
-        parts.append(svg_prs_gauge(short_name, r["percentile"], r["risk_category"]))
-    parts.append("</div>")
-
-    # Summary table
-    parts.append("<h3>Summary</h3>")
-    parts.append('<table class="sortable"><tr><th>Condition</th><th>Percentile</th>'
-                 '<th>Category</th><th>SNPs</th><th>Reference</th></tr>')
-    for cid, r in prs_results.items():
-        cat_class = {"low": "green", "average": "accent", "elevated": "warn", "high": "warn"}
-        color = cat_class.get(r["risk_category"], "")
-        parts.append(
-            f'<tr><td><strong>{r["name"]}</strong></td>'
-            f'<td>{r["percentile"]:.0f}th</td>'
-            f'<td>{r["risk_category"].title()}</td>'
-            f'<td>{r["snps_found"]}/{r["snps_total"]}</td>'
-            f'<td style="font-size:.8em">{r["reference"]}</td></tr>'
-        )
-    parts.append("</table>")
-
-    # Elevated conditions detail
-    elevated = [r for r in prs_results.values() if r["risk_category"] in ("elevated", "high")]
-    if elevated:
-        parts.append("<h3>Elevated Risk Details</h3>")
-        for r in elevated:
-            parts.append(f'<details open><summary><strong>{r["name"]}</strong> — '
-                         f'{r["percentile"]:.0f}th percentile ({r["risk_category"]})</summary>')
-            if r["contributing_snps"]:
-                parts.append('<table><tr><th>Gene</th><th>rsID</th><th>Copies</th>'
-                             '<th>Effect</th></tr>')
-                for s in r["contributing_snps"][:5]:
-                    parts.append(
-                        f'<tr><td>{s["gene"]}</td><td><code>{s["rsid"]}</code></td>'
-                        f'<td>{s["copies"]}</td><td>{s["contribution"]:.3f}</td></tr>'
-                    )
-                parts.append("</table>")
-            parts.append("</details>")
-
-    parts.append(
-        '<p style="font-size:.85em;color:var(--accent2)">'
-        'PRS estimates relative genetic risk from common variants. '
-        'Lifestyle, environment, and rare variants also affect risk. '
-        'Not a clinical diagnosis.</p>'
-    )
-
-    return "\n".join(parts)
+ELI5_CONDITIONS = {
+    "blood_pressure": "Your genes suggest your blood pressure system runs a bit high. Think of it like a garden hose with the pressure turned up slightly. Eating less salt, exercising, and monitoring can help a lot.",
+    "methylation": "Methylation is like your body's maintenance crew — it repairs DNA, makes brain chemicals, and detoxifies. Your genes suggest the crew could use some help (methylfolate supplements).",
+    "iron_metabolism": "Your body's iron thermostat may be set a bit high. Too much iron can damage organs over time, so regular blood tests are important.",
+    "caffeine": "Your body is slower at breaking down caffeine. That means coffee keeps you wired longer and may affect sleep. Stick to mornings only.",
+    "clotting": "Your blood may clot a bit more easily than average. Stay hydrated, move on long flights, and tell surgeons about this.",
+    "drug_metabolism": "Your liver processes some medicines differently. This doesn't mean anything is wrong — but your doctor should know so they can pick the right dose.",
+}
 
 
-def build_epistasis_section(epistasis_results):
-    """Build HTML for gene-gene interactions section."""
-    if not epistasis_results:
-        return "<p>No significant gene-gene interactions detected.</p>"
+def _eli5_for_gene(gene):
+    """Get a plain-language explanation for a gene."""
+    return ELI5_GENES.get(gene, "")
 
+
+def _eli5_for_condition(condition_id):
+    """Get a plain-language explanation for a condition."""
+    return ELI5_CONDITIONS.get(condition_id, "")
+
+
+# =============================================================================
+# SECTION 1: YOUR KEY FINDINGS
+# =============================================================================
+
+def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
+                       prs_results, star_alleles_data, longevity_data):
+    """Build the top-level key findings: 5-10 most important bullets, color-coded."""
     parts = []
     parts.append(
-        '<p style="font-size:.9em;color:var(--accent2)">'
-        'These interactions occur when the combined effect of multiple gene '
-        'variants differs from each individual effect.</p>'
+        '<p class="eli5">Your body has a recipe book called DNA. We read yours and '
+        'found some interesting things. Here is the simple version — the most important '
+        'things about your genome, in plain language.</p>'
     )
 
-    risk_colors = {"high": "var(--warn)", "moderate": "var(--accent)", "low": "var(--green)"}
+    bullets = []  # (priority, color_class, text, refs)
 
-    for interaction in epistasis_results:
-        color = risk_colors.get(interaction["risk_level"], "var(--accent)")
-        genes_involved = interaction.get("genes_involved", {})
-        genes = ", ".join(genes_involved.keys()) if genes_involved else _esc(interaction.get("name", ""))
-        parts.append(
-            f'<details open><summary>'
-            f'<span class="mag-badge" style="background:{color};color:#fff">'
-            f'{interaction["risk_level"].upper()}</span> '
-            f'<strong>{interaction["name"]}</strong></summary>'
-        )
-        parts.append(f'<p><strong>Genes:</strong> {genes}</p>')
-        parts.append(f'<p><strong>Effect:</strong> {interaction["effect"]}</p>')
-        parts.append(f'<p><strong>Mechanism:</strong> {interaction["mechanism"]}</p>')
-        parts.append("<p><strong>Recommended Actions:</strong></p><ul>")
-        for action in interaction["actions"]:
-            parts.append(f"<li>{action}</li>")
-        parts.append("</ul></details>")
+    # ACMG actionable findings (RED — act now)
+    acmg_findings = (acmg_data or {}).get("acmg_findings", [])
+    for af in acmg_findings:
+        gene = af.get("gene", "Unknown")
+        condition = (af.get("traits") or "Unknown").split(";")[0].strip()
+        eli5 = _eli5_for_gene(gene)
+        text = f'<strong>{gene}</strong>: You carry a medically actionable variant linked to {condition}. Genetic counseling recommended.'
+        if eli5:
+            text += f' <span class="eli5-inline">({eli5})</span>'
+        bullets.append((0, "red", text, []))
 
+    # High-priority recommendations (RED)
+    priorities = (recommendations_data or {}).get("priorities", [])
+    for p in priorities:
+        if p["priority"] == "high":
+            bullets.append((1, "red", f'<strong>{p["title"]}</strong>: {p["why"]}', []))
+
+    # APOE status (YELLOW or GREEN)
+    if apoe_data and apoe_data.get("apoe_type", "Unknown") != "Unknown":
+        risk = apoe_data["risk_level"]
+        color = "red" if risk in ("high", "elevated") else "yellow" if risk == "moderate" else "green"
+        eli5 = _eli5_for_gene("APOE")
+        text = f'<strong>APOE {apoe_data["apoe_type"]}</strong>: {apoe_data["risk_level"].title()} Alzheimer\'s risk.'
+        if eli5:
+            text += f' <span class="eli5-inline">({eli5})</span>'
+        bullets.append((2, color, text, []))
+
+    # Elevated PRS (YELLOW)
+    if prs_results:
+        for cid, r in prs_results.items():
+            if r["risk_category"] in ("elevated", "high"):
+                bullets.append((3, "yellow",
+                    f'<strong>{r["name"]}</strong>: {r["percentile"]:.0f}th percentile genetic risk ({r["risk_category"]}).', []))
+
+    # Moderate-priority recommendations (YELLOW)
+    for p in priorities:
+        if p["priority"] == "moderate":
+            bullets.append((4, "yellow", f'<strong>{p["title"]}</strong>: {p["why"]}', []))
+
+    # Star allele non-normal phenotypes (YELLOW)
+    if star_alleles_data:
+        for gene, r in star_alleles_data.items():
+            if r["phenotype"] not in ("normal", "Unknown"):
+                eli5 = _eli5_for_gene(gene)
+                text = f'<strong>{gene}</strong>: {r["phenotype"].replace("_"," ").title()} Metabolizer ({r["diplotype"]}). Some drugs need dose adjustment.'
+                if eli5:
+                    text += f' <span class="eli5-inline">({eli5})</span>'
+                bullets.append((5, "yellow", text, []))
+
+    # Protective / good news (GREEN)
+    good_news = (recommendations_data or {}).get("good_news", [])
+    for g in good_news:
+        eli5 = _eli5_for_gene(g["gene"])
+        text = f'<strong>{g["gene"]}</strong>: {g["description"]}'
+        if eli5:
+            text += f' <span class="eli5-inline">({eli5})</span>'
+        bullets.append((6, "green", text, []))
+
+    # Longevity score (GREEN or YELLOW)
+    if longevity_data:
+        score = longevity_data.get("longevity_score", 50)
+        color = "green" if score >= 60 else "yellow" if score >= 40 else "red"
+        bullets.append((7, color,
+            f'<strong>Longevity Score</strong>: {score}/100. {longevity_data.get("summary", "")}', []))
+
+    # Sort by priority, limit to 12
+    bullets.sort(key=lambda x: x[0])
+    bullets = bullets[:12]
+
+    if not bullets:
+        parts.append('<p>No significant findings to highlight.</p>')
+    else:
+        parts.append('<ul class="key-findings">')
+        for _, color, text, _ in bullets:
+            parts.append(f'<li class="kf-{color}">{text}</li>')
+        parts.append('</ul>')
+
+    parts.append(
+        '<div class="doctor-callout">Show this report to your doctor! '
+        'They can help you use this information wisely.</div>'
+    )
     return "\n".join(parts)
 
 
-def build_recommendations_section(recs_data):
-    """Build HTML for personalized recommendations section."""
-    if not recs_data:
+# =============================================================================
+# SECTION 2: YOUR ACTION PLAN
+# =============================================================================
+
+def build_action_plan(recommendations_data, insights_data):
+    """Build consolidated action plan: supplements, diet, lifestyle, tests, doctors."""
+    if not recommendations_data:
         return "<p>No personalized recommendations available.</p>"
 
     parts = []
-    priorities = recs_data.get("priorities", [])
-    clinical_insights = recs_data.get("clinical_insights", [])
+    parts.append(
+        '<p class="eli5">Based on your DNA, here is what you can actually do. '
+        'Actions are grouped by how urgent they are. Each one explains WHY '
+        'your genes make it relevant to you.</p>'
+    )
 
-    # Index clinical insights by gene for lookup
-    insights_by_gene = {}
-    for ci in clinical_insights:
-        insights_by_gene[ci["gene"]] = ci
+    priorities = recommendations_data.get("priorities", [])
+    clinical_insights = recommendations_data.get("clinical_insights", [])
+    insights_by_gene = {ci["gene"]: ci for ci in clinical_insights}
 
     if not priorities:
         parts.append("<p>No convergent risk patterns detected.</p>")
     else:
-        parts.append(
-            '<p style="font-size:.9em;color:var(--accent2)">'
-            'Prioritized synthesis of all genetic signals. Convergent risks '
-            '(multiple independent signals pointing to the same condition) '
-            'are ranked highest.</p>'
-        )
-
-        priority_colors = {
-            "high": "#ef4444",
-            "moderate": "#f59e0b",
-            "low": "#22c55e",
-        }
+        priority_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
 
         for p in priorities:
             color = priority_colors.get(p["priority"], "var(--border)")
-            badge_bg = color
+            eli5 = _eli5_for_condition(p.get("id", ""))
 
             parts.append(
                 f'<details open class="rec-card" style="border-left:4px solid {color};">'
                 f'<summary>'
-                f'<span class="mag-badge" style="background:{badge_bg};color:#fff">'
+                f'<span class="mag-badge" style="background:{color};color:#fff">'
                 f'{p["priority"].upper()}</span> '
                 f'<strong>{p["title"]}</strong></summary>'
             )
+
+            if eli5:
+                parts.append(f'<p class="eli5">{eli5}</p>')
 
             parts.append(f'<p><strong>Why:</strong> {p["why"]}</p>')
 
@@ -676,20 +643,17 @@ def build_recommendations_section(recs_data):
                     )
                 parts.append("</table>")
 
-            # Clinical context from clinical_insights matching this priority
-            title_words = set(p["title"].lower().split())
-            matched_insights = [
-                ci for gene, ci in insights_by_gene.items()
-                if gene.lower() in p["title"].lower()
-                or gene.lower() in p.get("why", "").lower()
-            ]
-            if matched_insights:
+            # Match clinical insights
+            matched = [ci for gene, ci in insights_by_gene.items()
+                       if gene.lower() in p["title"].lower()
+                       or gene.lower() in p.get("why", "").lower()]
+            if matched:
                 parts.append(
                     '<details style="margin-top:.5em">'
                     '<summary style="font-size:.85em;color:var(--accent2)">'
                     'Clinical Context</summary>'
                 )
-                for ci in matched_insights:
+                for ci in matched:
                     parts.append(f'<p><strong>{ci["gene"]}:</strong> {ci["mechanism"]}</p>')
                     if ci.get("actions"):
                         parts.append("<ul>")
@@ -700,47 +664,36 @@ def build_recommendations_section(recs_data):
 
             parts.append("</details>")
 
-    # Drug card
-    drug_card = recs_data.get("drug_card", [])
-    if drug_card:
-        parts.append("<h3>Drug-Gene Card</h3>")
-        parts.append(
-            '<table><tr><th>Gene</th><th>rsID</th><th>Genotype</th>'
-            '<th>Status</th><th>Source</th></tr>'
-        )
-        for entry in drug_card:
-            for e in entry["entries"]:
-                status = (e.get("status") or "").replace("_", " ").title() or "\u2014"
-                parts.append(
-                    f'<tr><td><strong>{entry["gene"]}</strong></td>'
-                    f'<td><code>{e["rsid"]}</code></td>'
-                    f'<td><code>{e["genotype"]}</code></td>'
-                    f'<td>{status}</td><td>{e["source"]}</td></tr>'
-                )
-        parts.append("</table>")
-
-    # Monitoring schedule
-    schedule = recs_data.get("monitoring_schedule", [])
+    # Consolidated monitoring schedule
+    schedule = recommendations_data.get("monitoring_schedule", [])
     if schedule:
-        parts.append("<h3>Consolidated Monitoring Schedule</h3>")
+        parts.append("<h3>Monitoring Schedule</h3>")
         parts.append(
-            '<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>'
+            '<p class="eli5">These are blood tests and check-ups you should get '
+            'regularly, based on your genetic profile. Print this and bring it '
+            'to your next doctor visit.</p>'
         )
+        freq_colors = {
+            "weekly": "#ef4444", "monthly": "#f97316", "quarterly": "#f59e0b",
+            "semi-annually": "#3b82f6", "annually": "#3b82f6", "baseline": "#22c55e",
+        }
+        parts.append('<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>')
         for m in schedule:
+            freq = m.get("frequency", "").lower()
+            color = next((c for key, c in freq_colors.items() if key in freq), "var(--accent2)")
             parts.append(
-                f'<tr><td>{m["test"]}</td><td>{m["frequency"]}</td>'
+                f'<tr><td><strong>{m["test"]}</strong></td>'
+                f'<td><span class="mag-badge" style="background:{color};color:#fff">'
+                f'{m["frequency"]}</span></td>'
                 f'<td>{m["reason"]}</td></tr>'
             )
         parts.append("</table>")
 
     # Specialist referrals
-    referrals = recs_data.get("specialist_referrals", [])
+    referrals = recommendations_data.get("specialist_referrals", [])
     if referrals:
-        parts.append("<h3>Specialist Referrals</h3>")
-        urgency_colors = {
-            "soon": "#ef4444",
-            "routine": "#f59e0b",
-        }
+        parts.append("<h3>Doctors to See</h3>")
+        urgency_colors = {"soon": "#ef4444", "routine": "#f59e0b"}
         for ref in referrals:
             color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
             parts.append(
@@ -751,7 +704,7 @@ def build_recommendations_section(recs_data):
             )
 
     # Good news
-    good_news = recs_data.get("good_news", [])
+    good_news = recommendations_data.get("good_news", [])
     if good_news:
         parts.append("<h3>Good News</h3>")
         parts.append('<div class="good-news-grid">')
@@ -766,15 +719,805 @@ def build_recommendations_section(recs_data):
 
 
 # =============================================================================
-# SECTION BUILDERS
+# SECTION 3: DRUG & MEDICATION GUIDE
+# =============================================================================
+
+def build_drug_guide(star_alleles_data, findings, pharmgkb_findings, polypharmacy_data):
+    """Unified drug/medication section: star alleles + PharmGKB + polypharmacy."""
+    parts = []
+    parts.append(
+        '<p class="eli5">Your body has its own way of processing medicines. '
+        'Some drugs work differently for you because of your genes. '
+        'Show this section to every doctor who prescribes you medication.</p>'
+    )
+
+    # Star allele phenotypes with gauges
+    if star_alleles_data:
+        parts.append("<h3>Your Drug-Processing Enzymes</h3>")
+        parts.append(
+            '<p class="eli5">Think of these enzymes as little machines in your liver '
+            'that break down medicines. Some of your machines run faster or slower '
+            'than average, which means some drug doses need adjusting.</p>'
+        )
+        parts.append('<div class="gauge-row" style="justify-content:center">')
+        phenotype_levels = {
+            "poor": 0, "intermediate": 0.5, "normal": 1,
+            "rapid": 1.5, "ultrarapid": 2, "Unknown": 1,
+        }
+        phenotype_colors = {
+            "poor": "#ef4444", "intermediate": "#f59e0b", "normal": "#22c55e",
+            "rapid": "#3b82f6", "ultrarapid": "#8b5cf6", "Unknown": "#94a3b8",
+        }
+        for gene, r in star_alleles_data.items():
+            level = phenotype_levels.get(r["phenotype"], 1)
+            color = phenotype_colors.get(r["phenotype"], "#94a3b8")
+            parts.append(svg_metabolism_gauge(gene, level, color))
+        parts.append("</div>")
+
+        parts.append(
+            '<table><tr><th>Gene</th><th>Diplotype</th><th>Phenotype</th>'
+            '<th>SNPs</th><th>What This Means</th></tr>'
+        )
+        for gene, r in star_alleles_data.items():
+            phenotype = r["phenotype"].replace("_", " ").title()
+            eli5 = _eli5_for_gene(gene)
+            note = eli5 if eli5 else r["clinical_note"][:120]
+            parts.append(
+                f'<tr><td><strong>{gene}</strong></td>'
+                f'<td><code>{r["diplotype"]}</code></td>'
+                f'<td>{phenotype}</td>'
+                f'<td>{r["snps_found"]}/{r["snps_total"]}</td>'
+                f'<td style="font-size:.85em">{note}</td></tr>'
+            )
+        parts.append("</table>")
+
+    # PharmGKB annotations
+    if pharmgkb_findings:
+        parts.append("<h3>Drug-Gene Interactions (PharmGKB)</h3>")
+        parts.append('<table><tr><th>Gene</th><th>RSID</th><th>Level</th>'
+                     '<th>Drugs</th><th>Genotype</th></tr>')
+        for p in pharmgkb_findings:
+            parts.append(
+                f'<tr><td><strong>{_esc(p["gene"])}</strong></td>'
+                f'<td><code>{_esc(p["rsid"])}</code> {db_links_html(p["rsid"])}</td>'
+                f'<td>{_esc(p["level"])}</td>'
+                f'<td>{_esc(p["drugs"])}</td>'
+                f'<td><code>{_esc(p["genotype"])}</code></td></tr>'
+            )
+        parts.append("</table>")
+
+    # Polypharmacy warnings
+    if polypharmacy_data and polypharmacy_data.get("warnings"):
+        parts.append("<h3>Drug Combination Warnings</h3>")
+        parts.append(
+            '<p class="eli5">When you take multiple drugs that all depend on the same '
+            'enzyme, they can interfere with each other. Here are combinations to '
+            'watch out for based on your genes.</p>'
+        )
+        severity_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
+        for w in polypharmacy_data["warnings"]:
+            color = severity_colors.get(w["severity"], "var(--border)")
+            genes_str = ", ".join(f"{g}: {s}" for g, s in w.get("matched_genes", {}).items())
+            drugs_str = ", ".join(w.get("drugs_affected", []))
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid {color}">'
+                f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
+                f'{w["severity"].upper()}</span> '
+                f'<strong>{_esc(w["name"])}</strong></summary>'
+            )
+            if genes_str:
+                parts.append(f'<p><strong>Your genotype:</strong> {_esc(genes_str)}</p>')
+            parts.append(f'<p><strong>Drugs affected:</strong> {_esc(drugs_str)}</p>')
+            parts.append(f'<p>{_esc(w["warning"])}</p>')
+            parts.append(f'<p><strong>Clinical action:</strong> {_esc(w["action"])}</p>')
+            parts.append("</details>")
+
+    # Drug card for doctor
+    drug_card = (recommendations_data if isinstance(recommendations_data, dict) else {}).get("drug_card", []) if False else []
+    parts.append(
+        '<div class="doctor-callout">Share this entire drug section with '
+        'every prescribing physician. Print it or save as PDF.</div>'
+    )
+
+    if not star_alleles_data and not pharmgkb_findings:
+        return "<p>No drug-gene interaction data available.</p>"
+
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 4: DISEASE RISK OVERVIEW
+# =============================================================================
+
+def build_disease_risk_overview(prs_results, disease_findings_data, acmg_data):
+    """Unified disease risk: PRS gauges + ClinVar pathogenic + ACMG flags."""
+    parts = []
+    parts.append(
+        '<p class="eli5">This section shows your genetic risk for various diseases. '
+        'Think of it like a weather forecast — it tells you the probability, not the '
+        'certainty. Lifestyle choices matter enormously and can override genetic risk.</p>'
+    )
+
+    # PRS gauges
+    if prs_results:
+        any_non_applicable = any(not r["ancestry_applicable"] for r in prs_results.values())
+        if any_non_applicable:
+            parts.append(
+                '<div class="doctor-callout" style="border-color:var(--warn)">'
+                'PRS models are calibrated on European-ancestry populations. '
+                'Your ancestry profile is substantially non-European — interpret with caution.'
+                '</div>'
+            )
+
+        parts.append("<h3>Polygenic Risk Scores</h3>")
+        parts.append(
+            '<p class="eli5">These gauges show how your combined genetic variants '
+            'compare to the general population for each condition. A higher percentile '
+            'means higher genetic predisposition (but not destiny!).</p>'
+        )
+        parts.append('<div class="gauge-row" style="justify-content:center">')
+        for cid, r in prs_results.items():
+            short_name = r["name"].replace("Age-Related ", "").replace("Macular Degeneration", "AMD")
+            parts.append(svg_prs_gauge(short_name, r["percentile"], r["risk_category"]))
+        parts.append("</div>")
+
+        parts.append('<table class="sortable"><tr><th>Condition</th><th>Percentile</th>'
+                     '<th>Category</th><th>SNPs</th><th>Reference</th></tr>')
+        for cid, r in prs_results.items():
+            parts.append(
+                f'<tr><td><strong>{r["name"]}</strong></td>'
+                f'<td>{r["percentile"]:.0f}th</td>'
+                f'<td>{r["risk_category"].title()}</td>'
+                f'<td>{r["snps_found"]}/{r["snps_total"]}</td>'
+                f'<td style="font-size:.8em">{r["reference"]}</td></tr>'
+            )
+        parts.append("</table>")
+
+        elevated = [r for r in prs_results.values() if r["risk_category"] in ("elevated", "high")]
+        if elevated:
+            parts.append("<h3>Elevated Risk Details</h3>")
+            for r in elevated:
+                parts.append(f'<details open><summary><strong>{r["name"]}</strong> — '
+                             f'{r["percentile"]:.0f}th percentile ({r["risk_category"]})</summary>')
+                if r["contributing_snps"]:
+                    parts.append('<table><tr><th>Gene</th><th>rsID</th><th>Copies</th>'
+                                 '<th>Effect</th></tr>')
+                    for s in r["contributing_snps"][:5]:
+                        parts.append(
+                            f'<tr><td>{s["gene"]}</td><td><code>{s["rsid"]}</code> '
+                            f'{db_links_html(s["rsid"])}</td>'
+                            f'<td>{s["copies"]}</td><td>{s["contribution"]:.3f}</td></tr>'
+                        )
+                    parts.append("</table>")
+                parts.append("</details>")
+
+    # ACMG secondary findings
+    if acmg_data:
+        parts.append("<h3>Medically Actionable Genes (ACMG SF v3.2)</h3>")
+        parts.append(
+            f'<p class="eli5">Doctors have identified {acmg_data.get("genes_screened", 81)} genes where '
+            f'finding a harmful variant is so important that it should always be reported. '
+            f'We checked all of them in your DNA.</p>'
+        )
+        acmg_findings = acmg_data.get("acmg_findings", [])
+        if not acmg_findings:
+            parts.append(
+                '<div class="doctor-callout" style="border-color:var(--green)">'
+                'No pathogenic/likely pathogenic variants found in ACMG genes.</div>'
+            )
+        else:
+            parts.append(
+                f'<div class="doctor-callout" style="border-color:var(--warn)">'
+                f'<strong>{len(acmg_findings)} variant(s)</strong> found in '
+                f'{acmg_data["genes_with_variants"]} ACMG gene(s). '
+                f'Genetic counseling recommended.</div>'
+            )
+            parts.append('<table><tr><th>Gene</th><th>Condition</th>'
+                         '<th>Genotype</th><th>Stars</th><th>Actionability</th></tr>')
+            for f in acmg_findings:
+                gene = f.get("gene", "Unknown")
+                condition = (f.get("traits") or "Unknown").split(";")[0].strip()
+                genotype = f.get("user_genotype", "")
+                stars = f.get("gold_stars", 0)
+                action = f.get("acmg_actionability", "")
+                eli5 = _eli5_for_gene(gene)
+                parts.append(
+                    f'<tr><td><strong>{gene}</strong>'
+                    f'{"<br><span class=eli5-inline>" + eli5 + "</span>" if eli5 else ""}'
+                    f'</td>'
+                    f'<td>{condition}</td>'
+                    f'<td><code>{genotype}</code></td>'
+                    f'<td>{"&#9733;" * stars}{"&#9734;" * (4 - stars)}</td>'
+                    f'<td style="font-size:.85em">{action}</td></tr>'
+                )
+            parts.append("</table>")
+
+    # ClinVar disease findings
+    if disease_findings_data:
+        def _variant_table(variants, label, color):
+            if not variants:
+                return ""
+            rows = []
+            rows.append(
+                f'<h3>{label} '
+                f'<span class="badge" style="background:{color}">{len(variants)}</span></h3>'
+            )
+            rows.append(
+                '<table><tr><th>Gene</th><th>Condition</th><th>Genotype</th>'
+                '<th>Stars</th><th>Zygosity</th></tr>'
+            )
+            for v in variants[:50]:
+                gene = _esc(v.get("gene", "Unknown"))
+                condition = _esc((v.get("traits") or "Unknown").split(";")[0].strip())
+                genotype = _esc(v.get("user_genotype", ""))
+                stars = v.get("gold_stars", 0)
+                star_str = "&#9733;" * stars + "&#9734;" * (4 - stars)
+                zyg = _esc(v.get("zygosity", "").replace("_", " ").title())
+                rows.append(
+                    f'<tr><td><strong>{gene}</strong></td>'
+                    f'<td style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" '
+                    f'title="{_esc(v.get("traits", ""))}">{condition}</td>'
+                    f'<td><code>{genotype}</code></td>'
+                    f'<td>{star_str}</td>'
+                    f'<td>{zyg}</td></tr>'
+                )
+            rows.append("</table>")
+            if len(variants) > 50:
+                rows.append(f'<p style="font-size:.85em;color:var(--accent2)">'
+                            f'Showing 50 of {len(variants)} variants.</p>')
+            return "\n".join(rows)
+
+        parts.append(_variant_table(
+            disease_findings_data.get("pathogenic", []), "Pathogenic Variants", "#ef4444"))
+        parts.append(_variant_table(
+            disease_findings_data.get("likely_pathogenic", []), "Likely Pathogenic Variants", "#f97316"))
+        parts.append(_variant_table(
+            disease_findings_data.get("risk_factor", []), "Risk Factor Variants", "#f59e0b"))
+        parts.append(_variant_table(
+            disease_findings_data.get("drug_response", []), "Drug Response Variants", "#3b82f6"))
+
+        protective = disease_findings_data.get("protective", [])
+        if protective:
+            parts.append(
+                f'<h3>Protective Variants '
+                f'<span class="badge" style="background:var(--green)">{len(protective)}</span></h3>'
+            )
+            parts.append('<div class="good-news-grid">')
+            for v in protective:
+                gene = _esc(v.get("gene", "Unknown"))
+                condition = _esc((v.get("traits") or "").split(";")[0].strip())
+                parts.append(
+                    f'<div class="good-news-card">'
+                    f'<strong>{gene}</strong>: {condition}</div>'
+                )
+            parts.append("</div>")
+
+    parts.append(
+        '<p style="font-size:.85em;color:var(--accent2)">'
+        'PRS estimates relative genetic risk from common variants. '
+        'Lifestyle, environment, and rare variants also affect risk. '
+        'Not a clinical diagnosis.</p>'
+    )
+
+    if not prs_results and not disease_findings_data and not acmg_data:
+        return "<p>No disease risk data available.</p>"
+
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 5: YOUR BODY PROFILE
+# =============================================================================
+
+def build_body_profile(traits_data, blood_type_data, sleep_data, longevity_data, findings):
+    """Fun traits, blood type, chronotype, longevity, athletic profile."""
+    parts = []
+    parts.append(
+        '<p class="eli5">This section is the fun stuff — what your genes say about '
+        'your body, from eye color to whether you are a morning person. '
+        'None of this is medical advice, just interesting!</p>'
+    )
+
+    # Traits
+    if traits_data:
+        parts.append("<h3>Predicted Traits</h3>")
+        trait_labels = {
+            "eye_color": "Eye Color", "hair_color": "Hair Color",
+            "earwax_type": "Earwax Type", "freckling": "Freckling / Sun Sensitivity",
+        }
+        parts.append('<table><tr><th>Trait</th><th>Prediction</th>'
+                     '<th>Confidence</th><th>What It Means</th></tr>')
+        for trait_id, trait in traits_data.items():
+            label = trait_labels.get(trait_id, trait_id.replace("_", " ").title())
+            conf_color = {"high": "var(--green)", "moderate": "var(--accent)",
+                          "low": "var(--warn)"}.get(trait["confidence"], "inherit")
+            parts.append(
+                f'<tr><td><strong>{label}</strong></td>'
+                f'<td>{trait["prediction"]}</td>'
+                f'<td style="color:{conf_color}">{trait["confidence"].title()}</td>'
+                f'<td style="font-size:.85em">{trait["description"]}</td></tr>'
+            )
+        parts.append("</table>")
+
+    # Blood type
+    if blood_type_data and blood_type_data.get("blood_type") != "Unknown":
+        parts.append("<h3>Blood Type</h3>")
+        bt = blood_type_data["blood_type"]
+        conf = blood_type_data["confidence"].title()
+        parts.append(
+            f'<div style="text-align:center;margin:1em 0">'
+            f'<span style="font-size:3em;font-weight:bold;color:var(--warn)">{bt}</span>'
+            f'<br><span style="font-size:.9em;color:var(--accent2)">'
+            f'Confidence: {conf}</span></div>'
+        )
+        parts.append(
+            '<p class="eli5" style="font-size:.85em">Blood type from SNP data has limitations. '
+            'Confirm with clinical blood typing.</p>'
+        )
+
+    # Sleep / Chronotype
+    if sleep_data:
+        parts.append("<h3>Sleep &amp; Chronotype</h3>")
+        parts.append(
+            '<p class="eli5">Your genes influence whether you are a morning lark '
+            'or a night owl, how deeply you sleep, and how caffeine affects you.</p>'
+        )
+        parts.append(
+            f'<div style="text-align:center;margin:1em 0">'
+            f'<p style="font-size:1.5em;font-weight:bold">{_esc(sleep_data.get("chronotype", "Unknown"))}</p>'
+            f'<p style="color:var(--accent2)">Chronotype Score: {sleep_data.get("chronotype_score", 50)}/100 '
+            f'(0=extreme morning, 100=extreme evening)</p>'
+            f'</div>'
+        )
+        parts.append(
+            f'<table>'
+            f'<tr><td><strong>Optimal Sleep Window</strong></td><td>{_esc(sleep_data.get("optimal_sleep_window", ""))}</td></tr>'
+            f'<tr><td><strong>Peak Alertness</strong></td><td>{_esc(sleep_data.get("peak_alertness", ""))}</td></tr>'
+            f'<tr><td><strong>Last Caffeine By</strong></td><td>{_esc(sleep_data.get("caffeine_cutoff", ""))}</td></tr>'
+            f'</table>'
+        )
+        recs = sleep_data.get("recommendations", [])
+        if recs:
+            parts.append("<p><strong>Sleep Recommendations:</strong></p><ul>")
+            for r in recs:
+                parts.append(f"<li>{_esc(r)}</li>")
+            parts.append("</ul>")
+
+    # Longevity
+    if longevity_data:
+        parts.append("<h3>Longevity &amp; Healthspan</h3>")
+        score = longevity_data.get("longevity_score", 50)
+        score_color = "#22c55e" if score >= 60 else "#f59e0b" if score >= 40 else "#ef4444"
+        parts.append(
+            f'<div style="text-align:center;margin:1em 0">'
+            f'<span style="font-size:2.5em;font-weight:bold;color:{score_color}">{score}</span>'
+            f'<span style="font-size:1.2em;color:var(--accent2)">/100</span>'
+            f'<p style="color:var(--accent2)">Longevity Genetic Score</p>'
+            f'<p style="font-size:.9em">{_esc(longevity_data.get("summary", ""))}</p>'
+            f'</div>'
+        )
+        domains = longevity_data.get("healthspan_domains", {})
+        if domains:
+            parts.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1em">')
+            for domain, info in domains.items():
+                s = info["score"]
+                c = "#22c55e" if s >= 60 else "#f59e0b" if s >= 40 else "#ef4444"
+                parts.append(
+                    f'<div style="border:1px solid var(--border);border-radius:8px;padding:1em;text-align:center">'
+                    f'<strong>{_esc(domain.replace("_", " ").title())}</strong><br>'
+                    f'<span style="font-size:1.5em;color:{c}">{s}</span>/90<br>'
+                    f'<span style="font-size:.85em;color:var(--accent2)">{info["rating"]}</span>'
+                    f'</div>'
+                )
+            parts.append("</div>")
+        interventions = longevity_data.get("interventions", [])
+        if interventions:
+            parts.append("<p><strong>Genetically-Supported Interventions:</strong></p><ul>")
+            for i in interventions:
+                parts.append(f'<li><strong>{_esc(i["intervention"])}</strong> — {_esc(i["why"])}</li>')
+            parts.append("</ul>")
+
+    # Athletic profile from ACTN3
+    for f in findings:
+        if f.get("gene") == "ACTN3":
+            parts.append("<h3>Athletic Profile</h3>")
+            eli5 = _eli5_for_gene("ACTN3")
+            parts.append(f'<p class="eli5">{eli5}</p>')
+            status = f.get("status", "").replace("_", " ").title()
+            parts.append(f'<p><strong>ACTN3</strong>: {status} — {f.get("description", "")}</p>')
+            parts.append(paper_refs_html("rs1815739"))
+            break
+
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 6: MENTAL HEALTH & BRAIN
+# =============================================================================
+
+def build_mental_health_section(data):
+    """Mental health genetics: risk domains, resilience, treatment matching."""
+    if not data:
+        return "<p>No mental health genetic data available.</p>"
+    parts = []
+    parts.append(
+        '<p class="eli5">Your genes can influence how your brain handles stress, '
+        'mood, and anxiety. But genetics is only one piece — your environment, '
+        'relationships, exercise, and support all matter enormously. '
+        'Think of genes as the cards you are dealt; lifestyle is how you play them.</p>'
+    )
+    parts.append(f'<p><strong>{_esc(data.get("summary", ""))}</strong></p>')
+
+    domains = data.get("domains", {})
+    if domains:
+        parts.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1em;margin:1em 0">')
+        level_colors = {"elevated": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
+        for domain, info in domains.items():
+            color = level_colors.get(info["risk_level"], "var(--border)")
+            parts.append(
+                f'<div style="border:1px solid var(--border);border-radius:8px;padding:1em;text-align:center">'
+                f'<strong>{_esc(domain.replace("_", " ").title())}</strong><br>'
+                f'<span style="font-size:1.3em;color:{color}">{_esc(info["risk_level"].title())}</span>'
+                f'</div>'
+            )
+        parts.append("</div>")
+
+    risk = data.get("risk_factors", [])
+    resilience = data.get("resilience_factors", [])
+    if risk:
+        parts.append("<h3>Risk Factors</h3><ul>")
+        for r in risk:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ul>")
+    if resilience:
+        parts.append('<h3>Resilience Factors</h3><ul>')
+        for r in resilience:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ul>")
+
+    notes = data.get("treatment_notes", [])
+    if notes:
+        parts.append("<h3>Treatment Matching Notes</h3>")
+        parts.append(
+            '<p class="eli5">These notes can help your therapist or psychiatrist '
+            'pick treatments that work better with your genetic profile.</p>'
+        )
+        parts.append("<ul>")
+        for n in notes:
+            parts.append(f"<li>{_esc(n)}</li>")
+        parts.append("</ul>")
+
+    recs = data.get("recommendations", [])
+    if recs:
+        parts.append("<h3>Recommendations</h3><ol>")
+        for r in recs:
+            parts.append(f"<li>{_esc(r)}</li>")
+        parts.append("</ol>")
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 7: CLINICAL FINDINGS DETAIL
+# =============================================================================
+
+def build_clinical_detail(findings, epistasis_results, carrier_screen_data):
+    """Full technical findings table + epistasis + carrier screening."""
+    parts = []
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Complete technical findings for clinical review. '
+        'Searchable, sortable, and exportable.</p>'
+    )
+
+    # All lifestyle findings grouped by category
+    categories = sorted(set(f.get("category", "Other") for f in findings))
+    for cat in categories:
+        cat_findings = sorted(
+            [f for f in findings if f.get("category") == cat],
+            key=lambda x: -x.get("magnitude", 0),
+        )
+        if not cat_findings:
+            continue
+
+        parts.append(
+            f'<details class="category-section" open>'
+            f'<summary><h3 class="inline-h3">{cat} '
+            f'<span class="badge">{len(cat_findings)}</span></h3></summary>'
+        )
+
+        for f in cat_findings:
+            mag = f.get("magnitude", 0)
+            mag_class = "high" if mag >= 3 else "mod" if mag == 2 else "low" if mag == 1 else "info"
+            rsid = _esc(f.get("rsid", ""))
+            gene = _esc(f.get("gene", "Unknown"))
+            genotype = _esc(f.get("genotype", ""))
+            status = _esc(f.get("status", "").replace("_", " ").title())
+            desc = _esc(f.get("description", ""))
+            note = _esc(f.get("note", ""))
+
+            parts.append(f'<div class="finding-card {mag_class}">')
+            parts.append(
+                f'<div class="finding-header">'
+                f'<span class="mag-badge mag-{mag_class}">{mag}/6</span> '
+                f'<strong>{gene}</strong> '
+                f'<code>{rsid}</code> — '
+                f'<code>{genotype}</code> — {status}'
+                f'</div>'
+            )
+            eli5 = _eli5_for_gene(f.get("gene", ""))
+            if eli5:
+                parts.append(f'<p class="eli5-inline" style="font-size:.85em;margin:.2em 0">{eli5}</p>')
+            parts.append(f'<p class="finding-desc">{desc}</p>')
+            if note:
+                parts.append(f'<p class="finding-note">Note: {note}</p>')
+            freq = f.get("freq")
+            if freq and isinstance(freq, dict):
+                freq_labels = {"EUR": "European", "AFR": "African",
+                               "EAS": "East Asian", "SAS": "South Asian", "AMR": "American"}
+                freq_parts = [f'{freq_labels.get(p, p)}: {v:.0%}'
+                              for p, v in sorted(freq.items(), key=lambda x: -x[1])
+                              if v > 0.001]
+                if freq_parts:
+                    parts.append(
+                        f'<p class="finding-note" style="font-size:.8em">'
+                        f'Population freq: {" &middot; ".join(freq_parts)}</p>'
+                    )
+            parts.append(db_links_html(rsid))
+            parts.append(paper_refs_html(rsid))
+            parts.append("</div>")
+
+        parts.append("</details>")
+
+    # Pathway analysis
+    from ..clinical_context import PATHWAYS
+    parts.append("<h3>Pathway Analysis</h3>")
+    gene_map = {f["gene"]: f for f in findings}
+    for pathway_name, pathway_genes in PATHWAYS.items():
+        pathway_findings = [gene_map[g] for g in pathway_genes if g in gene_map]
+        if not pathway_findings:
+            continue
+        parts.append(f'<details><summary><strong>{_esc(pathway_name)}</strong></summary><ul>')
+        for pf in pathway_findings:
+            mag = pf.get("magnitude", 0)
+            mag_class = "high" if mag >= 3 else "mod" if mag == 2 else "low" if mag == 1 else "info"
+            parts.append(
+                f'<li><span class="mag-dot mag-{mag_class}"></span> '
+                f'<strong>{_esc(pf["gene"])}</strong>: '
+                f'{_esc(pf.get("status","").replace("_"," ").title())}</li>'
+            )
+        parts.append("</ul></details>")
+
+    # Epistasis
+    if epistasis_results:
+        parts.append("<h3>Gene-Gene Interactions (Epistasis)</h3>")
+        parts.append(
+            '<p class="eli5">Sometimes two genes together have a bigger effect '
+            'than either one alone — like how wind + rain is worse than either by itself.</p>'
+        )
+        risk_colors = {"high": "var(--warn)", "moderate": "var(--accent)", "low": "var(--green)"}
+        for interaction in epistasis_results:
+            color = risk_colors.get(interaction["risk_level"], "var(--accent)")
+            genes_involved = interaction.get("genes_involved", {})
+            genes = ", ".join(genes_involved.keys()) if genes_involved else _esc(interaction.get("name", ""))
+            parts.append(
+                f'<details open><summary>'
+                f'<span class="mag-badge" style="background:{color};color:#fff">'
+                f'{interaction["risk_level"].upper()}</span> '
+                f'<strong>{interaction["name"]}</strong></summary>'
+            )
+            parts.append(f'<p><strong>Genes:</strong> {genes}</p>')
+            parts.append(f'<p><strong>Effect:</strong> {interaction["effect"]}</p>')
+            parts.append(f'<p><strong>Mechanism:</strong> {interaction["mechanism"]}</p>')
+            parts.append("<p><strong>Recommended Actions:</strong></p><ul>")
+            for action in interaction["actions"]:
+                parts.append(f"<li>{action}</li>")
+            parts.append("</ul></details>")
+
+    # Carrier screening
+    if carrier_screen_data and carrier_screen_data.get("total_carriers", 0) > 0:
+        parts.append("<h3>Carrier Screening</h3>")
+        parts.append(
+            '<p class="eli5">Being a "carrier" means you have one copy of a variant '
+            'that only causes disease if you have two copies. You are healthy, but '
+            'if your partner carries the same variant, your children could be affected. '
+            'This matters for family planning.</p>'
+        )
+        parts.append(
+            f'<p>{carrier_screen_data["total_carriers"]} carrier finding(s) organized by disease system.</p>'
+        )
+        for system, carriers in sorted(carrier_screen_data.get("by_system", {}).items()):
+            parts.append(f'<h4>{system}</h4><ul>')
+            for c in carriers:
+                note = f' &mdash; <em>{c["reproductive_note"]}</em>' if c.get("reproductive_note") else ""
+                parts.append(
+                    f'<li><strong>{c["gene"]}</strong> ({c.get("rsid", "")}): '
+                    f'{c["condition"]} <span class="badge">{c["inheritance"]}</span>{note}</li>'
+                )
+            parts.append("</ul>")
+
+        couples = carrier_screen_data.get("couples_relevant", [])
+        if couples:
+            parts.append('<h4>Couples-Relevant Conditions</h4><ul>')
+            for c in couples:
+                parts.append(f'<li><strong>{c["gene"]}</strong>: {c["condition"]}</li>')
+            parts.append("</ul>")
+
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 8: ANCESTRY & POPULATION CONTEXT
+# =============================================================================
+
+def build_ancestry_section(ancestry_results, mt_haplogroup_data=None):
+    """Ancestry proportions + MT haplogroup + population warnings."""
+    if not ancestry_results or ancestry_results.get("markers_found", 0) == 0:
+        if mt_haplogroup_data and mt_haplogroup_data.get("haplogroup") != "Unknown":
+            pass  # still show MT haplogroup
+        else:
+            return "<p>No ancestry-informative markers found in genome data.</p>"
+
+    parts = []
+
+    if ancestry_results and ancestry_results.get("markers_found", 0) > 0:
+        parts.append(
+            '<p class="eli5">Your DNA carries traces of where your ancestors lived '
+            'thousands of years ago. This is a rough estimate based on ~55 markers '
+            'compared to reference populations from around the world.</p>'
+        )
+        parts.append('<div class="chart-grid">')
+        parts.append("<div>")
+        parts.append("<h3>Ancestry Proportions</h3>")
+        parts.append(svg_ancestry_donut(ancestry_results))
+        parts.append("</div>")
+
+        parts.append("<div>")
+        parts.append("<h3>Details</h3>")
+        parts.append(f'<p><strong>Confidence:</strong> {ancestry_results["confidence"].title()} '
+                     f'({ancestry_results["markers_found"]} markers)</p>')
+        parts.append('<table><tr><th>Population</th><th>Proportion</th></tr>')
+        labels = {"EUR": "European", "AFR": "African", "EAS": "East Asian",
+                  "SAS": "South Asian", "AMR": "Admixed American"}
+        for pop in sorted(ancestry_results["proportions"],
+                          key=lambda p: -ancestry_results["proportions"][p]):
+            prop = ancestry_results["proportions"][pop]
+            label = labels.get(pop, pop)
+            parts.append(f'<tr><td>{label} ({pop})</td><td>{prop:.1%}</td></tr>')
+        parts.append("</table>")
+        parts.append("</div>")
+        parts.append("</div>")
+
+    # MT Haplogroup
+    if mt_haplogroup_data and mt_haplogroup_data.get("haplogroup") != "Unknown":
+        mt = mt_haplogroup_data
+        parts.append("<h3>Maternal Haplogroup (Mitochondrial DNA)</h3>")
+        parts.append(
+            '<p class="eli5">Mitochondrial DNA is passed only from mother to child. '
+            'Your haplogroup traces your direct maternal line back thousands of years '
+            'and reveals ancient migration patterns.</p>'
+        )
+        parts.append(
+            f'<div style="text-align:center;margin:1em 0">'
+            f'<span style="font-size:2.5em;font-weight:bold;color:var(--accent)">{mt["haplogroup"]}</span>'
+            f'<br><span style="font-size:.95em">{mt["description"]}</span>'
+            f'<br><span style="font-size:.85em;color:var(--accent2)">'
+            f'{mt["lineage"]} — {mt["confidence"].title()} confidence '
+            f'({mt["markers_found"]}/{mt["markers_tested"]} markers)</span></div>'
+        )
+
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 9: NUTRIGENOMICS DETAIL
+# =============================================================================
+
+def build_nutrigenomics_section(nutrigenomics_data, recommendations_data, insights_data):
+    """Full nutrient-by-nutrient breakdown + lab tests."""
+    parts = []
+
+    # Nutrigenomics data
+    if nutrigenomics_data:
+        parts.append(
+            '<p class="eli5">Nutrigenomics is the science of how your genes affect '
+            'which nutrients you need more (or less) of. This is your personalized '
+            'nutrition guide based on DNA.</p>'
+        )
+        parts.append(f'<p>{_esc(nutrigenomics_data.get("summary", ""))}</p>')
+
+        needs = nutrigenomics_data.get("nutrient_needs", [])
+        if needs:
+            need_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#3b82f6",
+                           "normal": "#22c55e", "caution_excess": "#a855f7"}
+            for n in needs:
+                if n["need_level"] == "normal" and not n["gene_impacts"]:
+                    continue
+                color = need_colors.get(n["need_level"], "var(--border)")
+                parts.append(
+                    f'<details class="rec-card" style="border-left:4px solid {color}">'
+                    f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
+                    f'{_esc(n["need_level"].upper().replace("_", " "))}</span> '
+                    f'<strong>{_esc(n["name"])}</strong></summary>'
+                )
+                parts.append(f'<p>{_esc(n["recommendation"])}</p>')
+                parts.append(f'<p><strong>Food sources:</strong> {_esc(n["food_sources"])}</p>')
+                for gi in n.get("gene_impacts", []):
+                    parts.append(f'<p style="font-size:.9em">— {_esc(gi["gene"])}: {_esc(gi["impact"])}</p>')
+                parts.append("</details>")
+
+        supps = nutrigenomics_data.get("supplement_priorities", [])
+        if supps:
+            parts.append("<h3>Supplement Priority List</h3>")
+            parts.append('<table><tr><th>Nutrient</th><th>Form</th><th>Dose</th><th>Priority</th></tr>')
+            for s in supps:
+                parts.append(
+                    f'<tr><td><strong>{_esc(s["nutrient"])}</strong></td>'
+                    f'<td>{_esc(s["form"])}</td>'
+                    f'<td>{_esc(s["dose"])}</td>'
+                    f'<td>{_esc(s["priority"])}</td></tr>'
+                )
+            parts.append("</table>")
+
+        testing = nutrigenomics_data.get("testing_recommendations", [])
+        if testing:
+            parts.append("<h3>Recommended Lab Tests</h3><ul>")
+            for t in testing:
+                parts.append(f'<li><strong>{_esc(t["nutrient"])}:</strong> {_esc(t["test"])}</li>')
+            parts.append("</ul>")
+
+    # Nutrition narratives from insights
+    narratives = (insights_data or {}).get("narratives", [])
+    nutrition_narrative_ids = {"methylation_choline", "vitamin_d_profile", "iron_profile", "caffeine_metabolism"}
+    nutrition_narratives = [n for n in narratives if n.get("id", "") in nutrition_narrative_ids]
+    if nutrition_narratives:
+        parts.append("<h3>Nutritional Gene Stories</h3>")
+        for n in nutrition_narratives:
+            genes_str = ", ".join(n["matched_genes"])
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid var(--accent2)">'
+                f'<summary><strong>{n["title"]}</strong> '
+                f'<span class="badge" style="background:var(--accent2)">'
+                f'{len(n["matched_genes"])} genes</span></summary>'
+                f'<p><strong>Genes:</strong> {genes_str}</p>'
+                f'<p>{n["narrative"]}</p>'
+                f'<p><strong>What this means for you:</strong> {n["practical"]}</p>'
+            )
+            if n.get("references"):
+                parts.append('<div class="paper-refs">References: ')
+                ref_links = []
+                for ref in n["references"]:
+                    if "PMID:" in ref:
+                        pmid = ref.split("PMID:")[1].strip().rstrip(",.")
+                        ref_links.append(
+                            f'<a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" '
+                            f'target="_blank" rel="noopener">{ref}</a>'
+                        )
+                    else:
+                        ref_links.append(ref)
+                parts.append(" | ".join(ref_links) + "</div>")
+            parts.append("</details>")
+
+    if not parts:
+        return "<p>No nutrigenomics data available.</p>"
+
+    return "\n".join(parts)
+
+
+# =============================================================================
+# SECTION 10: DATA QUALITY
 # =============================================================================
 
 def build_quality_section(metrics):
-    """Build HTML for data quality section."""
+    """Call rate, het rate, coverage."""
     if not metrics:
         return "<p>No quality metrics available.</p>"
 
     parts = []
+    parts.append(
+        '<p class="eli5">Before trusting any genetic result, we need to check how '
+        'good the raw data is. Think of this like checking if a photo is in focus '
+        'before reading what it says.</p>'
+    )
 
     call_pct = metrics.get("call_rate", 0) * 100
     if call_pct >= 99:
@@ -807,7 +1550,6 @@ def build_quality_section(metrics):
         f'</table>'
     )
 
-    # Chromosome bar chart
     chroms = metrics.get("chromosomes", {})
     autosomal = sorted(
         [(ch, cnt) for ch, cnt in chroms.items() if ch.isdigit()],
@@ -841,553 +1583,202 @@ def build_quality_section(metrics):
     return "\n".join(parts)
 
 
-def build_blood_type_section(blood_type):
-    """Build HTML for blood type section."""
-    if not blood_type or blood_type.get("blood_type") == "Unknown":
-        return "<p>Insufficient SNP data for blood type prediction.</p>"
+# =============================================================================
+# SECTION 11: DOCTOR CARD
+# =============================================================================
 
+def build_doctor_card(recommendations_data, star_alleles_data, apoe_data, acmg_data):
+    """Print-optimized doctor card with key clinical findings."""
     parts = []
-    bt = blood_type["blood_type"]
-    conf = blood_type["confidence"].title()
+    parts.append('<div style="border:2px solid var(--accent);border-radius:8px;padding:1.5em">')
+    parts.append('<h3 style="margin-top:0;color:var(--accent)">Patient Genetic Summary</h3>')
 
-    parts.append(
-        f'<div style="text-align:center;margin:1em 0">'
-        f'<span style="font-size:3em;font-weight:bold;color:var(--warn)">{bt}</span>'
-        f'<br><span style="font-size:.9em;color:var(--accent2)">'
-        f'Confidence: {conf}</span></div>'
-    )
+    priorities = (recommendations_data or {}).get("priorities", [])
+    high_priorities = [p for p in priorities if p["priority"] == "high"]
+    if high_priorities:
+        parts.append("<h4>High-Priority Conditions</h4>")
+        parts.append('<table><tr><th>Condition</th><th>Doctor Note</th></tr>')
+        for p in high_priorities:
+            note = p.get("doctor_note", "") or p.get("why", "")
+            parts.append(
+                f'<tr><td><strong>{p["title"]}</strong></td>'
+                f'<td>{note}</td></tr>'
+            )
+        parts.append("</table>")
 
-    parts.append(
-        f'<table><tr><th>Component</th><th>Result</th></tr>'
-        f'<tr><td>ABO Group</td><td><strong>{blood_type["abo"]}</strong></td></tr>'
-        f'<tr><td>Rh Factor</td><td><strong>{blood_type["rh"]}</strong></td></tr>'
-        f'</table>'
-    )
+    referrals = (recommendations_data or {}).get("specialist_referrals", [])
+    if referrals:
+        parts.append("<h4>Specialist Referrals</h4>")
+        urgency_colors = {"soon": "#ef4444", "routine": "#f59e0b"}
+        for ref in referrals:
+            color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
+            parts.append(
+                f'<p><strong>{ref["specialist"]}</strong>: {ref["reason"]} '
+                f'<span class="mag-badge" style="background:{color};color:#fff">'
+                f'{ref.get("urgency", "routine")}</span></p>'
+            )
 
-    if blood_type.get("details"):
-        parts.append("<p><strong>SNPs analyzed:</strong></p><ul>")
-        for d in blood_type["details"]:
-            parts.append(f"<li><code>{d}</code></li>")
-        parts.append("</ul>")
+    if star_alleles_data:
+        parts.append("<h4>Pharmacogenomic Profile</h4>")
+        parts.append('<table><tr><th>Gene</th><th>Diplotype</th><th>Phenotype</th></tr>')
+        for gene, r in star_alleles_data.items():
+            phenotype = r["phenotype"].replace("_", " ").title()
+            parts.append(
+                f'<tr><td><strong>{gene}</strong></td>'
+                f'<td><code>{r["diplotype"]}</code></td>'
+                f'<td>{phenotype}</td></tr>'
+            )
+        parts.append("</table>")
 
-    parts.append(
-        '<p style="font-size:.85em;color:var(--accent2)">'
-        'Blood type from SNP data has limitations (rs8176719 is an indel, '
-        'often not genotyped by 23andMe). Confirm with clinical blood typing.</p>'
-    )
-
-    return "\n".join(parts)
-
-
-def build_mt_haplogroup_section(mt_result):
-    """Build HTML for mitochondrial haplogroup section."""
-    if not mt_result or mt_result.get("haplogroup") == "Unknown":
-        return "<p>Insufficient mitochondrial SNP data for haplogroup estimation.</p>"
-
-    parts = []
-    hg = mt_result["haplogroup"]
-    desc = mt_result["description"]
-    lineage = mt_result["lineage"]
-    conf = mt_result["confidence"].title()
-
-    parts.append(
-        f'<div style="text-align:center;margin:1em 0">'
-        f'<span style="font-size:2.5em;font-weight:bold;color:var(--accent)">{hg}</span>'
-        f'<br><span style="font-size:.95em">{desc}</span>'
-        f'<br><span style="font-size:.85em;color:var(--accent2)">'
-        f'{lineage} — {conf} confidence '
-        f'({mt_result["markers_found"]}/{mt_result["markers_tested"]} markers)</span></div>'
-    )
-
-    parts.append(
-        '<p style="font-size:.85em;color:var(--accent2)">'
-        'Mitochondrial DNA is inherited exclusively from the mother. '
-        'Your haplogroup traces the direct maternal line and reflects '
-        'ancient human migration patterns.</p>'
-    )
-
-    return "\n".join(parts)
-
-
-def build_star_alleles_section(star_results):
-    """Build HTML for pharmacogenomic star alleles section."""
-    if not star_results:
-        return "<p>No star allele data available.</p>"
-
-    parts = []
-    parts.append(
-        '<p style="font-size:.9em;color:var(--accent2)">'
-        'CPIC-style star allele calling for key drug-metabolizing enzymes. '
-        'Share results with prescribing physicians.</p>'
-    )
-
-    # Gauge row for metabolizer phenotypes
-    parts.append('<div class="gauge-row" style="justify-content:center">')
-    phenotype_levels = {
-        "poor": 0, "intermediate": 0.5, "normal": 1,
-        "rapid": 1.5, "ultrarapid": 2, "Unknown": 1,
-    }
-    phenotype_colors = {
-        "poor": "#ef4444", "intermediate": "#f59e0b", "normal": "#22c55e",
-        "rapid": "#3b82f6", "ultrarapid": "#8b5cf6", "Unknown": "#94a3b8",
-    }
-    for gene, r in star_results.items():
-        level = phenotype_levels.get(r["phenotype"], 1)
-        color = phenotype_colors.get(r["phenotype"], "#94a3b8")
-        label = f'{gene}: {r["phenotype"].title()}'
-        parts.append(svg_metabolism_gauge(gene, level, color))
-    parts.append("</div>")
-
-    # Summary table
-    parts.append(
-        '<table><tr><th>Gene</th><th>Diplotype</th><th>Phenotype</th>'
-        '<th>SNPs</th><th>Note</th></tr>'
-    )
-    for gene, r in star_results.items():
-        phenotype = r["phenotype"].replace("_", " ").title()
-        note = r["clinical_note"][:100]
+    if apoe_data and apoe_data.get("apoe_type") != "Unknown":
+        risk_colors = {
+            "reduced": "var(--green)", "average": "#3b82f6",
+            "moderate": "#f59e0b", "elevated": "#f97316", "high": "#ef4444",
+        }
+        color = risk_colors.get(apoe_data.get("risk_level", ""), "var(--accent2)")
         parts.append(
-            f'<tr><td><strong>{gene}</strong></td>'
-            f'<td><code>{r["diplotype"]}</code></td>'
-            f'<td>{phenotype}</td>'
-            f'<td>{r["snps_found"]}/{r["snps_total"]}</td>'
-            f'<td style="font-size:.8em">{note}</td></tr>'
+            f'<h4>APOE Status</h4>'
+            f'<p><strong>{apoe_data["apoe_type"]}</strong> — '
+            f'<span class="mag-badge" style="background:{color};color:#fff">'
+            f'{apoe_data["risk_level"].title()} Risk</span></p>'
         )
-    parts.append("</table>")
 
-    return "\n".join(parts)
-
-
-def build_apoe_section(apoe_data):
-    """Build HTML for APOE haplotype section."""
-    if not apoe_data or apoe_data.get("apoe_type") == "Unknown":
-        return "<p>Insufficient SNP data for APOE haplotype determination.</p>"
-
-    risk_colors = {
-        "reduced": "#22c55e", "average": "#3b82f6", "moderate": "#f59e0b",
-        "elevated": "#f97316", "high": "#ef4444", "unknown": "#94a3b8",
-    }
-    color = risk_colors.get(apoe_data["risk_level"], "#94a3b8")
-
-    parts = []
-    parts.append(
-        f'<div style="text-align:center;margin:1em 0">'
-        f'<span style="font-size:2em;font-weight:bold;color:{color}">'
-        f'{apoe_data["apoe_type"]}</span><br>'
-        f'<span class="badge" style="background:{color}">'
-        f'{apoe_data["risk_level"].title()} Alzheimer\'s Risk</span>'
-        f'</div>'
-    )
-
-    if apoe_data.get("alzheimer_or") is not None:
-        parts.append(f'<p><strong>Alzheimer\'s odds ratio:</strong> {apoe_data["alzheimer_or"]}x</p>')
-    parts.append(f'<p>{apoe_data["description"]}</p>')
-    parts.append(
-        '<p style="font-size:.85em;color:var(--accent2)">'
-        'APOE is the strongest common genetic risk factor for late-onset Alzheimer\'s. '
-        'Risk is modifiable through cardiovascular health, exercise, sleep, and cognitive engagement.</p>'
-    )
-    return "\n".join(parts)
-
-
-def build_acmg_section(acmg_data):
-    """Build HTML for ACMG secondary findings section."""
-    if not acmg_data:
-        return "<p>ACMG screening not available.</p>"
-
-    parts = []
-    parts.append(
-        f'<p style="font-size:.9em;color:var(--accent2)">'
-        f'Screened {acmg_data["genes_screened"]} medically actionable genes from the '
-        f'ACMG SF v3.2 recommendation list.</p>'
-    )
-
-    findings = acmg_data.get("acmg_findings", [])
-    if not findings:
-        parts.append(
-            '<div class="doctor-callout" style="border-color:var(--green)">'
-            'No pathogenic/likely pathogenic variants found in ACMG genes.</div>'
-        )
-    else:
-        parts.append(
-            f'<div class="doctor-callout" style="border-color:var(--warn)">'
-            f'<strong>{len(findings)} variant(s)</strong> found in '
-            f'{acmg_data["genes_with_variants"]} ACMG gene(s). '
-            f'Genetic counseling recommended.</div>'
-        )
-        parts.append('<table><tr><th>Gene</th><th>Condition</th>'
-                     '<th>Genotype</th><th>Stars</th><th>Actionability</th></tr>')
-        for f in findings:
+    acmg_findings = (acmg_data or {}).get("acmg_findings", [])
+    if acmg_findings:
+        parts.append("<h4>ACMG Medically Actionable Findings</h4>")
+        parts.append('<table><tr><th>Gene</th><th>Condition</th><th>Actionability</th></tr>')
+        for f in acmg_findings:
             gene = f.get("gene", "Unknown")
             condition = (f.get("traits") or "Unknown").split(";")[0].strip()
-            genotype = f.get("user_genotype", "")
-            stars = f.get("gold_stars", 0)
             action = f.get("acmg_actionability", "")
             parts.append(
                 f'<tr><td><strong>{gene}</strong></td>'
                 f'<td>{condition}</td>'
-                f'<td><code>{genotype}</code></td>'
-                f'<td>{"&#9733;" * stars}{"&#9734;" * (4 - stars)}</td>'
-                f'<td style="font-size:.85em">{action}</td></tr>'
+                f'<td>{action}</td></tr>'
+            )
+        parts.append("</table>")
+        parts.append(
+            '<div class="doctor-callout" style="border-color:var(--warn)">'
+            'ACMG actionable findings detected. Refer to genetic counselor.</div>'
+        )
+
+    schedule = (recommendations_data or {}).get("monitoring_schedule", [])
+    if schedule:
+        parts.append("<h4>Recommended Monitoring</h4>")
+        parts.append('<table><tr><th>Test</th><th>Frequency</th></tr>')
+        for m in schedule:
+            parts.append(
+                f'<tr><td>{m["test"]}</td><td>{m["frequency"]}</td></tr>'
             )
         parts.append("</table>")
 
-    return "\n".join(parts)
+    parts.append("</div>")
 
-
-def build_carrier_screen_section(carrier_data):
-    """Build HTML for carrier screening section."""
-    if not carrier_data or carrier_data.get("total_carriers", 0) == 0:
-        return "<p>No carrier findings to report.</p>"
-
-    parts = []
-    parts.append(
-        f'<p>{carrier_data["total_carriers"]} carrier finding(s) organized by disease system. '
-        f'Relevant for reproductive planning.</p>'
-    )
-
-    for system, carriers in sorted(carrier_data.get("by_system", {}).items()):
-        parts.append(f'<h3>{system}</h3><ul>')
-        for c in carriers:
-            note = f' &mdash; <em>{c["reproductive_note"]}</em>' if c.get("reproductive_note") else ""
-            parts.append(
-                f'<li><strong>{c["gene"]}</strong> ({c.get("rsid", "")}): '
-                f'{c["condition"]} <span class="badge">{c["inheritance"]}</span>{note}</li>'
-            )
-        parts.append("</ul>")
-
-    couples = carrier_data.get("couples_relevant", [])
-    if couples:
-        parts.append('<h3>Couples-Relevant Conditions</h3>'
-                     '<p>Commonly included in expanded carrier screening panels:</p><ul>')
-        for c in couples:
-            parts.append(f'<li><strong>{c["gene"]}</strong>: {c["condition"]}</li>')
-        parts.append("</ul>")
+    if not any([high_priorities, referrals, star_alleles_data, acmg_findings]):
+        return "<p>No significant clinical findings for doctor review.</p>"
 
     return "\n".join(parts)
 
 
-def build_traits_section(traits_data):
-    """Build HTML for predicted traits section."""
-    if not traits_data:
-        return "<p>No trait predictions available.</p>"
+# =============================================================================
+# SECTION 12: REFERENCES & DATABASE LINKS
+# =============================================================================
 
-    trait_labels = {
-        "eye_color": "Eye Color",
-        "hair_color": "Hair Color",
-        "earwax_type": "Earwax Type",
-        "freckling": "Freckling / Sun Sensitivity",
-    }
-
-    parts = []
-    parts.append('<table><tr><th>Trait</th><th>Prediction</th>'
-                 '<th>Confidence</th><th>Description</th></tr>')
-    for trait_id, trait in traits_data.items():
-        label = trait_labels.get(trait_id, trait_id.replace("_", " ").title())
-        conf_color = {"high": "var(--green)", "moderate": "var(--accent)",
-                      "low": "var(--warn)"}.get(trait["confidence"], "inherit")
-        parts.append(
-            f'<tr><td><strong>{label}</strong></td>'
-            f'<td>{trait["prediction"]}</td>'
-            f'<td style="color:{conf_color}">{trait["confidence"].title()}</td>'
-            f'<td style="font-size:.85em">{trait["description"]}</td></tr>'
-        )
-    parts.append("</table>")
-    return "\n".join(parts)
-
-
-def build_insights_section(insights_data):
-    """Build HTML for research-backed insights section."""
-    if not insights_data:
-        return "<p>Insights module not run.</p>"
-
+def build_references(findings):
+    """All rsID links, paper citations, methodology."""
     parts = []
 
-    # Genome highlights
-    highlights = insights_data.get("genome_highlights", [])
-    if highlights:
-        parts.append("<h3>Your Genome Highlights</h3>")
-        parts.append('<p style="font-size:.9em;color:var(--accent2)">'
-                     'The most notable findings from your DNA.</p>')
-        type_colors = {
-            "protective": "var(--green)",
-            "clinical": "var(--warn)",
-            "pharmacogenomic": "var(--accent)",
-            "lifestyle": "var(--accent2)",
-        }
-        for h in highlights:
-            color = type_colors.get(h.get("type", ""), "var(--border)")
+    # Curated papers
+    parts.append("<h3>Key Papers</h3><ul>")
+    seen = set()
+    for rsid, refs in PAPER_REFS.items():
+        for r in refs:
+            key = r["pmid"]
+            if key in seen:
+                continue
+            seen.add(key)
             parts.append(
-                f'<div class="finding-card" style="border-left-color:{color}">'
-                f'<strong>{h["title"]}</strong><br>'
-                f'<span style="font-size:.9em">{h["detail"]}</span></div>'
+                f'<li><a href="https://pubmed.ncbi.nlm.nih.gov/{r["pmid"]}/" '
+                f'target="_blank" rel="noopener">{r["title"]}</a> '
+                f'(PMID: {r["pmid"]}, {r["year"]})</li>'
             )
+    parts.append("</ul>")
 
-    # Multi-gene narratives
-    narratives = insights_data.get("narratives", [])
-    if narratives:
-        parts.append("<h3>Multi-Gene Stories</h3>")
-        for n in narratives:
-            genes_str = ", ".join(n["matched_genes"])
-            parts.append(
-                f'<details open class="rec-card" style="border-left:4px solid var(--accent2)">'
-                f'<summary><strong>{n["title"]}</strong> '
-                f'<span class="badge" style="background:var(--accent2)">'
-                f'{len(n["matched_genes"])} genes</span></summary>'
-                f'<p><strong>Genes:</strong> {genes_str}</p>'
-                f'<p>{n["narrative"]}</p>'
-                f'<p><strong>What this means for you:</strong> {n["practical"]}</p>'
-            )
-            if n.get("references"):
-                parts.append('<div class="paper-refs">References: ')
-                ref_links = []
-                for ref in n["references"]:
-                    # Extract PMID if present
-                    if "PMID:" in ref:
-                        pmid = ref.split("PMID:")[1].strip().rstrip(",.")
-                        ref_links.append(
-                            f'<a href="https://pubmed.ncbi.nlm.nih.gov/{pmid}/" '
-                            f'target="_blank" rel="noopener">{ref}</a>'
-                        )
-                    else:
-                        ref_links.append(ref)
-                parts.append(" | ".join(ref_links) + "</div>")
-            parts.append("</details>")
-
-    # Single-gene insights
-    single = insights_data.get("single_gene", [])
-    if single:
-        parts.append("<h3>Gene-Specific Insights</h3>")
-        for entry in single:
-            parts.append(
-                f'<details class="rec-card">'
-                f'<summary><strong>{entry["gene"]}</strong> — {entry["title"]}</summary>'
-                f'<p>{entry["finding"]}</p>'
-                f'<p><strong>Practical:</strong> {entry["practical"]}</p>'
-                f'<div class="paper-refs">Ref: {entry["reference"]}</div>'
-                f'</details>'
-            )
-
-    # Protective findings
-    protective = insights_data.get("protective_findings", [])
-    if protective:
-        parts.append("<h3>Protective Findings</h3>")
-        parts.append('<div class="good-news-grid">')
-        for p in protective:
-            status = p["status"].replace("_", " ").title()
-            parts.append(
-                f'<div class="good-news-card">'
-                f'<strong>{p["gene"]}</strong> ({status}): {p["title"]}</div>'
-            )
+    # All rsID links
+    rsids = sorted(set(f.get("rsid", "") for f in findings if f.get("rsid", "").startswith("rs")))
+    if rsids:
+        parts.append("<h3>Database Links for All Analyzed rsIDs</h3>")
+        parts.append('<div class="rsid-grid">')
+        for rsid in rsids:
+            ref_html = paper_refs_html(rsid)
+            parts.append(f"<div><code>{rsid}</code> {db_links_html(rsid)}{ref_html}</div>")
         parts.append("</div>")
 
-    return "\n".join(parts)
-
-
-def build_eli5(findings):
-    """Build ELI5 (explain like I'm 5) summary."""
-    # Detect key topics from data
-    has_bp = any(f["gene"] in ("AGTR1", "AGT", "ADRB1", "ACE", "GNB3")
-                 for f in findings if f.get("magnitude", 0) >= 1)
-    has_drug = any(f["gene"].startswith("CYP") for f in findings)
-    has_lung = any(f["gene"] == "SERPINA1" for f in findings)
-    has_caffeine = any(f.get("category") == "Caffeine Response" for f in findings)
-
-    parts = []
+    # Methodology
+    parts.append("<h3>Methodology &amp; Disclaimers</h3>")
     parts.append(
-        "<p>Your body has a recipe book called DNA. We read yours and "
-        "found some interesting things. Here's the simple version:</p>"
+        "<ul>"
+        "<li>Lifestyle findings from curated SNP database (~260 variants)</li>"
+        "<li>Disease risk from ClinVar (~341K variants scanned)</li>"
+        "<li>Drug interactions from PharmGKB clinical annotations</li>"
+        "<li>Polygenic risk scores from published GWAS (8 conditions)</li>"
+        "<li>Star allele calling for 6 pharmacogenes (CPIC-style)</li>"
+        "<li>Only true SNPs analyzed (indels filtered to prevent false positives)</li>"
+        "<li>This report is for <strong>informational purposes only</strong> — not a clinical diagnosis</li>"
+        "<li>Genetic associations are probabilistic, not deterministic</li>"
+        "<li>Always consult healthcare providers before making medical decisions</li>"
+        "</ul>"
     )
-
-    items = []
-    if has_lung:
-        items.append(
-            "Your lungs have a little less of a protective shield than most people "
-            "(a protein called AAT). This means taking extra care of your lungs "
-            "is really important — no smoke, clean air, and regular check-ups."
-        )
-    if has_bp:
-        items.append(
-            "Several of your genes point to blood pressure wanting to run a bit "
-            "high. The good news: eating less salt, exercising, and monitoring "
-            "your blood pressure can make a big difference."
-        )
-    if has_drug:
-        items.append(
-            "Your body processes some medicines differently than average. If a "
-            "doctor ever prescribes you warfarin (a blood thinner) or certain "
-            "other drugs, they should know you may need a smaller dose."
-        )
-    if has_caffeine:
-        items.append(
-            "Coffee and caffeine stick around in your body longer than most "
-            "people, and you're also more likely to feel jittery from it. "
-            "Morning-only coffee is a good rule for you."
-        )
-
-    # Protective good news
-    items.append(
-        "Good news: you carry protective variants that lower your risk for "
-        "Alzheimer's disease, nicotine addiction, and coronary heart disease."
-    )
-
-    parts.append("<ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>")
-    parts.append(
-        '<p class="doctor-callout">Show this report to your doctor! '
-        "They can help you use this information wisely.</p>"
-    )
-    return "\n".join(parts)
-
-
-def build_dashboard(findings):
-    """Build dashboard section with SVG charts."""
-    parts = []
-
-    parts.append('<div class="chart-grid">')
-    parts.append("<div>")
-    parts.append("<h3>Impact Distribution</h3>")
-    parts.append(svg_impact_bar(findings))
-    parts.append("</div>")
-
-    parts.append("<div>")
-    parts.append("<h3>Findings by Category</h3>")
-    parts.append(svg_category_donut(findings))
-    parts.append("</div>")
-    parts.append("</div>")  # end chart-grid
-
-    parts.append("<h3>Risk Overview</h3>")
-    parts.append(svg_risk_cards(""))
-
-    # Drug metabolism gauges
-    parts.append("<h3>Drug Metabolism</h3>")
-    parts.append('<div class="gauge-row">')
-
-    # Determine CYP2C9 level from findings
-    cyp2c9_level = 1  # default intermediate
-    for f in findings:
-        if f["gene"] == "CYP2C9":
-            if f["status"] in ("poor", "significantly_reduced"):
-                cyp2c9_level = 0
-            elif f["status"] in ("intermediate",):
-                cyp2c9_level = 1
-            else:
-                cyp2c9_level = 2
-
-    cyp1a2_level = 1
-    for f in findings:
-        if f["gene"] == "CYP1A2":
-            if f["status"] in ("slow",):
-                cyp1a2_level = 0
-            elif f["status"] in ("intermediate",):
-                cyp1a2_level = 1
-            else:
-                cyp1a2_level = 2
-
-    parts.append(svg_metabolism_gauge("CYP2C9", cyp2c9_level, "#ef4444"))
-    parts.append(svg_metabolism_gauge("CYP1A2", cyp1a2_level, "#3b82f6"))
-    parts.append("</div>")
 
     return "\n".join(parts)
 
 
+# =============================================================================
+# BACKWARD-COMPAT WRAPPERS (used by tests)
+# =============================================================================
+
+def build_prs_section(prs_results):
+    """Build HTML for polygenic risk scores (test-compatible wrapper)."""
+    if not prs_results:
+        return "<p>No PRS data available.</p>"
+    return build_disease_risk_overview(prs_results, None, None)
 
 
-
-def build_lifestyle_findings(findings):
-    """Build all lifestyle findings grouped by category with collapsible sections."""
-    categories = sorted(set(f.get("category", "Other") for f in findings))
+def build_epistasis_section(epistasis_results):
+    """Build HTML for gene-gene interactions (test-compatible wrapper)."""
+    if not epistasis_results:
+        return "<p>No significant gene-gene interactions detected.</p>"
     parts = []
-
-    for cat in categories:
-        cat_findings = sorted(
-            [f for f in findings if f.get("category") == cat],
-            key=lambda x: -x.get("magnitude", 0),
-        )
-        if not cat_findings:
-            continue
-
-        cat_id = cat.lower().replace(" ", "-").replace("/", "-")
+    risk_colors = {"high": "var(--warn)", "moderate": "var(--accent)", "low": "var(--green)"}
+    for interaction in epistasis_results:
+        color = risk_colors.get(interaction["risk_level"], "var(--accent)")
+        genes_involved = interaction.get("genes_involved", {})
+        genes = ", ".join(genes_involved.keys()) if genes_involved else _esc(interaction.get("name", ""))
         parts.append(
-            f'<details class="category-section" open>'
-            f'<summary><h3 class="inline-h3">{cat} '
-            f'<span class="badge">{len(cat_findings)}</span></h3></summary>'
+            f'<details open><summary>'
+            f'<span class="mag-badge" style="background:{color};color:#fff">'
+            f'{interaction["risk_level"].upper()}</span> '
+            f'<strong>{interaction["name"]}</strong></summary>'
         )
-
-        for f in cat_findings:
-            mag = f.get("magnitude", 0)
-            mag_class = "high" if mag >= 3 else "mod" if mag == 2 else "low" if mag == 1 else "info"
-            rsid = _esc(f.get("rsid", ""))
-            gene = _esc(f.get("gene", "Unknown"))
-            genotype = _esc(f.get("genotype", ""))
-            status = _esc(f.get("status", "").replace("_", " ").title())
-            desc = _esc(f.get("description", ""))
-            note = _esc(f.get("note", ""))
-
-            parts.append(f'<div class="finding-card {mag_class}">')
-            parts.append(
-                f'<div class="finding-header">'
-                f'<span class="mag-badge mag-{mag_class}">{mag}/6</span> '
-                f'<strong>{gene}</strong> '
-                f'<code>{rsid}</code> — '
-                f'<code>{genotype}</code> — {status}'
-                f'</div>'
-            )
-            parts.append(f'<p class="finding-desc">{desc}</p>')
-            if note:
-                parts.append(f'<p class="finding-note">Note: {note}</p>')
-            # Population frequency annotation
-            freq = f.get("freq")
-            if freq and isinstance(freq, dict):
-                freq_labels = {"EUR": "European", "AFR": "African",
-                               "EAS": "East Asian", "SAS": "South Asian", "AMR": "American"}
-                freq_parts = [f'{freq_labels.get(p, p)}: {v:.0%}'
-                              for p, v in sorted(freq.items(), key=lambda x: -x[1])
-                              if v > 0.001]
-                if freq_parts:
-                    parts.append(
-                        f'<p class="finding-note" style="font-size:.8em">'
-                        f'Population freq: {" · ".join(freq_parts)}</p>'
-                    )
-            parts.append(db_links_html(rsid))
-            parts.append(paper_refs_html(rsid))
-            parts.append("</div>")
-
-        parts.append("</details>")
-
-    # Pathway analysis
-    from ..clinical_context import PATHWAYS
-    parts.append("<h3>Pathway Analysis</h3>")
-    gene_map = {f["gene"]: f for f in findings}
-
-    for pathway_name, pathway_genes in PATHWAYS.items():
-        pathway_findings = [gene_map[g] for g in pathway_genes if g in gene_map]
-        if not pathway_findings:
-            continue
-
-        parts.append(f'<details><summary><strong>{_esc(pathway_name)}</strong></summary><ul>')
-        for pf in pathway_findings:
-            mag = pf.get("magnitude", 0)
-            mag_class = "high" if mag >= 3 else "mod" if mag == 2 else "low" if mag == 1 else "info"
-            parts.append(
-                f'<li><span class="mag-dot mag-{mag_class}"></span> '
-                f'<strong>{_esc(pf["gene"])}</strong>: '
-                f'{_esc(pf.get("status","").replace("_"," ").title())}</li>'
-            )
+        parts.append(f'<p><strong>Genes:</strong> {genes}</p>')
+        parts.append(f'<p><strong>Effect:</strong> {interaction["effect"]}</p>')
+        parts.append(f'<p><strong>Mechanism:</strong> {interaction["mechanism"]}</p>')
+        parts.append("<p><strong>Recommended Actions:</strong></p><ul>")
+        for action in interaction["actions"]:
+            parts.append(f"<li>{action}</li>")
         parts.append("</ul></details>")
-
     return "\n".join(parts)
 
 
 def build_disease_risk(disease_findings):
-    """Build disease risk section from ClinVar findings."""
+    """Build disease risk section from ClinVar findings (test-compatible wrapper)."""
     if not disease_findings:
         return "<p>No ClinVar disease risk data available.</p>"
 
     parts = []
     parts.append(
         '<p style="font-size:.9em;color:var(--accent2)">'
-        'Variants identified by scanning your genome against the ClinVar database. '
-        'Only true SNPs are analyzed (indels filtered to prevent false positives).</p>'
+        'Variants identified by scanning your genome against the ClinVar database.</p>'
     )
 
     def _variant_table(variants, label, color):
@@ -1417,9 +1808,6 @@ def build_disease_risk(disease_findings):
                 f'<td>{zyg}</td></tr>'
             )
         rows.append("</table>")
-        if len(variants) > 50:
-            rows.append(f'<p style="font-size:.85em;color:var(--accent2)">'
-                        f'Showing 50 of {len(variants)} variants.</p>')
         return "\n".join(rows)
 
     parts.append(_variant_table(
@@ -1431,7 +1819,6 @@ def build_disease_risk(disease_findings):
     parts.append(_variant_table(
         disease_findings.get("drug_response", []), "Drug Response Variants", "#3b82f6"))
 
-    # Protective variants as good-news cards
     protective = disease_findings.get("protective", [])
     if protective:
         parts.append(
@@ -1451,54 +1838,48 @@ def build_disease_risk(disease_findings):
     return "\n".join(parts)
 
 
-def build_drug_gene(findings, pharmgkb_findings):
-    """Build drug-gene interaction section."""
+def build_monitoring(recommendations_data):
+    """Build monitoring schedule (test-compatible wrapper)."""
+    schedule = (recommendations_data or {}).get("monitoring_schedule", [])
+    if not schedule:
+        return "<p>No monitoring tests recommended based on your genetic profile.</p>"
     parts = []
-
-    if pharmgkb_findings:
-        parts.append("<h3>PharmGKB Annotations</h3>")
-        parts.append('<table><tr><th>Gene</th><th>RSID</th><th>Level</th>'
-                     '<th>Drugs</th><th>Genotype</th></tr>')
-        for p in pharmgkb_findings:
-            parts.append(
-                f'<tr><td><strong>{_esc(p["gene"])}</strong></td>'
-                f'<td><code>{_esc(p["rsid"])}</code></td>'
-                f'<td>{_esc(p["level"])}</td>'
-                f'<td>{_esc(p["drugs"])}</td>'
-                f'<td><code>{_esc(p["genotype"])}</code></td></tr>'
-            )
-        parts.append("</table>")
-
+    freq_colors = {
+        "weekly": "#ef4444", "monthly": "#f97316", "quarterly": "#f59e0b",
+        "semi-annually": "#3b82f6", "annually": "#3b82f6", "baseline": "#22c55e",
+    }
+    parts.append('<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>')
+    for m in schedule:
+        freq = m.get("frequency", "").lower()
+        color = next((c for key, c in freq_colors.items() if key in freq), "var(--accent2)")
+        parts.append(
+            f'<tr><td><strong>{m["test"]}</strong></td>'
+            f'<td><span class="mag-badge" style="background:{color};color:#fff">'
+            f'{m["frequency"]}</span></td>'
+            f'<td>{m["reason"]}</td></tr>'
+        )
+    parts.append("</table>")
     parts.append(
-        '<div class="doctor-callout">Share this entire drug-gene section with '
-        "every prescribing physician. Print it or save as PDF.</div>"
+        '<div class="doctor-callout" style="border-color:var(--accent)">'
+        'Print this monitoring schedule and bring it to your next doctor visit.</div>'
     )
-
     return "\n".join(parts)
 
 
 def build_nutrition_section(recommendations_data, insights_data):
-    """Build nutrition section from recommendations priorities and insight narratives."""
+    """Build nutrition section (test-compatible wrapper)."""
     if not recommendations_data and not insights_data:
         return "<p>No nutrition data available.</p>"
-
     parts = []
-    nutrition_groups = {
-        "methylation", "iron_metabolism", "caffeine", "metabolic_diabetes",
-        "nutrition", "vitamin_d", "iron",
-    }
-    nutrition_narrative_ids = {
-        "methylation_choline", "vitamin_d_profile", "iron_profile",
-        "caffeine_metabolism",
-    }
-
-    # Filter nutrition-relevant priorities
+    nutrition_groups = {"methylation", "iron_metabolism", "caffeine", "metabolic_diabetes",
+                        "nutrition", "vitamin_d", "iron"}
+    nutrition_narrative_ids = {"methylation_choline", "vitamin_d_profile", "iron_profile",
+                               "caffeine_metabolism"}
     priorities = (recommendations_data or {}).get("priorities", [])
     nutrition_priorities = [
         p for p in priorities
         if any(g in p.get("id", "").lower() for g in nutrition_groups)
     ]
-
     if nutrition_priorities:
         parts.append(
             '<p style="font-size:.9em;color:var(--accent2)">'
@@ -1525,13 +1906,8 @@ def build_nutrition_section(recommendations_data, insights_data):
                     parts.append(f"<li>{ca}</li>")
                 parts.append("</ul>")
             parts.append("</details>")
-
-    # Matching insight narratives
     narratives = (insights_data or {}).get("narratives", [])
-    nutrition_narratives = [
-        n for n in narratives
-        if n.get("id", "") in nutrition_narrative_ids
-    ]
+    nutrition_narratives = [n for n in narratives if n.get("id", "") in nutrition_narrative_ids]
     if nutrition_narratives:
         parts.append("<h3>Nutritional Gene Stories</h3>")
         for n in nutrition_narratives:
@@ -1546,69 +1922,18 @@ def build_nutrition_section(recommendations_data, insights_data):
                 f'<p><strong>What this means for you:</strong> {n["practical"]}</p>'
                 f'</details>'
             )
-
     if not parts:
         parts.append("<p>No nutrition-specific genetic findings identified.</p>")
-
-    return "\n".join(parts)
-
-
-def build_monitoring(recommendations_data):
-    """Build monitoring schedule section from recommendations.monitoring_schedule."""
-    schedule = (recommendations_data or {}).get("monitoring_schedule", [])
-    if not schedule:
-        return "<p>No monitoring tests recommended based on your genetic profile.</p>"
-
-    parts = []
-    parts.append(
-        '<p style="font-size:.9em;color:var(--accent2)">'
-        'Consolidated and deduplicated monitoring schedule based on all genetic findings.</p>'
-    )
-
-    freq_colors = {
-        "weekly": "#ef4444", "monthly": "#f97316", "quarterly": "#f59e0b",
-        "semi-annually": "#3b82f6", "annually": "#3b82f6", "baseline": "#22c55e",
-    }
-
-    parts.append(
-        '<table><tr><th>Test</th><th>Frequency</th><th>Reason</th></tr>'
-    )
-    for m in schedule:
-        freq = m.get("frequency", "").lower()
-        color = next(
-            (c for key, c in freq_colors.items() if key in freq),
-            "var(--accent2)"
-        )
-        parts.append(
-            f'<tr><td><strong>{m["test"]}</strong></td>'
-            f'<td><span class="mag-badge" style="background:{color};color:#fff">'
-            f'{m["frequency"]}</span></td>'
-            f'<td>{m["reason"]}</td></tr>'
-        )
-    parts.append("</table>")
-
-    parts.append(
-        '<div class="doctor-callout" style="border-color:var(--accent)">'
-        'Print this monitoring schedule and bring it to your next doctor visit.</div>'
-    )
-
     return "\n".join(parts)
 
 
 def build_protective(recommendations_data, insights_data):
-    """Build protective variants section from good_news + protective_findings."""
+    """Build protective variants section (test-compatible wrapper)."""
     good_news = (recommendations_data or {}).get("good_news", [])
     protective = (insights_data or {}).get("protective_findings", [])
-
     if not good_news and not protective:
         return "<p>No protective variants identified.</p>"
-
     parts = []
-    parts.append(
-        '<p style="font-size:.9em;color:var(--accent2)">'
-        'Genetic variants that confer protection or favorable outcomes.</p>'
-    )
-
     if good_news:
         parts.append('<div class="good-news-grid">')
         for g in good_news:
@@ -1617,7 +1942,6 @@ def build_protective(recommendations_data, insights_data):
                 f'<strong>{g["gene"]}</strong>: {g["description"]}</div>'
             )
         parts.append("</div>")
-
     if protective:
         parts.append("<h3>Research-Backed Protective Findings</h3>")
         for p in protective:
@@ -1629,157 +1953,11 @@ def build_protective(recommendations_data, insights_data):
                 f'<div class="paper-refs">Ref: {p["reference"]}</div>'
                 f'</details>'
             )
-
-    return "\n".join(parts)
-
-
-def build_doctor_card(recommendations_data, star_alleles_data, apoe_data, acmg_data):
-    """Build print-optimized doctor card with key clinical findings."""
-    parts = []
-    parts.append('<div style="border:2px solid var(--accent);border-radius:8px;padding:1.5em">')
-    parts.append('<h3 style="margin-top:0;color:var(--accent)">Patient Genetic Summary</h3>')
-
-    # High-priority conditions
-    priorities = (recommendations_data or {}).get("priorities", [])
-    high_priorities = [p for p in priorities if p["priority"] == "high"]
-    if high_priorities:
-        parts.append("<h4>High-Priority Conditions</h4>")
-        parts.append('<table><tr><th>Condition</th><th>Doctor Note</th></tr>')
-        for p in high_priorities:
-            note = p.get("doctor_note", "") or p.get("why", "")
-            parts.append(
-                f'<tr><td><strong>{p["title"]}</strong></td>'
-                f'<td>{note}</td></tr>'
-            )
-        parts.append("</table>")
-
-    # Specialist referrals
-    referrals = (recommendations_data or {}).get("specialist_referrals", [])
-    if referrals:
-        parts.append("<h4>Specialist Referrals</h4>")
-        urgency_colors = {"soon": "#ef4444", "routine": "#f59e0b"}
-        for ref in referrals:
-            color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
-            parts.append(
-                f'<p><strong>{ref["specialist"]}</strong>: {ref["reason"]} '
-                f'<span class="mag-badge" style="background:{color};color:#fff">'
-                f'{ref.get("urgency", "routine")}</span></p>'
-            )
-
-    # Pharmacogenomic card
-    if star_alleles_data:
-        parts.append("<h4>Pharmacogenomic Profile</h4>")
-        parts.append('<table><tr><th>Gene</th><th>Diplotype</th><th>Phenotype</th></tr>')
-        for gene, r in star_alleles_data.items():
-            phenotype = r["phenotype"].replace("_", " ").title()
-            parts.append(
-                f'<tr><td><strong>{gene}</strong></td>'
-                f'<td><code>{r["diplotype"]}</code></td>'
-                f'<td>{phenotype}</td></tr>'
-            )
-        parts.append("</table>")
-
-    # APOE status
-    if apoe_data and apoe_data.get("apoe_type") != "Unknown":
-        risk_colors = {
-            "reduced": "var(--green)", "average": "#3b82f6",
-            "moderate": "#f59e0b", "elevated": "#f97316", "high": "#ef4444",
-        }
-        color = risk_colors.get(apoe_data.get("risk_level", ""), "var(--accent2)")
-        parts.append(
-            f'<h4>APOE Status</h4>'
-            f'<p><strong>{apoe_data["apoe_type"]}</strong> — '
-            f'<span class="mag-badge" style="background:{color};color:#fff">'
-            f'{apoe_data["risk_level"].title()} Risk</span></p>'
-        )
-
-    # ACMG actionable findings
-    acmg_findings = (acmg_data or {}).get("acmg_findings", [])
-    if acmg_findings:
-        parts.append("<h4>ACMG Medically Actionable Findings</h4>")
-        parts.append('<table><tr><th>Gene</th><th>Condition</th><th>Actionability</th></tr>')
-        for f in acmg_findings:
-            gene = f.get("gene", "Unknown")
-            condition = (f.get("traits") or "Unknown").split(";")[0].strip()
-            action = f.get("acmg_actionability", "")
-            parts.append(
-                f'<tr><td><strong>{gene}</strong></td>'
-                f'<td>{condition}</td>'
-                f'<td>{action}</td></tr>'
-            )
-        parts.append("</table>")
-        parts.append(
-            '<div class="doctor-callout" style="border-color:var(--warn)">'
-            'ACMG actionable findings detected. Refer to genetic counselor.</div>'
-        )
-
-    # Monitoring schedule
-    schedule = (recommendations_data or {}).get("monitoring_schedule", [])
-    if schedule:
-        parts.append("<h4>Recommended Monitoring</h4>")
-        parts.append('<table><tr><th>Test</th><th>Frequency</th></tr>')
-        for m in schedule:
-            parts.append(
-                f'<tr><td>{m["test"]}</td><td>{m["frequency"]}</td></tr>'
-            )
-        parts.append("</table>")
-
-    parts.append("</div>")
-
-    if not any([high_priorities, referrals, star_alleles_data, acmg_findings]):
-        return "<p>No significant clinical findings for doctor review.</p>"
-
-    return "\n".join(parts)
-
-
-def build_references(findings):
-    """Build references section with all paper links and database links for every rsID."""
-    parts = []
-
-    # Curated papers
-    parts.append("<h3>Key Papers</h3><ul>")
-    seen = set()
-    for rsid, refs in PAPER_REFS.items():
-        for r in refs:
-            key = r["pmid"]
-            if key in seen:
-                continue
-            seen.add(key)
-            parts.append(
-                f'<li><a href="https://pubmed.ncbi.nlm.nih.gov/{r["pmid"]}/" '
-                f'target="_blank" rel="noopener">{r["title"]}</a> '
-                f'(PMID: {r["pmid"]}, {r["year"]})</li>'
-            )
-    parts.append("</ul>")
-
-    # All rsID links
-    rsids = sorted(set(f.get("rsid", "") for f in findings if f.get("rsid", "").startswith("rs")))
-    if rsids:
-        parts.append("<h3>Database Links for All Analyzed rsIDs</h3>")
-        parts.append('<div class="rsid-grid">')
-        for rsid in rsids:
-            parts.append(f"<div><code>{rsid}</code> {db_links_html(rsid)}</div>")
-        parts.append("</div>")
-
-    # Methodology
-    parts.append("<h3>Methodology &amp; Disclaimers</h3>")
-    parts.append(
-        "<ul>"
-        "<li>Lifestyle findings from curated SNP database (~200 variants)</li>"
-        "<li>Disease risk from ClinVar (~341K variants scanned)</li>"
-        "<li>Drug interactions from PharmGKB clinical annotations</li>"
-        "<li>Only true SNPs analyzed (indels filtered to prevent false positives)</li>"
-        "<li>This report is for <strong>informational purposes only</strong> — not a clinical diagnosis</li>"
-        "<li>Genetic associations are probabilistic, not deterministic</li>"
-        "<li>Always consult healthcare providers before making medical decisions</li>"
-        "</ul>"
-    )
-
     return "\n".join(parts)
 
 
 # =============================================================================
-# HTML TEMPLATE
+# HTML TEMPLATE — 12 sections, practical typography
 # =============================================================================
 
 HTML_TEMPLATE = """\
@@ -1788,63 +1966,103 @@ HTML_TEMPLATE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Enhanced Genetic Health Report</title>
+<title>Genetic Health Report{subject_title}</title>
 <style>
 :root {{
-  --bg: #ffffff; --fg: #1a1a2e; --accent: #2563eb; --accent2: #7c3aed;
-  --border: #e2e8f0; --code-bg: #f1f5f9; --card-bg: #f8fafc;
-  --table-stripe: #f8fafc; --warn: #dc2626; --green: #16a34a;
-  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --bg: #fffff8; --fg: #111; --accent: #1a5276; --accent2: #6c3483;
+  --border: #d5d5d5; --code-bg: #f5f2eb; --card-bg: #fafaf5;
+  --table-stripe: #f9f8f4; --warn: #c0392b; --green: #1e8449;
+  --shadow: 0 1px 4px rgba(0,0,0,0.06);
+  --body-font: "Charter", "Bitstream Charter", "Sitka Text", Cambria, serif;
+  --heading-font: "Concourse", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --code-font: "Triplicate", "Source Code Pro", Menlo, Consolas, monospace;
 }}
 @media (prefers-color-scheme: dark) {{
   :root {{
-    --bg: #0f172a; --fg: #e2e8f0; --accent: #60a5fa; --accent2: #a78bfa;
-    --border: #334155; --code-bg: #1e293b; --card-bg: #1e293b;
-    --table-stripe: #1e293b; --warn: #f87171; --green: #4ade80;
-    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --bg: #1a1a2e; --fg: #e0ddd5; --accent: #7fb3d8; --accent2: #bb8fce;
+    --border: #3d3d5c; --code-bg: #252545; --card-bg: #222244;
+    --table-stripe: #252545; --warn: #e74c3c; --green: #58d68d;
+    --shadow: 0 1px 4px rgba(0,0,0,0.25);
   }}
 }}
 *, *::before, *::after {{ box-sizing: border-box; }}
 body {{
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.7; color: var(--fg); background: var(--bg);
-  max-width: 62em; margin: 0 auto; padding: 2em 1.5em;
+  font-family: var(--body-font);
+  font-size: 1.05rem;
+  line-height: 1.65; color: var(--fg); background: var(--bg);
+  max-width: 42em; margin: 0 auto; padding: 2.5em 1.5em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }}
-h1 {{ border-bottom: 3px solid var(--accent); padding-bottom: .3em; margin-top: 0; }}
+h1 {{
+  font-family: var(--heading-font);
+  font-size: 1.9em; font-weight: 700; letter-spacing: -0.01em;
+  border-bottom: 3px solid var(--accent); padding-bottom: .3em; margin-top: 0;
+}}
 h2 {{
+  font-family: var(--heading-font);
+  font-size: 1.35em; font-weight: 600; letter-spacing: -0.01em;
   border-bottom: 2px solid var(--border); padding-bottom: .2em;
   margin-top: 2.5em; color: var(--accent);
 }}
-h3 {{ margin-top: 1.5em; }}
+h3 {{
+  font-family: var(--heading-font);
+  font-size: 1.1em; font-weight: 600;
+  margin-top: 1.5em;
+}}
+h4 {{
+  font-family: var(--heading-font);
+  font-size: 1em; font-weight: 600; margin-top: 1.2em;
+}}
 .inline-h3 {{ display: inline; margin: 0; }}
 hr {{ border: none; border-top: 1px solid var(--border); margin: 2em 0; }}
-a {{ color: var(--accent); text-decoration: none; }}
-a:hover {{ text-decoration: underline; }}
+a {{ color: var(--accent); text-decoration: underline; text-decoration-color: rgba(26,82,118,0.3); text-underline-offset: 2px; }}
+a:hover {{ text-decoration-color: var(--accent); }}
 code {{
-  background: var(--code-bg); padding: .15em .35em; border-radius: 3px;
-  font-size: .88em;
+  font-family: var(--code-font);
+  background: var(--code-bg); padding: .12em .35em; border-radius: 3px;
+  font-size: .85em;
 }}
 table {{
   border-collapse: collapse; width: 100%; margin: 1em 0;
-  font-size: 0.92em;
+  font-size: 0.9em;
 }}
-th, td {{ border: 1px solid var(--border); padding: .45em .65em; text-align: left; }}
-th {{ background: var(--code-bg); font-weight: 600; }}
+th, td {{ border: 1px solid var(--border); padding: .5em .7em; text-align: left; }}
+th {{ background: var(--code-bg); font-weight: 600; font-family: var(--heading-font); font-size: .9em; }}
 tr:nth-child(even) {{ background: var(--table-stripe); }}
-ul, ol {{ padding-left: 1.5em; }}
-li {{ margin: .3em 0; }}
+ul, ol {{ padding-left: 1.3em; }}
+li {{ margin: .35em 0; }}
+p {{ margin: .6em 0; }}
+
+/* ELI5 styling */
+.eli5 {{
+  background: var(--code-bg); border-left: 3px solid var(--accent2);
+  padding: .6em 1em; margin: .8em 0; font-size: .92em;
+  border-radius: 0 6px 6px 0; color: var(--fg);
+}}
+.eli5-inline {{ font-size: .85em; color: var(--accent2); font-style: italic; }}
+
+/* Part headers */
+.part-header {{
+  font-family: var(--heading-font);
+  font-size: .85em; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--accent2);
+  margin-top: 3em; padding: .3em 0;
+  border-bottom: 1px solid var(--accent2);
+}}
 
 /* Sections */
 .section {{
   background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: 10px; padding: 1.5em; margin: 1.5em 0;
+  border-radius: 8px; padding: 1.5em; margin: 1.5em 0;
   box-shadow: var(--shadow);
 }}
 .section-number {{
   display: inline-block; background: var(--accent); color: #fff;
-  width: 28px; height: 28px; border-radius: 50%; text-align: center;
-  line-height: 28px; font-size: 14px; font-weight: bold;
-  margin-right: .5em; vertical-align: middle;
+  width: 26px; height: 26px; border-radius: 50%; text-align: center;
+  line-height: 26px; font-size: 13px; font-weight: bold;
+  margin-right: .4em; vertical-align: middle;
+  font-family: var(--heading-font);
 }}
 
 /* Finding cards */
@@ -1852,35 +2070,47 @@ li {{ margin: .3em 0; }}
   border-left: 4px solid var(--border); padding: .75em 1em;
   margin: .75em 0; background: var(--card-bg); border-radius: 0 6px 6px 0;
 }}
-.finding-card.high {{ border-left-color: #ef4444; }}
-.finding-card.mod {{ border-left-color: #f59e0b; }}
-.finding-card.low {{ border-left-color: #22c55e; }}
-.finding-card.info {{ border-left-color: #94a3b8; }}
-.finding-header {{ font-size: .95em; }}
+.finding-card.high {{ border-left-color: #e74c3c; }}
+.finding-card.mod {{ border-left-color: #f39c12; }}
+.finding-card.low {{ border-left-color: #27ae60; }}
+.finding-card.info {{ border-left-color: #95a5a6; }}
+.finding-header {{ font-size: .92em; }}
 .finding-desc {{ margin: .3em 0; font-size: .9em; }}
 .finding-note {{ font-size: .85em; color: var(--accent2); }}
 .mag-badge {{
   display: inline-block; padding: .1em .5em; border-radius: 12px;
-  font-size: .8em; font-weight: bold; color: #fff;
+  font-size: .78em; font-weight: bold; color: #fff;
+  font-family: var(--heading-font);
 }}
-.mag-high {{ background: #ef4444; }}
-.mag-mod {{ background: #f59e0b; }}
-.mag-low {{ background: #22c55e; }}
-.mag-info {{ background: #94a3b8; }}
+.mag-high {{ background: #e74c3c; }}
+.mag-mod {{ background: #f39c12; }}
+.mag-low {{ background: #27ae60; }}
+.mag-info {{ background: #95a5a6; }}
 .mag-dot {{
   display: inline-block; width: 10px; height: 10px; border-radius: 50%;
   margin-right: .3em; vertical-align: middle;
 }}
-.mag-dot.mag-high {{ background: #ef4444; }}
-.mag-dot.mag-mod {{ background: #f59e0b; }}
-.mag-dot.mag-low {{ background: #22c55e; }}
-.mag-dot.mag-info {{ background: #94a3b8; }}
+.mag-dot.mag-high {{ background: #e74c3c; }}
+.mag-dot.mag-mod {{ background: #f39c12; }}
+.mag-dot.mag-low {{ background: #27ae60; }}
+.mag-dot.mag-info {{ background: #95a5a6; }}
+
+/* Key findings bullets */
+.key-findings {{ list-style: none; padding-left: 0; }}
+.key-findings li {{
+  padding: .6em 1em; margin: .5em 0; border-radius: 6px;
+  border-left: 5px solid var(--border);
+}}
+.kf-red {{ border-left-color: #e74c3c; background: rgba(231,76,60,0.06); }}
+.kf-yellow {{ border-left-color: #f39c12; background: rgba(243,156,18,0.06); }}
+.kf-green {{ border-left-color: #27ae60; background: rgba(39,174,96,0.06); }}
 
 /* Badge */
 .badge {{
   display: inline-block; background: var(--accent); color: #fff;
   padding: .1em .55em; border-radius: 12px; font-size: .75em;
   vertical-align: middle; margin-left: .3em;
+  font-family: var(--heading-font);
 }}
 
 /* Charts */
@@ -1891,9 +2121,9 @@ li {{ margin: .3em 0; }}
 .gauge-row {{ display: flex; gap: 1.5em; flex-wrap: wrap; }}
 
 /* DB links */
-.db-links {{ font-size: .8em; }}
+.db-links {{ font-size: .78em; }}
 .db-links a {{ margin: 0 .2em; }}
-.paper-refs {{ font-size: .8em; margin-top: .3em; color: var(--accent2); }}
+.paper-refs {{ font-size: .78em; margin-top: .3em; color: var(--accent2); }}
 .rsid-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .5em; font-size: .85em; }}
 
 /* Doctor callout */
@@ -1918,14 +2148,13 @@ details[open] > summary::before {{ transform: rotate(90deg); }}
 .category-section {{ margin: .75em 0; }}
 
 /* TOC */
-.toc {{ columns: 2; column-gap: 2em; font-size: .9em; }}
-.toc a {{ display: block; padding: .2em 0; }}
+.toc {{ columns: 2; column-gap: 2em; font-size: .88em; font-family: var(--heading-font); }}
+.toc a {{ display: block; padding: .25em 0; text-decoration: none; }}
+.toc a:hover {{ text-decoration: underline; }}
 @media (max-width: 600px) {{ .toc {{ columns: 1; }} }}
 
 /* Doctor card print */
-.doctor-card {{
-  page-break-before: always;
-}}
+.doctor-card {{ page-break-before: always; }}
 @media print {{
   body {{ max-width: 100%; font-size: 10pt; padding: 0.5em; }}
   .chart, .gauge, .chart-grid, .gauge-row, .toc,
@@ -1934,13 +2163,11 @@ details[open] > summary::before {{ transform: rotate(90deg); }}
   .doctor-card {{ page-break-before: always; }}
   details {{ display: block; }}
   details > summary {{ display: none; }}
-  a {{ color: inherit; text-decoration: underline; }}
+  a {{ color: inherit; }}
 }}
 
-/* Skip link for a11y */
-.skip-link {{
-  position: absolute; left: -9999px;
-}}
+/* Skip link */
+.skip-link {{ position: absolute; left: -9999px; }}
 .skip-link:focus {{
   left: 1em; top: 1em; background: var(--accent); color: #fff;
   padding: .5em 1em; z-index: 999; border-radius: 4px;
@@ -1954,13 +2181,15 @@ details[open] > summary::before {{ transform: rotate(90deg); }}
 #search-box {{
   flex: 1; min-width: 200px; padding: .5em .75em;
   border: 2px solid var(--border); border-radius: 6px;
-  background: var(--bg); color: var(--fg); font-size: .95em;
+  background: var(--bg); color: var(--fg); font-size: .92em;
+  font-family: var(--body-font);
 }}
 #search-box:focus {{ border-color: var(--accent); outline: none; }}
 .toolbar button {{
   padding: .45em 1em; border: 1px solid var(--border);
   border-radius: 6px; background: var(--code-bg); color: var(--fg);
-  cursor: pointer; font-size: .85em; white-space: nowrap;
+  cursor: pointer; font-size: .82em; white-space: nowrap;
+  font-family: var(--heading-font);
 }}
 .toolbar button:hover {{ background: var(--accent); color: #fff; }}
 
@@ -1992,42 +2221,31 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 <body>
 <a href="#main" class="skip-link">Skip to content</a>
 
-<h1>Enhanced Genetic Health Report</h1>
-<p><strong>Generated:</strong> {generated_date} &nbsp;|&nbsp;
+<h1>Genetic Health Report{subject_title}</h1>
+<p style="font-size:.9em;color:var(--accent2)"><strong>Generated:</strong> {generated_date} &nbsp;|&nbsp;
 <strong>SNPs analyzed:</strong> {total_snps:,} &nbsp;|&nbsp;
 <strong>Lifestyle findings:</strong> {num_findings} &nbsp;|&nbsp;
 <strong>Drug interactions:</strong> {num_pharmgkb}</p>
 
 <nav class="no-print">
-<h2 id="toc-heading">Table of Contents</h2>
+<h2 id="toc-heading">Contents</h2>
+<p class="part-header">Part 1 &mdash; What You Should Do</p>
 <div class="toc">
-<a href="#eli5">1. Simple Summary</a>
-<a href="#quality">2. Data Quality</a>
-<a href="#insights">3. Research-Backed Insights</a>
-<a href="#apoe">4. APOE Haplotype</a>
-<a href="#recommendations">5. Personalized Recommendations</a>
-<a href="#dashboard">6. Dashboard</a>
-<a href="#ancestry">7. Ancestry</a>
-<a href="#blood-type">8. Blood Type &amp; Traits</a>
-<a href="#mt-haplogroup">9. Maternal Haplogroup</a>
-<a href="#prs">10. Polygenic Risk Scores</a>
-<a href="#star-alleles">11. Pharmacogenomic Star Alleles</a>
-<a href="#acmg">12. ACMG Secondary Findings</a>
-<a href="#epistasis">13. Gene-Gene Interactions</a>
-<a href="#carrier-screen">14. Carrier Screening</a>
-<a href="#lifestyle">15. Lifestyle Findings</a>
-<a href="#disease">16. Disease Risk</a>
-<a href="#drugs">17. Drug-Gene Interactions</a>
-<a href="#nutrition">18. Nutrition &amp; Lifestyle</a>
-<a href="#monitoring">19. Monitoring Schedule</a>
-<a href="#protective">20. Protective Variants</a>
-<a href="#polypharmacy">21. Polypharmacy Warnings</a>
-<a href="#longevity">22. Longevity &amp; Healthspan</a>
-<a href="#sleep-profile">23. Sleep &amp; Circadian</a>
-<a href="#nutrigenomics">24. Nutrigenomics</a>
-<a href="#mental-health">25. Mental Health Genetics</a>
-<a href="#doctor-card">26. Doctor Card</a>
-<a href="#references">27. References &amp; Links</a>
+<a href="#key-findings">1. Your Key Findings</a>
+<a href="#action-plan">2. Your Action Plan</a>
+<a href="#drug-guide">3. Drug &amp; Medication Guide</a>
+<a href="#disease-risk">4. Disease Risk Overview</a>
+<a href="#body-profile">5. Your Body Profile</a>
+<a href="#mental-health">6. Mental Health &amp; Brain</a>
+</div>
+<p class="part-header">Part 2 &mdash; Details for Your Doctor</p>
+<div class="toc">
+<a href="#clinical-detail">7. Clinical Findings Detail</a>
+<a href="#ancestry">8. Ancestry &amp; Population</a>
+<a href="#nutrigenomics">9. Nutrigenomics Detail</a>
+<a href="#quality">10. Data Quality</a>
+<a href="#doctor-card">11. Doctor Card</a>
+<a href="#references">12. References &amp; Links</a>
 </div>
 </nav>
 
@@ -2038,146 +2256,74 @@ th.sortable.desc::after {{ content: " \\2193"; opacity: 1; }}
 
 <main id="main">
 
-<div class="section" id="eli5">
-<h2><span class="section-number">1</span> The Simple Version</h2>
-{eli5_content}
+<p class="part-header no-print">Part 1 &mdash; What You Should Do</p>
+
+<div class="section" id="key-findings">
+<h2><span class="section-number">1</span> Your Key Findings</h2>
+{key_findings_content}
 </div>
 
-<div class="section" id="quality">
-<h2><span class="section-number">2</span> Data Quality</h2>
-{quality_content}
+<div class="section" id="action-plan">
+<h2><span class="section-number">2</span> Your Action Plan</h2>
+{action_plan_content}
 </div>
 
-<div class="section" id="insights">
-<h2><span class="section-number">3</span> Research-Backed Insights</h2>
-{insights_content}
+<div class="section" id="drug-guide">
+<h2><span class="section-number">3</span> Drug &amp; Medication Guide</h2>
+{drug_guide_content}
 </div>
 
-<div class="section" id="apoe">
-<h2><span class="section-number">4</span> APOE Haplotype</h2>
-{apoe_content}
+<div class="section" id="disease-risk">
+<h2><span class="section-number">4</span> Disease Risk Overview</h2>
+{disease_risk_content}
 </div>
 
-<div class="section" id="recommendations">
-<h2><span class="section-number">5</span> Personalized Recommendations</h2>
-{recommendations_content}
-</div>
-
-<div class="section no-print" id="dashboard">
-<h2><span class="section-number">6</span> Dashboard</h2>
-{dashboard_content}
-</div>
-
-<div class="section" id="ancestry">
-<h2><span class="section-number">7</span> Ancestry Estimation</h2>
-{ancestry_content}
-</div>
-
-<div class="section" id="blood-type">
-<h2><span class="section-number">8</span> Blood Type &amp; Traits</h2>
-{blood_type_content}
-{traits_content}
-</div>
-
-<div class="section" id="mt-haplogroup">
-<h2><span class="section-number">9</span> Maternal Haplogroup</h2>
-{mt_haplogroup_content}
-</div>
-
-<div class="section" id="prs">
-<h2><span class="section-number">10</span> Polygenic Risk Scores</h2>
-{prs_content}
-</div>
-
-<div class="section" id="star-alleles">
-<h2><span class="section-number">11</span> Pharmacogenomic Star Alleles</h2>
-{star_alleles_content}
-</div>
-
-<div class="section" id="acmg">
-<h2><span class="section-number">12</span> ACMG Secondary Findings</h2>
-{acmg_content}
-</div>
-
-<div class="section" id="epistasis">
-<h2><span class="section-number">13</span> Gene-Gene Interactions</h2>
-{epistasis_content}
-</div>
-
-<div class="section" id="carrier-screen">
-<h2><span class="section-number">14</span> Carrier Screening</h2>
-{carrier_screen_content}
-</div>
-
-<div class="section" id="lifestyle">
-<h2><span class="section-number">15</span> All Lifestyle Findings</h2>
-{lifestyle_content}
-</div>
-
-<div class="section" id="disease">
-<h2><span class="section-number">16</span> Disease Risk</h2>
-{disease_content}
-</div>
-
-<div class="section" id="drugs">
-<h2><span class="section-number">17</span> Drug-Gene Interactions</h2>
-{drugs_content}
-</div>
-
-<div class="section" id="nutrition">
-<h2><span class="section-number">18</span> Nutrition, Supplements &amp; Lifestyle</h2>
-{nutrition_content}
-</div>
-
-<div class="section" id="monitoring">
-<h2><span class="section-number">19</span> Monitoring Schedule</h2>
-{monitoring_content}
-</div>
-
-<div class="section" id="protective">
-<h2><span class="section-number">20</span> Protective Variants (Good News)</h2>
-{protective_content}
-</div>
-
-<div class="section" id="polypharmacy">
-<h2><span class="section-number">21</span> Polypharmacy Warnings</h2>
-{polypharmacy_content}
-</div>
-
-<div class="section" id="longevity">
-<h2><span class="section-number">22</span> Longevity &amp; Healthspan Profile</h2>
-{longevity_content}
-</div>
-
-<div class="section" id="sleep-profile">
-<h2><span class="section-number">23</span> Sleep &amp; Circadian Profile</h2>
-{sleep_content}
-</div>
-
-<div class="section" id="nutrigenomics">
-<h2><span class="section-number">24</span> Nutrigenomics Profile</h2>
-{nutrigenomics_content}
+<div class="section" id="body-profile">
+<h2><span class="section-number">5</span> Your Body Profile</h2>
+{body_profile_content}
 </div>
 
 <div class="section" id="mental-health">
-<h2><span class="section-number">25</span> Mental Health Genetics</h2>
+<h2><span class="section-number">6</span> Mental Health &amp; Brain</h2>
 {mental_health_content}
 </div>
 
+<p class="part-header no-print">Part 2 &mdash; Details for Your Doctor</p>
+
+<div class="section" id="clinical-detail">
+<h2><span class="section-number">7</span> Clinical Findings Detail</h2>
+{clinical_detail_content}
+</div>
+
+<div class="section" id="ancestry">
+<h2><span class="section-number">8</span> Ancestry &amp; Population Context</h2>
+{ancestry_content}
+</div>
+
+<div class="section" id="nutrigenomics">
+<h2><span class="section-number">9</span> Nutrigenomics Detail</h2>
+{nutrigenomics_content}
+</div>
+
+<div class="section" id="quality">
+<h2><span class="section-number">10</span> Data Quality</h2>
+{quality_content}
+</div>
+
 <div class="section doctor-card" id="doctor-card">
-<h2><span class="section-number">26</span> Doctor Card</h2>
-<p><em>Print this page — only this section will appear in the printout.</em></p>
+<h2><span class="section-number">11</span> Doctor Card</h2>
+<p><em>Print this page &mdash; this section is optimized for printing.</em></p>
 {doctor_card_content}
 </div>
 
 <div class="section" id="references">
-<h2><span class="section-number">27</span> References &amp; Links</h2>
+<h2><span class="section-number">12</span> References &amp; Links</h2>
 {references_content}
 </div>
 
 </main>
 
-<footer style="text-align:center;margin-top:3em;font-size:.85em;color:var(--border);">
+<footer style="text-align:center;margin-top:3em;padding-top:1.5em;border-top:1px solid var(--border);font-size:.82em;color:var(--accent2);">
 Generated by Genetic Health Analysis Pipeline &mdash; {generated_date}<br>
 For informational purposes only. Not a clinical diagnosis.
 </footer>
@@ -2206,12 +2352,10 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
   if (!searchBox) return;
   searchBox.addEventListener('input', function() {{
     var q = this.value.toLowerCase().trim();
-    // Filter finding cards
     document.querySelectorAll('.finding-card').forEach(function(card) {{
       card.style.display = (!q || card.textContent.toLowerCase().indexOf(q) !== -1)
         ? '' : 'none';
     }});
-    // Filter table rows (skip header rows)
     document.querySelectorAll('table').forEach(function(table) {{
       var rows = table.querySelectorAll('tr');
       for (var i = 1; i < rows.length; i++) {{
@@ -2298,240 +2442,11 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
 # MAIN
 # =============================================================================
 
-def build_polypharmacy_section(data):
-    """Build polypharmacy warnings section."""
-    if not data or not data.get("warnings"):
-        return "<p>No polypharmacy risks detected based on your pharmacogenomic profile.</p>"
-    parts = [
-        '<p style="font-size:.9em;color:var(--accent2)">'
-        'Drug combination warnings based on your combined pharmacogene profile. '
-        'Share this section with every prescribing physician.</p>'
-    ]
-    severity_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
-    for w in data["warnings"]:
-        color = severity_colors.get(w["severity"], "var(--border)")
-        genes_str = ", ".join(f"{g}: {s}" for g, s in w.get("matched_genes", {}).items())
-        drugs_str = ", ".join(w.get("drugs_affected", []))
-        parts.append(
-            f'<details open class="rec-card" style="border-left:4px solid {color}">'
-            f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
-            f'{w["severity"].upper()}</span> '
-            f'<strong>{_esc(w["name"])}</strong></summary>'
-        )
-        if genes_str:
-            parts.append(f'<p><strong>Your genotype:</strong> {_esc(genes_str)}</p>')
-        parts.append(f'<p><strong>Drugs affected:</strong> {_esc(drugs_str)}</p>')
-        parts.append(f'<p>{_esc(w["warning"])}</p>')
-        parts.append(f'<p><strong>Clinical action:</strong> {_esc(w["action"])}</p>')
-        parts.append("</details>")
-    return "\n".join(parts)
-
-
-def build_longevity_section(data):
-    """Build longevity and healthspan section."""
-    if not data:
-        return "<p>No longevity data available.</p>"
-    parts = []
-    score = data.get("longevity_score", 50)
-    score_color = "#22c55e" if score >= 60 else "#f59e0b" if score >= 40 else "#ef4444"
-    parts.append(
-        f'<div style="text-align:center;margin:1em 0">'
-        f'<span style="font-size:2.5em;font-weight:bold;color:{score_color}">{score}</span>'
-        f'<span style="font-size:1.2em;color:var(--accent2)">/100</span>'
-        f'<p style="color:var(--accent2)">Longevity Genetic Score</p>'
-        f'<p style="font-size:.9em">{_esc(data.get("summary", ""))}</p>'
-        f'</div>'
-    )
-    # Healthspan domains
-    domains = data.get("healthspan_domains", {})
-    if domains:
-        parts.append("<h3>Healthspan Domains</h3>")
-        parts.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1em">')
-        for domain, info in domains.items():
-            s = info["score"]
-            c = "#22c55e" if s >= 60 else "#f59e0b" if s >= 40 else "#ef4444"
-            parts.append(
-                f'<div style="border:1px solid var(--border);border-radius:8px;padding:1em;text-align:center">'
-                f'<strong>{_esc(domain.replace("_", " ").title())}</strong><br>'
-                f'<span style="font-size:1.5em;color:{c}">{s}</span>/90<br>'
-                f'<span style="font-size:.85em;color:var(--accent2)">{info["rating"]}</span>'
-                f'</div>'
-            )
-        parts.append("</div>")
-    # Longevity alleles
-    alleles = data.get("longevity_alleles", [])
-    if alleles:
-        parts.append("<h3>Longevity-Associated Alleles</h3>")
-        parts.append('<table><tr><th>Gene</th><th>Genotype</th><th>Copies</th><th>Status</th></tr>')
-        for a in alleles:
-            status_color = "#22c55e" if a["copies"] == 2 else "#f59e0b" if a["copies"] == 1 else "#ef4444"
-            parts.append(
-                f'<tr><td><strong>{_esc(a["gene"])}</strong></td>'
-                f'<td><code>{_esc(a["genotype"])}</code></td>'
-                f'<td style="color:{status_color}">{a["copies"]}/2</td>'
-                f'<td>{_esc(a["status"].replace("_", " ").title())}</td></tr>'
-            )
-        parts.append("</table>")
-    # Interventions
-    interventions = data.get("interventions", [])
-    if interventions:
-        parts.append("<h3>Genetically-Supported Interventions</h3><ul>")
-        for i in interventions:
-            parts.append(f'<li><strong>{_esc(i["intervention"])}</strong> — {_esc(i["why"])}</li>')
-        parts.append("</ul>")
-    return "\n".join(parts)
-
-
-def build_sleep_section(data):
-    """Build sleep and circadian profile section."""
-    if not data:
-        return "<p>No sleep profile data available.</p>"
-    parts = []
-    parts.append(
-        f'<div style="text-align:center;margin:1em 0">'
-        f'<p style="font-size:1.5em;font-weight:bold">{_esc(data.get("chronotype", "Unknown"))}</p>'
-        f'<p style="color:var(--accent2)">Chronotype Score: {data.get("chronotype_score", 50)}/100 '
-        f'(0=extreme morning, 100=extreme evening)</p>'
-        f'</div>'
-    )
-    parts.append(
-        f'<table>'
-        f'<tr><td><strong>Optimal Sleep Window</strong></td><td>{_esc(data.get("optimal_sleep_window", ""))}</td></tr>'
-        f'<tr><td><strong>Peak Alertness</strong></td><td>{_esc(data.get("peak_alertness", ""))}</td></tr>'
-        f'<tr><td><strong>Last Caffeine By</strong></td><td>{_esc(data.get("caffeine_cutoff", ""))}</td></tr>'
-        f'<tr><td><strong>Caffeine Sensitive</strong></td><td>{"Yes" if data.get("caffeine_sensitive") else "No"}</td></tr>'
-        f'</table>'
-    )
-    if data.get("deep_sleep_note"):
-        parts.append(f'<p style="margin-top:1em"><strong>Note:</strong> {_esc(data["deep_sleep_note"])}</p>')
-    recs = data.get("recommendations", [])
-    if recs:
-        parts.append("<h3>Sleep Recommendations</h3><ul>")
-        for r in recs:
-            parts.append(f"<li>{_esc(r)}</li>")
-        parts.append("</ul>")
-    markers = data.get("sleep_markers", [])
-    if markers:
-        parts.append("<h3>Sleep Gene Markers</h3>")
-        parts.append('<table><tr><th>Gene</th><th>Trait</th><th>Genotype</th><th>Effect</th></tr>')
-        for m in markers:
-            parts.append(
-                f'<tr><td><strong>{_esc(m["gene"])}</strong></td>'
-                f'<td>{_esc(m["trait"])}</td>'
-                f'<td><code>{_esc(m["genotype"])}</code></td>'
-                f'<td>{_esc(m["description"])}</td></tr>'
-            )
-        parts.append("</table>")
-    return "\n".join(parts)
-
-
-def build_nutrigenomics_section(data):
-    """Build nutrigenomics profile section."""
-    if not data:
-        return "<p>No nutrigenomics data available.</p>"
-    parts = []
-    parts.append(f'<p>{_esc(data.get("summary", ""))}</p>')
-    needs = data.get("nutrient_needs", [])
-    if needs:
-        need_colors = {"high": "#ef4444", "moderate": "#f59e0b", "low": "#3b82f6",
-                       "normal": "#22c55e", "caution_excess": "#a855f7"}
-        for n in needs:
-            if n["need_level"] == "normal" and not n["gene_impacts"]:
-                continue
-            color = need_colors.get(n["need_level"], "var(--border)")
-            parts.append(
-                f'<details class="rec-card" style="border-left:4px solid {color}">'
-                f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
-                f'{_esc(n["need_level"].upper().replace("_", " "))}</span> '
-                f'<strong>{_esc(n["name"])}</strong></summary>'
-            )
-            parts.append(f'<p>{_esc(n["recommendation"])}</p>')
-            parts.append(f'<p><strong>Food sources:</strong> {_esc(n["food_sources"])}</p>')
-            for gi in n.get("gene_impacts", []):
-                parts.append(f'<p style="font-size:.9em">— {_esc(gi["gene"])}: {_esc(gi["impact"])}</p>')
-            parts.append("</details>")
-    supps = data.get("supplement_priorities", [])
-    if supps:
-        parts.append("<h3>Supplement Priority List</h3>")
-        parts.append('<table><tr><th>Nutrient</th><th>Form</th><th>Dose</th><th>Priority</th></tr>')
-        for s in supps:
-            parts.append(
-                f'<tr><td><strong>{_esc(s["nutrient"])}</strong></td>'
-                f'<td>{_esc(s["form"])}</td>'
-                f'<td>{_esc(s["dose"])}</td>'
-                f'<td>{_esc(s["priority"])}</td></tr>'
-            )
-        parts.append("</table>")
-    testing = data.get("testing_recommendations", [])
-    if testing:
-        parts.append("<h3>Recommended Lab Tests</h3><ul>")
-        for t in testing:
-            parts.append(f'<li><strong>{_esc(t["nutrient"])}:</strong> {_esc(t["test"])}</li>')
-        parts.append("</ul>")
-    return "\n".join(parts)
-
-
-def build_mental_health_section(data):
-    """Build mental health genetics section."""
-    if not data:
-        return "<p>No mental health genetic data available.</p>"
-    parts = []
-    parts.append(
-        '<p style="font-size:.9em;color:var(--accent2)">'
-        'Genetic susceptibility markers for mental health domains. '
-        'Genetics is only one factor — environment, lifestyle, and support matter greatly.</p>'
-    )
-    parts.append(f'<p><strong>{_esc(data.get("summary", ""))}</strong></p>')
-    # Domain scores
-    domains = data.get("domains", {})
-    if domains:
-        parts.append('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1em;margin:1em 0">')
-        level_colors = {"elevated": "#ef4444", "moderate": "#f59e0b", "low": "#22c55e"}
-        for domain, info in domains.items():
-            color = level_colors.get(info["risk_level"], "var(--border)")
-            parts.append(
-                f'<div style="border:1px solid var(--border);border-radius:8px;padding:1em;text-align:center">'
-                f'<strong>{_esc(domain.replace("_", " ").title())}</strong><br>'
-                f'<span style="font-size:1.3em;color:{color}">{_esc(info["risk_level"].title())}</span>'
-                f'</div>'
-            )
-        parts.append("</div>")
-    # Risk and resilience
-    risk = data.get("risk_factors", [])
-    resilience = data.get("resilience_factors", [])
-    if risk:
-        parts.append("<h3>Risk Factors</h3><ul>")
-        for r in risk:
-            parts.append(f"<li>{_esc(r)}</li>")
-        parts.append("</ul>")
-    if resilience:
-        parts.append('<h3>Resilience Factors</h3><ul>')
-        for r in resilience:
-            parts.append(f"<li>{_esc(r)}</li>")
-        parts.append("</ul>")
-    # Treatment notes
-    notes = data.get("treatment_notes", [])
-    if notes:
-        parts.append("<h3>Treatment Matching Notes</h3><ul>")
-        for n in notes:
-            parts.append(f"<li>{_esc(n)}</li>")
-        parts.append("</ul>")
-    # Recommendations
-    recs = data.get("recommendations", [])
-    if recs:
-        parts.append("<h3>Recommendations</h3><ol>")
-        for r in recs:
-            parts.append(f"<li>{_esc(r)}</li>")
-        parts.append("</ol>")
-    return "\n".join(parts)
-
-
 def main():
     print("=" * 60)
-    print("Enhanced All-in-One Genetic Health Report")
+    print("Genetic Health Report (Redesigned)")
     print("=" * 60)
 
-    # Load data sources
     results_path = REPORTS_DIR / "comprehensive_results.json"
 
     if not results_path.exists():
@@ -2563,69 +2478,43 @@ def main():
     nutrigenomics_data = data.get("nutrigenomics", {})
     mental_health_data = data.get("mental_health", {})
 
+    subject_name = data.get("subject_name", "")
+
     # Build each section
-    print("\n>>> Building ELI5 summary")
-    eli5 = build_eli5(findings)
+    print("\n>>> Building key findings")
+    key_findings = build_key_findings(
+        findings, recommendations_data, apoe_data, acmg_data,
+        prs_data, star_alleles_data, longevity_data)
 
-    print(">>> Building dashboard")
-    dashboard = build_dashboard(findings)
+    print(">>> Building action plan")
+    action_plan = build_action_plan(recommendations_data, insights_data)
 
-    print(">>> Building quality section")
-    quality = build_quality_section(quality_data)
+    print(">>> Building drug guide")
+    drug_guide = build_drug_guide(
+        star_alleles_data, findings, pharmgkb_findings, polypharmacy_data)
 
-    print(">>> Building insights section")
-    insights_html = build_insights_section(insights_data)
+    print(">>> Building disease risk overview")
+    disease_risk = build_disease_risk_overview(prs_data, disease_findings_data, acmg_data)
 
-    print(">>> Building APOE section")
-    apoe_html = build_apoe_section(apoe_data)
+    print(">>> Building body profile")
+    body_profile = build_body_profile(
+        traits_data, blood_type_data, sleep_data, longevity_data, findings)
+
+    print(">>> Building mental health section")
+    mental_health_html = build_mental_health_section(mental_health_data)
+
+    print(">>> Building clinical detail")
+    clinical_detail = build_clinical_detail(findings, epistasis_data, carrier_screen_data)
 
     print(">>> Building ancestry section")
-    ancestry = build_ancestry_section(ancestry_data)
+    ancestry_html = build_ancestry_section(ancestry_data, mt_haplogroup_data)
 
-    print(">>> Building blood type section")
-    blood_type_html = build_blood_type_section(blood_type_data)
+    print(">>> Building nutrigenomics section")
+    nutrigenomics_html = build_nutrigenomics_section(
+        nutrigenomics_data, recommendations_data, insights_data)
 
-    print(">>> Building MT haplogroup section")
-    mt_haplogroup_html = build_mt_haplogroup_section(mt_haplogroup_data)
-
-    print(">>> Building PRS section")
-    prs = build_prs_section(prs_data)
-
-    print(">>> Building star alleles section")
-    star_alleles_html = build_star_alleles_section(star_alleles_data)
-
-    print(">>> Building ACMG section")
-    acmg_html = build_acmg_section(acmg_data)
-
-    print(">>> Building epistasis section")
-    epistasis = build_epistasis_section(epistasis_data)
-
-    print(">>> Building carrier screening section")
-    carrier_screen_html = build_carrier_screen_section(carrier_screen_data)
-
-    print(">>> Building traits section")
-    traits_html = build_traits_section(traits_data)
-
-    print(">>> Building recommendations section")
-    recommendations = build_recommendations_section(recommendations_data)
-
-    print(">>> Building lifestyle findings")
-    lifestyle = build_lifestyle_findings(findings)
-
-    print(">>> Building disease risk")
-    disease = build_disease_risk(disease_findings_data)
-
-    print(">>> Building drug-gene interactions")
-    drugs = build_drug_gene(findings, pharmgkb_findings)
-
-    print(">>> Building nutrition section")
-    nutrition = build_nutrition_section(recommendations_data, insights_data)
-
-    print(">>> Building monitoring schedule")
-    monitoring = build_monitoring(recommendations_data)
-
-    print(">>> Building protective variants")
-    protective = build_protective(recommendations_data, insights_data)
+    print(">>> Building quality section")
+    quality_html = build_quality_section(quality_data)
 
     print(">>> Building doctor card")
     doctor_card = build_doctor_card(
@@ -2634,56 +2523,27 @@ def main():
     print(">>> Building references")
     references = build_references(findings)
 
-    print(">>> Building polypharmacy section")
-    polypharmacy_html = build_polypharmacy_section(polypharmacy_data)
-
-    print(">>> Building longevity section")
-    longevity_html = build_longevity_section(longevity_data)
-
-    print(">>> Building sleep profile section")
-    sleep_html = build_sleep_section(sleep_data)
-
-    print(">>> Building nutrigenomics section")
-    nutrigenomics_html = build_nutrigenomics_section(nutrigenomics_data)
-
-    print(">>> Building mental health section")
-    mental_health_html = build_mental_health_section(mental_health_data)
-
     # Assemble HTML
     print("\n>>> Assembling HTML report")
+    subject_title = f" — {_esc(subject_name)}" if subject_name else ""
     html = HTML_TEMPLATE.format(
         generated_date=datetime.now().strftime("%Y-%m-%d %H:%M"),
         total_snps=summary.get("total_snps", 0),
         num_findings=len(findings),
         num_pharmgkb=len(pharmgkb_findings),
-        eli5_content=eli5,
-        quality_content=quality,
-        insights_content=insights_html,
-        apoe_content=apoe_html,
-        recommendations_content=recommendations,
-        dashboard_content=dashboard,
-        ancestry_content=ancestry,
-        blood_type_content=blood_type_html,
-        traits_content=traits_html,
-        mt_haplogroup_content=mt_haplogroup_html,
-        prs_content=prs,
-        star_alleles_content=star_alleles_html,
-        acmg_content=acmg_html,
-        epistasis_content=epistasis,
-        carrier_screen_content=carrier_screen_html,
-        lifestyle_content=lifestyle,
-        disease_content=disease,
-        drugs_content=drugs,
-        nutrition_content=nutrition,
-        monitoring_content=monitoring,
-        protective_content=protective,
+        subject_title=subject_title,
+        key_findings_content=key_findings,
+        action_plan_content=action_plan,
+        drug_guide_content=drug_guide,
+        disease_risk_content=disease_risk,
+        body_profile_content=body_profile,
+        mental_health_content=mental_health_html,
+        clinical_detail_content=clinical_detail,
+        ancestry_content=ancestry_html,
+        nutrigenomics_content=nutrigenomics_html,
+        quality_content=quality_html,
         doctor_card_content=doctor_card,
         references_content=references,
-        polypharmacy_content=polypharmacy_html,
-        longevity_content=longevity_html,
-        sleep_content=sleep_html,
-        nutrigenomics_content=nutrigenomics_html,
-        mental_health_content=mental_health_html,
     )
 
     output_path = REPORTS_DIR / "GENETIC_HEALTH_REPORT.html"
