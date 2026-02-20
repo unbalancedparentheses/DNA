@@ -1286,6 +1286,353 @@ COMPREHENSIVE_SNPS = {
             "GG": {"status": "normal", "desc": "OPG GG — normal bone remodeling", "magnitude": 0},
         }
     },
+
+    # =========================================================================
+    # SECTION: EXPANDED CARDIOVASCULAR
+    # =========================================================================
+
+    "rs1799983": {
+        "gene": "NOS3", "category": "Cardiovascular",
+        "variants": {
+            "TT": {"status": "risk", "desc": "eNOS TT (Glu298Asp) — reduced nitric oxide, endothelial dysfunction, hypertension risk", "magnitude": 3},
+            "TG": {"status": "intermediate", "desc": "eNOS heterozygous — moderate endothelial function", "magnitude": 2},
+            "GT": {"status": "intermediate", "desc": "eNOS heterozygous — moderate endothelial function", "magnitude": 2},
+            "GG": {"status": "normal", "desc": "eNOS GG — normal nitric oxide production", "magnitude": 0},
+        }
+    },
+    "rs1800775": {
+        "gene": "CETP", "category": "Cardiovascular",
+        "variants": {
+            "AA": {"status": "elevated_hdl", "desc": "CETP AA — reduced CETP activity, higher HDL cholesterol (cardioprotective)", "magnitude": 1},
+            "AC": {"status": "intermediate", "desc": "CETP heterozygous — moderate HDL effect", "magnitude": 0},
+            "CA": {"status": "intermediate", "desc": "CETP heterozygous — moderate HDL effect", "magnitude": 0},
+            "CC": {"status": "normal", "desc": "CETP CC — normal HDL cholesterol transfer", "magnitude": 0},
+        }
+    },
+    "rs10455872": {
+        "gene": "LPA", "category": "Cardiovascular",
+        "variants": {
+            "GG": {"status": "high_risk", "desc": "LPA GG — elevated Lp(a), strong independent cardiovascular risk factor", "magnitude": 4},
+            "GA": {"status": "risk", "desc": "LPA heterozygous — elevated Lp(a), increased CVD risk", "magnitude": 3},
+            "AG": {"status": "risk", "desc": "LPA heterozygous — elevated Lp(a), increased CVD risk", "magnitude": 3},
+            "AA": {"status": "normal", "desc": "LPA AA — normal Lp(a) levels", "magnitude": 0},
+        },
+        "note": "Lp(a) is an independent causal risk factor for heart disease. Test serum Lp(a) if carrier."
+    },
+    "rs4420638": {
+        "gene": "APOC1/APOE", "category": "Cardiovascular",
+        "variants": {
+            "GG": {"status": "risk", "desc": "APOC1 GG — elevated LDL and triglycerides, linked to APOE e4 haplotype", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "APOC1 heterozygous — moderate lipid effect", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "APOC1 heterozygous — moderate lipid effect", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "APOC1 AA — typical lipid levels", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED INFLAMMATION & IMMUNE
+    # =========================================================================
+
+    "rs1205": {
+        "gene": "CRP", "category": "Inflammation",
+        "variants": {
+            "CC": {"status": "elevated", "desc": "CRP CC — higher baseline C-reactive protein, systemic inflammation marker", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "CRP heterozygous — moderate CRP tendency", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "CRP heterozygous — moderate CRP tendency", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "CRP TT — lower baseline CRP levels", "magnitude": 0},
+        }
+    },
+    "rs3087243": {
+        "gene": "CTLA4", "category": "Autoimmune",
+        "variants": {
+            "GG": {"status": "risk", "desc": "CTLA4 GG — reduced immune checkpoint, autoimmune disease susceptibility (T1D, thyroid, RA)", "magnitude": 2},
+            "GA": {"status": "intermediate", "desc": "CTLA4 heterozygous — moderate autoimmune risk", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "CTLA4 heterozygous — moderate autoimmune risk", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "CTLA4 AA — normal immune checkpoint function", "magnitude": 0},
+        }
+    },
+    "rs2104286": {
+        "gene": "IL2RA", "category": "Autoimmune",
+        "variants": {
+            "AA": {"status": "risk", "desc": "IL2RA AA — reduced IL-2 signaling, T1D and MS susceptibility", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "IL2RA heterozygous — moderate autoimmune risk", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "IL2RA heterozygous — moderate autoimmune risk", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "IL2RA GG — normal regulatory T cell function", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED NUTRITION / METABOLISM
+    # =========================================================================
+
+    "rs12325817": {
+        "gene": "PEMT", "category": "Nutrition",
+        "variants": {
+            "CC": {"status": "reduced", "desc": "PEMT CC — reduced phosphatidylcholine synthesis, higher dietary choline requirement", "magnitude": 2},
+            "CG": {"status": "intermediate", "desc": "PEMT heterozygous — moderate choline synthesis reduction", "magnitude": 1},
+            "GC": {"status": "intermediate", "desc": "PEMT heterozygous — moderate choline synthesis reduction", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "PEMT GG — normal endogenous choline production", "magnitude": 0},
+        }
+    },
+    "rs174546": {
+        "gene": "FADS1", "category": "Nutrition",
+        "variants": {
+            "TT": {"status": "low_conversion", "desc": "FADS1 TT — reduced ALA→EPA/DHA conversion, higher need for preformed omega-3", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "FADS1 heterozygous — moderate omega-3 conversion", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "FADS1 heterozygous — moderate omega-3 conversion", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "FADS1 CC — efficient omega-3 conversion from plant sources", "magnitude": 0},
+        }
+    },
+
+    "rs7041": {
+        "gene": "GC", "category": "Nutrition",
+        "variants": {
+            "TT": {"status": "reduced", "desc": "GC TT — Gc1f haplotype, lower vitamin D binding capacity in some populations", "magnitude": 1},
+            "TG": {"status": "intermediate", "desc": "GC heterozygous — moderate vitamin D binding", "magnitude": 0},
+            "GT": {"status": "intermediate", "desc": "GC heterozygous — moderate vitamin D binding", "magnitude": 0},
+            "GG": {"status": "normal", "desc": "GC GG — Gc1s haplotype, typical vitamin D binding", "magnitude": 0},
+        }
+    },
+    "rs492602": {
+        "gene": "FUT2", "category": "Nutrition",
+        "variants": {
+            "GG": {"status": "non_secretor", "desc": "FUT2 GG — non-secretor, ~35% lower B12 absorption from food, altered gut microbiome", "magnitude": 2},
+            "GA": {"status": "secretor", "desc": "FUT2 heterozygous — secretor status, normal B12 absorption", "magnitude": 0},
+            "AG": {"status": "secretor", "desc": "FUT2 heterozygous — secretor status, normal B12 absorption", "magnitude": 0},
+            "AA": {"status": "secretor", "desc": "FUT2 AA — secretor status, normal B12 absorption and gut flora", "magnitude": 0},
+        },
+        "note": "Non-secretors have different gut microbiome composition and are resistant to norovirus."
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED DRUG METABOLISM
+    # =========================================================================
+
+    "rs1045642": {
+        "gene": "ABCB1", "category": "Drug Metabolism",
+        "variants": {
+            "TT": {"status": "reduced_transport", "desc": "ABCB1/MDR1 TT (C3435T) — reduced P-glycoprotein efflux, higher drug levels for digoxin, cyclosporine", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "ABCB1 heterozygous — moderate P-glycoprotein activity", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "ABCB1 heterozygous — moderate P-glycoprotein activity", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "ABCB1 CC — normal P-glycoprotein drug efflux pump", "magnitude": 0},
+        }
+    },
+    "rs662": {
+        "gene": "PON1", "category": "Drug Metabolism",
+        "variants": {
+            "TT": {"status": "reduced", "desc": "PON1 Q192R TT — reduced paraoxonase, lower organophosphate detoxification, may affect clopidogrel", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "PON1 heterozygous — moderate detoxification capacity", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "PON1 heterozygous — moderate detoxification capacity", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "PON1 CC — efficient paraoxonase activity", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED DETOXIFICATION
+    # =========================================================================
+
+    "rs1056806": {
+        "gene": "CYP1B1", "category": "Detoxification",
+        "variants": {
+            "CC": {"status": "fast", "desc": "CYP1B1 Leu432Val CC — faster estrogen hydroxylation, potentially more reactive metabolites", "magnitude": 2},
+            "CG": {"status": "intermediate", "desc": "CYP1B1 heterozygous — moderate estrogen metabolism", "magnitude": 1},
+            "GC": {"status": "intermediate", "desc": "CYP1B1 heterozygous — moderate estrogen metabolism", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "CYP1B1 GG — normal estrogen metabolism", "magnitude": 0},
+        }
+    },
+    "rs2606345": {
+        "gene": "CYP1A1", "category": "Detoxification",
+        "variants": {
+            "CC": {"status": "induced", "desc": "CYP1A1 CC — highly inducible by PAHs (grilled/smoked foods, tobacco), more reactive metabolites", "magnitude": 2},
+            "CA": {"status": "intermediate", "desc": "CYP1A1 heterozygous — moderate inducibility", "magnitude": 1},
+            "AC": {"status": "intermediate", "desc": "CYP1A1 heterozygous — moderate inducibility", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "CYP1A1 AA — normal PAH metabolism inducibility", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED FITNESS / ATHLETIC
+    # =========================================================================
+
+    "rs1800169": {
+        "gene": "CILP", "category": "Fitness",
+        "variants": {
+            "TT": {"status": "risk", "desc": "CILP TT — cartilage intermediate layer protein variant, disc degeneration risk", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CILP heterozygous — moderate disc/joint risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CILP heterozygous — moderate disc/joint risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CILP CC — normal cartilage integrity", "magnitude": 0},
+        }
+    },
+
+    "rs1110400": {
+        "gene": "MC1R", "category": "Skin",
+        "variants": {
+            "CC": {"status": "risk", "desc": "MC1R D84E CC — red/fair pigmentation, increased UV damage susceptibility", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "MC1R D84E carrier — mild fair pigmentation tendency", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "MC1R D84E carrier — mild fair pigmentation tendency", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "MC1R TT — typical melanin at this position", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED HAIR
+    # =========================================================================
+
+    "rs4846480": {
+        "gene": "7p21.1", "category": "Hair",
+        "variants": {
+            "TT": {"status": "risk", "desc": "7p21.1 TT — additional male pattern baldness locus, independent of androgen receptor", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "7p21.1 heterozygous — moderate hair loss association", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "7p21.1 heterozygous — moderate hair loss association", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "7p21.1 CC — lower risk at this locus", "magnitude": 0},
+        }
+    },
+    "rs12565727": {
+        "gene": "TARDBP", "category": "Hair",
+        "variants": {
+            "CC": {"status": "risk", "desc": "TARDBP CC — hair graying onset, associated with premature graying", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "TARDBP heterozygous — moderate graying timeline", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "TARDBP heterozygous — moderate graying timeline", "magnitude": 0},
+            "TT": {"status": "normal", "desc": "TARDBP TT — typical graying timeline", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED COGNITION / MEMORY
+    # =========================================================================
+
+    "rs53576": {
+        "gene": "OXTR", "category": "Cognition",
+        "variants": {
+            "GG": {"status": "empathic", "desc": "Oxytocin receptor GG — higher empathy, social cognition, and stress resilience", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "OXTR heterozygous — moderate social cognition effect", "magnitude": 0},
+            "AG": {"status": "intermediate", "desc": "OXTR heterozygous — moderate social cognition effect", "magnitude": 0},
+            "AA": {"status": "reduced", "desc": "OXTR AA — lower oxytocin receptor density, reduced empathic accuracy under stress", "magnitude": 1},
+        }
+    },
+
+    "rs13146355": {
+        "gene": "UMOD", "category": "Kidney",
+        "variants": {
+            "CC": {"status": "risk", "desc": "UMOD CC — elevated uromodulin, hypertension-mediated kidney damage risk", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "UMOD heterozygous — moderate kidney risk", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "UMOD heterozygous — moderate kidney risk", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "UMOD TT — normal uromodulin levels", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: EXPANDED THYROID
+    # =========================================================================
+
+    "rs3104413": {
+        "gene": "HLA-DR", "category": "Thyroid",
+        "variants": {
+            "CC": {"status": "risk", "desc": "HLA-DR CC — Graves' disease and Hashimoto's thyroiditis susceptibility", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "HLA-DR heterozygous — moderate thyroid autoimmune risk", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "HLA-DR heterozygous — moderate thyroid autoimmune risk", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "HLA-DR TT — typical thyroid autoimmune risk", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: BLOOD CLOTTING / THROMBOSIS
+    # =========================================================================
+
+    "rs8176719": {
+        "gene": "ABO", "category": "Blood Clotting",
+        "variants": {
+            "TT": {"status": "type_O", "desc": "ABO TT — blood type O, 25% lower VTE risk (protective against clots)", "magnitude": 1},
+            "TC": {"status": "non_O", "desc": "ABO heterozygous — non-O blood type, higher VTE risk than type O", "magnitude": 1},
+            "CT": {"status": "non_O", "desc": "ABO heterozygous — non-O blood type, higher VTE risk than type O", "magnitude": 1},
+            "CC": {"status": "non_O", "desc": "ABO CC — non-O blood type, ~25% higher VTE risk", "magnitude": 1},
+        },
+        "note": "Non-O blood types have 2-4x higher risk of venous thromboembolism."
+    },
+
+    # =========================================================================
+    # SECTION: MIGRAINE
+    # =========================================================================
+
+    "rs10166942": {
+        "gene": "TRPM8", "category": "Migraine",
+        "variants": {
+            "TT": {"status": "protective", "desc": "TRPM8 TT — cold/menthol receptor variant, reduced migraine susceptibility", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "TRPM8 heterozygous — moderate migraine susceptibility", "magnitude": 0},
+            "CT": {"status": "intermediate", "desc": "TRPM8 heterozygous — moderate migraine susceptibility", "magnitude": 0},
+            "CC": {"status": "risk", "desc": "TRPM8 CC — typical migraine susceptibility at this locus", "magnitude": 1},
+        }
+    },
+    "rs1835740": {
+        "gene": "MTDH", "category": "Migraine",
+        "variants": {
+            "AA": {"status": "risk", "desc": "MTDH AA — glutamate regulation variant, first GWAS-confirmed migraine locus", "magnitude": 2},
+            "AC": {"status": "intermediate", "desc": "MTDH heterozygous — moderate migraine association", "magnitude": 1},
+            "CA": {"status": "intermediate", "desc": "MTDH heterozygous — moderate migraine association", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "MTDH CC — typical migraine risk at this locus", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: LIVER HEALTH
+    # =========================================================================
+
+    "rs738409": {
+        "gene": "PNPLA3", "category": "Liver",
+        "variants": {
+            "GG": {"status": "high_risk", "desc": "PNPLA3 I148M GG — strong non-alcoholic fatty liver disease (NAFLD) and cirrhosis risk", "magnitude": 4},
+            "GC": {"status": "risk", "desc": "PNPLA3 I148M heterozygous — elevated NAFLD risk, liver fat accumulation", "magnitude": 3},
+            "CG": {"status": "risk", "desc": "PNPLA3 I148M heterozygous — elevated NAFLD risk, liver fat accumulation", "magnitude": 3},
+            "CC": {"status": "normal", "desc": "PNPLA3 CC — normal hepatic lipid metabolism", "magnitude": 0},
+        },
+        "note": "Most common genetic risk factor for fatty liver. Weight loss is the primary intervention."
+    },
+    "rs58542926": {
+        "gene": "TM6SF2", "category": "Liver",
+        "variants": {
+            "TT": {"status": "high_risk", "desc": "TM6SF2 E167K TT — increased hepatic fat retention, NAFLD/NASH risk", "magnitude": 3},
+            "TC": {"status": "risk", "desc": "TM6SF2 heterozygous — moderate liver fat accumulation risk", "magnitude": 2},
+            "CT": {"status": "risk", "desc": "TM6SF2 heterozygous — moderate liver fat accumulation risk", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "TM6SF2 CC — normal hepatic lipid secretion", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: HEARING
+    # =========================================================================
+
+    "rs7598759": {
+        "gene": "GRHL2", "category": "Hearing",
+        "variants": {
+            "TT": {"status": "risk", "desc": "GRHL2 TT — age-related hearing loss susceptibility (presbycusis)", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "GRHL2 heterozygous — moderate hearing loss risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "GRHL2 heterozygous — moderate hearing loss risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "GRHL2 CC — typical age-related hearing trajectory", "magnitude": 0},
+        }
+    },
+
+    # =========================================================================
+    # SECTION: FERTILITY / REPRODUCTIVE
+    # =========================================================================
+
+    "rs10835638": {
+        "gene": "FSHB", "category": "Fertility",
+        "variants": {
+            "GG": {"status": "reduced", "desc": "FSHB GG — reduced FSH levels, associated with lower sperm count in males", "magnitude": 2},
+            "GT": {"status": "intermediate", "desc": "FSHB heterozygous — moderate FSH effect", "magnitude": 1},
+            "TG": {"status": "intermediate", "desc": "FSHB heterozygous — moderate FSH effect", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "FSHB TT — normal follicle-stimulating hormone levels", "magnitude": 0},
+        }
+    },
+    "rs2736108": {
+        "gene": "TERT", "category": "Fertility",
+        "variants": {
+            "CC": {"status": "risk", "desc": "TERT CC — reduced telomerase in reproductive cells, associated with earlier reproductive aging", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "TERT heterozygous — moderate reproductive aging effect", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "TERT heterozygous — moderate reproductive aging effect", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "TERT TT — typical reproductive aging trajectory", "magnitude": 0},
+        }
+    },
 }
 
 
