@@ -24,20 +24,21 @@ python -m pytest tests/ -v
 
 The pipeline generates a single interactive report in the `reports/` directory:
 
-1. **GENETIC_HEALTH_REPORT.html** — Interactive all-in-one HTML report (24 sections)
-   - SVG charts and dashboards
+1. **GENETIC_HEALTH_REPORT.html** — Interactive all-in-one HTML report (12 sections)
+   - Part 1 (What You Should Do): Key Findings, Action Plan, Drug Guide, Disease Risk, Body Profile, Mental Health
+   - Part 2 (Details for Your Doctor): Clinical Findings, Ancestry, Nutrigenomics, Data Quality, Doctor Card, References
+   - Color-coded key findings (red/yellow/green) with ELI5 plain-language explanations
+   - SVG charts: PRS gauges, metabolism gauges, ancestry donut, impact bars, chromosome coverage
    - APOE haplotype display with risk context
-   - Trait predictions section
    - ACMG findings with actionability notes
    - Carrier screening organized by system
-   - Ancestry donut chart with proportions
-   - PRS gauge visualizations for 8 conditions
    - Star allele metabolizer gauges (6 genes)
+   - Polypharmacy drug combination warnings
    - Population frequency badges on annotated findings
    - Search/filter across all findings and tables
    - Sortable table columns (click headers)
    - CSV export of findings to clipboard
-   - Collapsible sections
+   - Collapsible sections with dark/light mode
    - Print-optimized doctor card
    - Database links for every rsID
 
