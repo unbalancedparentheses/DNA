@@ -94,6 +94,32 @@ def _clean_condition(raw):
     return best
 
 
+def _dedup_phrases(text):
+    """Deduplicate repeated semicolon-separated phrases while preserving order.
+
+    e.g. 'ClinVar risk factors related to X; ClinVar risk factors related to X' -> 'ClinVar risk factors related to X'
+    """
+    if not text or ";" not in text:
+        return text
+    seen = set()
+    unique = []
+    for phrase in text.split("; "):
+        phrase = phrase.strip()
+        if phrase and phrase not in seen:
+            seen.add(phrase)
+            unique.append(phrase)
+    return "; ".join(unique)
+
+
+def _clean_why(text):
+    """Clean pipe-separated ClinVar text from 'why' fields and deduplicate."""
+    if not text:
+        return text
+    if "|" in text:
+        text = _clean_condition(text)
+    return _dedup_phrases(text)
+
+
 # =============================================================================
 # PAPER REFERENCES — curated, hardcoded
 # =============================================================================
@@ -575,9 +601,7 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
         if p["priority"] == "high":
             eli5 = _eli5_for_condition(p.get("id", ""))
             # Clean pipe-separated ClinVar text from recommendation reasons
-            why = p["why"]
-            if "|" in why:
-                why = _clean_condition(why)
+            why = _clean_why(p["why"])
             text = f'<strong>{p["title"]}</strong>: {why}'
             if eli5:
                 text += f'<br><span class="eli5-inline">{eli5}</span>'
@@ -671,7 +695,8 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
             nutrition_groups = {"methylation", "iron", "caffeine", "nutrition", "vitamin"}
             if any(g in p.get("id", "").lower() for g in nutrition_groups):
                 eli5 = _eli5_for_condition(p.get("id", ""))
-                text = f'<strong>{p["title"]}</strong>: {p["why"]}'
+                why = _clean_why(p["why"])
+                text = f'<strong>{p["title"]}</strong>: {why}'
                 if eli5:
                     text += f'<br><span class="eli5-inline">{eli5}</span>'
                 color = "yellow"
@@ -835,7 +860,7 @@ def build_action_plan(recommendations_data, insights_data):
             if eli5:
                 parts.append(f'<p class="eli5">{eli5}</p>')
 
-            parts.append(f'<p><strong>Why:</strong> {p["why"]}</p>')
+            parts.append(f'<p><strong>Why:</strong> {_clean_why(p["why"])}</p>')
 
             parts.append("<p><strong>Actions:</strong></p><ol>")
             for action in p["actions"]:
@@ -919,7 +944,7 @@ def build_action_plan(recommendations_data, insights_data):
             color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
             parts.append(
                 f'<div class="finding-card" style="border-left-color:{color}">'
-                f'<strong>{ref["specialist"]}</strong>: {ref["reason"]}'
+                f'<strong>{ref["specialist"]}</strong>: {_clean_why(ref["reason"])}'
                 f' <span class="badge" style="background:{color};color:#fff">'
                 f'{ref.get("urgency", "routine")}</span></div>'
             )
@@ -929,10 +954,15 @@ def build_action_plan(recommendations_data, insights_data):
     if good_news:
         parts.append("<h3>Good News</h3>")
         parts.append('<div class="good-news-grid">')
+        seen_genes = set()
         for g in good_news:
+            if g["gene"] in seen_genes:
+                continue
+            seen_genes.add(g["gene"])
+            desc = _clean_condition(g["description"]) if "|" in g.get("description", "") else g["description"]
             parts.append(
                 f'<div class="good-news-card">'
-                f'<strong>{g["gene"]}</strong>: {g["description"]}</div>'
+                f'<strong>{g["gene"]}</strong>: {desc}</div>'
             )
         parts.append("</div>")
 
@@ -1133,7 +1163,7 @@ def build_disease_risk_overview(prs_results, disease_findings_data, acmg_data):
                          '<th>Genotype</th><th>Stars</th><th>Actionability</th></tr>')
             for f in acmg_findings:
                 gene = f.get("gene", "Unknown")
-                condition = (f.get("traits") or "Unknown").split(";")[0].strip()
+                condition = _clean_condition(f.get("traits") or "Unknown")
                 genotype = f.get("user_genotype", "")
                 stars = f.get("gold_stars", 0)
                 action = f.get("acmg_actionability", "")
@@ -1165,7 +1195,7 @@ def build_disease_risk_overview(prs_results, disease_findings_data, acmg_data):
             )
             for v in variants[:50]:
                 gene = _esc(v.get("gene", "Unknown"))
-                condition = _esc((v.get("traits") or "Unknown").split(";")[0].strip())
+                condition = _esc(_clean_condition(v.get("traits") or "Unknown"))
                 genotype = _esc(v.get("user_genotype", ""))
                 stars = v.get("gold_stars", 0)
                 star_str = "&#9733;" * stars + "&#9734;" * (4 - stars)
@@ -1809,6 +1839,7 @@ def build_doctor_card(recommendations_data, star_alleles_data, apoe_data, acmg_d
         parts.append('<table><tr><th>Condition</th><th>Doctor Note</th></tr>')
         for p in high_priorities:
             note = p.get("doctor_note", "") or p.get("why", "")
+            note = _clean_why(note)
             parts.append(
                 f'<tr><td><strong>{p["title"]}</strong></td>'
                 f'<td>{note}</td></tr>'
@@ -1822,7 +1853,7 @@ def build_doctor_card(recommendations_data, star_alleles_data, apoe_data, acmg_d
         for ref in referrals:
             color = urgency_colors.get(ref.get("urgency", ""), "var(--border)")
             parts.append(
-                f'<p><strong>{ref["specialist"]}</strong>: {ref["reason"]} '
+                f'<p><strong>{ref["specialist"]}</strong>: {_clean_why(ref["reason"])} '
                 f'<span class="mag-badge" style="background:{color};color:#fff">'
                 f'{ref.get("urgency", "routine")}</span></p>'
             )
@@ -1858,7 +1889,7 @@ def build_doctor_card(recommendations_data, star_alleles_data, apoe_data, acmg_d
         parts.append('<table><tr><th>Gene</th><th>Condition</th><th>Actionability</th></tr>')
         for f in acmg_findings:
             gene = f.get("gene", "Unknown")
-            condition = (f.get("traits") or "Unknown").split(";")[0].strip()
+            condition = _clean_condition(f.get("traits") or "Unknown")
             action = f.get("acmg_actionability", "")
             parts.append(
                 f'<tr><td><strong>{gene}</strong></td>'
@@ -2004,7 +2035,7 @@ def build_disease_risk(disease_findings):
         )
         for v in variants[:50]:
             gene = _esc(v.get("gene", "Unknown"))
-            condition = _esc((v.get("traits") or "Unknown").split(";")[0].strip())
+            condition = _esc(_clean_condition(v.get("traits") or "Unknown"))
             genotype = _esc(v.get("user_genotype", ""))
             stars = v.get("gold_stars", 0)
             star_str = "&#9733;" * stars + "&#9734;" * (4 - stars)
@@ -2104,7 +2135,7 @@ def build_nutrition_section(recommendations_data, insights_data):
                 f'{p["priority"].upper()}</span> '
                 f'<strong>{p["title"]}</strong></summary>'
             )
-            parts.append(f'<p><strong>Why:</strong> {p["why"]}</p>')
+            parts.append(f'<p><strong>Why:</strong> {_clean_why(p["why"])}</p>')
             parts.append("<p><strong>Actions:</strong></p><ol>")
             for action in p["actions"]:
                 parts.append(f"<li>{action}</li>")
@@ -2145,10 +2176,15 @@ def build_protective(recommendations_data, insights_data):
     parts = []
     if good_news:
         parts.append('<div class="good-news-grid">')
+        seen_genes = set()
         for g in good_news:
+            if g["gene"] in seen_genes:
+                continue
+            seen_genes.add(g["gene"])
+            desc = _clean_condition(g["description"]) if "|" in g.get("description", "") else g["description"]
             parts.append(
                 f'<div class="good-news-card">'
-                f'<strong>{g["gene"]}</strong>: {g["description"]}</div>'
+                f'<strong>{g["gene"]}</strong>: {desc}</div>'
             )
         parts.append("</div>")
     if protective:
