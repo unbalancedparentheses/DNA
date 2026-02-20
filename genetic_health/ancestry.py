@@ -372,6 +372,113 @@ POPULATION_LABELS = {
     "AMR": "Admixed American",
 }
 
+# Sub-population markers: SNPs with frequency differences within superpopulations
+# These give finer resolution when the top ancestry is determined.
+SUB_POPULATION_MARKERS = {
+    "EUR": {
+        "sub_pops": {
+            "Northern European": "EUR_N",
+            "Southern European": "EUR_S",
+            "Ashkenazi Jewish": "EUR_AJ",
+        },
+        "markers": {
+            "rs12913832": {"allele": "G", "EUR_N": 0.80, "EUR_S": 0.55, "EUR_AJ": 0.52},
+            "rs16891982": {"allele": "G", "EUR_N": 0.96, "EUR_S": 0.85, "EUR_AJ": 0.88},
+            "rs1426654": {"allele": "A", "EUR_N": 0.99, "EUR_S": 0.95, "EUR_AJ": 0.97},
+            "rs4988235": {"allele": "A", "EUR_N": 0.85, "EUR_S": 0.45, "EUR_AJ": 0.65},
+            "rs1800562": {"allele": "A", "EUR_N": 0.08, "EUR_S": 0.03, "EUR_AJ": 0.01},
+            "rs1805007": {"allele": "T", "EUR_N": 0.13, "EUR_S": 0.05, "EUR_AJ": 0.06},
+            "rs1801133": {"allele": "A", "EUR_N": 0.30, "EUR_S": 0.42, "EUR_AJ": 0.38},
+            "rs6025": {"allele": "A", "EUR_N": 0.03, "EUR_S": 0.05, "EUR_AJ": 0.02},
+            "rs12821256": {"allele": "C", "EUR_N": 0.18, "EUR_S": 0.06, "EUR_AJ": 0.08},
+            "rs1393350": {"allele": "A", "EUR_N": 0.28, "EUR_S": 0.18, "EUR_AJ": 0.20},
+        },
+    },
+    "AFR": {
+        "sub_pops": {
+            "West African": "AFR_W",
+            "East African": "AFR_E",
+            "Southern African": "AFR_S",
+        },
+        "markers": {
+            "rs2814778": {"allele": "C", "AFR_W": 0.001, "AFR_E": 0.010, "AFR_S": 0.003},
+            "rs2065160": {"allele": "C", "AFR_W": 0.92, "AFR_E": 0.85, "AFR_S": 0.88},
+            "rs6497268": {"allele": "T", "AFR_W": 0.55, "AFR_E": 0.48, "AFR_S": 0.52},
+            "rs174537": {"allele": "T", "AFR_W": 0.97, "AFR_E": 0.93, "AFR_S": 0.95},
+            "rs2250072": {"allele": "T", "AFR_W": 0.48, "AFR_E": 0.40, "AFR_S": 0.44},
+            "rs3796332": {"allele": "A", "AFR_W": 0.54, "AFR_E": 0.46, "AFR_S": 0.50},
+        },
+    },
+    "EAS": {
+        "sub_pops": {
+            "East Asian (Han Chinese)": "EAS_CH",
+            "Japanese": "EAS_JP",
+            "Southeast Asian": "EAS_SE",
+        },
+        "markers": {
+            "rs3827760": {"allele": "A", "EAS_CH": 0.90, "EAS_JP": 0.88, "EAS_SE": 0.70},
+            "rs671": {"allele": "A", "EAS_CH": 0.20, "EAS_JP": 0.25, "EAS_SE": 0.05},
+            "rs1229984": {"allele": "T", "EAS_CH": 0.72, "EAS_JP": 0.75, "EAS_SE": 0.50},
+            "rs17822931": {"allele": "T", "EAS_CH": 0.93, "EAS_JP": 0.90, "EAS_SE": 0.80},
+            "rs1800414": {"allele": "C", "EAS_CH": 0.65, "EAS_JP": 0.60, "EAS_SE": 0.55},
+            "rs4833103": {"allele": "T", "EAS_CH": 0.80, "EAS_JP": 0.78, "EAS_SE": 0.72},
+        },
+    },
+}
+
+
+def _estimate_sub_ancestry(genome_by_rsid, top_pop):
+    """Estimate sub-population proportions within a superpopulation.
+
+    Returns dict with sub_proportions, markers_used, confidence, or None if
+    the superpopulation has no sub-population markers.
+    """
+    if top_pop not in SUB_POPULATION_MARKERS:
+        return None
+
+    config = SUB_POPULATION_MARKERS[top_pop]
+    sub_pops = list(config["sub_pops"].values())
+    sub_labels = config["sub_pops"]
+    markers = config["markers"]
+
+    log_lls = {sp: 0.0 for sp in sub_pops}
+    markers_used = 0
+
+    for rsid, marker_info in markers.items():
+        if rsid not in genome_by_rsid:
+            continue
+        genotype = genome_by_rsid[rsid]["genotype"]
+        allele = marker_info["allele"]
+        n = sum(1 for a in genotype if a == allele)
+        markers_used += 1
+
+        for sp in sub_pops:
+            freq = max(0.001, min(0.999, marker_info.get(sp, 0.5)))
+            log_lls[sp] += n * math.log(freq) + (2 - n) * math.log(1 - freq)
+
+    if markers_used < 3:
+        return None
+
+    # Softmax
+    max_ll = max(log_lls.values())
+    exps = {sp: math.exp(ll - max_ll) for sp, ll in log_lls.items()}
+    total = sum(exps.values())
+    proportions = {sp: val / total for sp, val in exps.items()}
+
+    # Map back to readable labels
+    label_map = {v: k for k, v in sub_labels.items()}
+    labeled = {label_map.get(sp, sp): prop for sp, prop in proportions.items()}
+
+    confidence = "moderate" if markers_used >= 6 else "low"
+    top_sub = max(labeled, key=labeled.get)
+
+    return {
+        "sub_proportions": labeled,
+        "markers_used": markers_used,
+        "confidence": confidence,
+        "top_sub_ancestry": top_sub,
+    }
+
 
 # =============================================================================
 # POPULATION-SPECIFIC WARNINGS
@@ -572,10 +679,14 @@ def estimate_ancestry(genome_by_rsid: dict) -> dict:
     top_pop = max(proportions, key=proportions.get)
     top_ancestry = POPULATION_LABELS.get(top_pop, top_pop)
 
+    # Estimate sub-population if we have enough markers
+    sub_ancestry = _estimate_sub_ancestry(genome_by_rsid, top_pop)
+
     return {
         "proportions": proportions,
         "markers_found": markers_found,
         "confidence": confidence,
         "top_ancestry": top_ancestry,
         "details": details,
+        "sub_ancestry": sub_ancestry,
     }

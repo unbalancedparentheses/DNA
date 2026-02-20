@@ -140,6 +140,83 @@ STAR_ALLELE_DEFINITIONS = {
             "and peripheral neuropathy from isoniazid."
         ),
     },
+    "CYP3A5": {
+        "function_map": {
+            "*1": "normal",
+            "*3": "no_function",
+            "*6": "no_function",
+            "*7": "no_function",
+        },
+        "alleles": {
+            "*3": {"rs776746": "C"},
+            "*6": {"rs10264272": "T"},
+            "*7": {"rs41303343": "T"},
+        },
+        "snps": ["rs776746", "rs10264272", "rs41303343"],
+        "clinical_note": (
+            "CYP3A5 metabolizes tacrolimus, cyclosporine, and some statins. "
+            "*1 allele (expresser) is common in Africans (~70%) but rare in "
+            "Europeans (~6%). Non-expressers (*3/*3) may need lower tacrolimus doses."
+        ),
+    },
+    "CYP3A4": {
+        "function_map": {
+            "*1": "normal",
+            "*22": "decreased",
+            "*20": "no_function",
+        },
+        "alleles": {
+            "*22": {"rs35599367": "T"},
+            "*20": {"rs67666821": "T"},
+        },
+        "snps": ["rs35599367", "rs67666821"],
+        "clinical_note": (
+            "CYP3A4 metabolizes ~30% of all drugs including statins, "
+            "calcium channel blockers, macrolide antibiotics, opioids, and "
+            "many chemotherapeutics. *22 (decreased function) affects ~5% "
+            "of Europeans and may require dose reductions for sensitive substrates."
+        ),
+    },
+    "CYP1A2": {
+        "function_map": {
+            "*1": "normal",
+            "*1F": "increased",
+            "*1C": "decreased",
+            "*1K": "decreased",
+        },
+        "alleles": {
+            "*1F": {"rs762551": "A"},
+            "*1C": {"rs2069514": "G"},
+            "*1K": {"rs12720461": "T"},
+        },
+        "snps": ["rs762551", "rs2069514", "rs12720461"],
+        "clinical_note": (
+            "CYP1A2 metabolizes caffeine, theophylline, melatonin, and "
+            "fluvoxamine. *1F (rapid) is the most common inducible allele. "
+            "Slow metabolizers should limit caffeine to mornings and may need "
+            "lower doses of theophylline."
+        ),
+    },
+    "SLCO1B1": {
+        "function_map": {
+            "*1": "normal",
+            "*5": "decreased",
+            "*15": "decreased",
+            "*17": "decreased",
+        },
+        "alleles": {
+            "*5": {"rs4149056": "C"},
+            "*15": {"rs4149056": "C", "rs2306283": "G"},
+            "*17": {"rs2306283": "G"},
+        },
+        "snps": ["rs4149056", "rs2306283"],
+        "clinical_note": (
+            "SLCO1B1 encodes the hepatic statin transporter OATP1B1. "
+            "*5 (rs4149056 TC/CC) increases simvastatin myopathy risk 5-17x. "
+            "CPIC recommends avoiding simvastatin >20mg or switching to "
+            "rosuvastatin/pravastatin for *5 carriers."
+        ),
+    },
 }
 
 # Phenotype mapping from diplotype function pairs

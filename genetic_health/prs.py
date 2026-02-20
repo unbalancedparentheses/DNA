@@ -380,6 +380,82 @@ PRS_MODELS = {
             {"rsid": "rs2504063", "risk_allele": "G", "log_or": 0.049, "gene": "ESR1 (estrogen)", "eur_freq": 0.620},
         ],
     },
+
+    "parkinsons_disease": {
+        "name": "Parkinson's Disease",
+        "reference": "Nalls et al. 2019 (Lancet Neurology); Chang et al. 2017",
+        "snps": [
+            {"rsid": "rs356182", "risk_allele": "A", "log_or": 0.287, "gene": "SNCA", "eur_freq": 0.370},
+            {"rsid": "rs34637584", "risk_allele": "T", "log_or": 0.405, "gene": "LRRK2 G2019S", "eur_freq": 0.001},
+            {"rsid": "rs76763715", "risk_allele": "T", "log_or": 0.693, "gene": "GBA N370S", "eur_freq": 0.003},
+            {"rsid": "rs11931074", "risk_allele": "T", "log_or": 0.262, "gene": "SNCA", "eur_freq": 0.070},
+            {"rsid": "rs6532194", "risk_allele": "T", "log_or": 0.157, "gene": "BST1", "eur_freq": 0.420},
+            {"rsid": "rs12456492", "risk_allele": "G", "log_or": 0.113, "gene": "RIT2", "eur_freq": 0.660},
+            {"rsid": "rs2414739", "risk_allele": "A", "log_or": 0.131, "gene": "PM20D1", "eur_freq": 0.670},
+            {"rsid": "rs11724635", "risk_allele": "A", "log_or": 0.113, "gene": "FAM47E/SCARB2", "eur_freq": 0.540},
+            {"rsid": "rs12637471", "risk_allele": "A", "log_or": 0.148, "gene": "MCCC1", "eur_freq": 0.170},
+            {"rsid": "rs823118", "risk_allele": "T", "log_or": 0.113, "gene": "NUCKS1/RAB7L1", "eur_freq": 0.650},
+            {"rsid": "rs199347", "risk_allele": "A", "log_or": 0.105, "gene": "GPNMB", "eur_freq": 0.430},
+            {"rsid": "rs1474055", "risk_allele": "T", "log_or": 0.148, "gene": "STK39", "eur_freq": 0.120},
+        ],
+    },
+
+    "type1_diabetes": {
+        "name": "Type 1 Diabetes",
+        "reference": "Onengut-Gumuscu et al. 2015 (Nature Genetics); Barrett et al. 2009",
+        "snps": [
+            {"rsid": "rs2187668", "risk_allele": "T", "log_or": 0.693, "gene": "HLA-DQA1", "eur_freq": 0.130},
+            {"rsid": "rs9273363", "risk_allele": "C", "log_or": 0.588, "gene": "HLA-DQB1", "eur_freq": 0.180},
+            {"rsid": "rs2476601", "risk_allele": "A", "log_or": 0.336, "gene": "PTPN22", "eur_freq": 0.100},
+            {"rsid": "rs2292239", "risk_allele": "T", "log_or": 0.182, "gene": "ERBB3", "eur_freq": 0.340},
+            {"rsid": "rs3184504", "risk_allele": "T", "log_or": 0.148, "gene": "SH2B3", "eur_freq": 0.480},
+            {"rsid": "rs6679677", "risk_allele": "A", "log_or": 0.336, "gene": "PTPN22 (proxy)", "eur_freq": 0.100},
+            {"rsid": "rs11171710", "risk_allele": "A", "log_or": 0.131, "gene": "BACH2", "eur_freq": 0.350},
+            {"rsid": "rs1990760", "risk_allele": "T", "log_or": 0.148, "gene": "IFIH1", "eur_freq": 0.610},
+            {"rsid": "rs12708716", "risk_allele": "G", "log_or": 0.182, "gene": "CLEC16A", "eur_freq": 0.340},
+            {"rsid": "rs3087243", "risk_allele": "G", "log_or": 0.182, "gene": "CTLA4", "eur_freq": 0.540},
+            {"rsid": "rs6691977", "risk_allele": "T", "log_or": 0.113, "gene": "TAGAP", "eur_freq": 0.260},
+            {"rsid": "rs689", "risk_allele": "T", "log_or": 0.405, "gene": "INS", "eur_freq": 0.730},
+        ],
+    },
+
+    "rheumatoid_arthritis": {
+        "name": "Rheumatoid Arthritis",
+        "reference": "Okada et al. 2014 (Nature); Stahl et al. 2010 (Nature Genetics)",
+        "snps": [
+            {"rsid": "rs2476601", "risk_allele": "A", "log_or": 0.336, "gene": "PTPN22", "eur_freq": 0.100},
+            {"rsid": "rs3184504", "risk_allele": "T", "log_or": 0.113, "gene": "SH2B3", "eur_freq": 0.480},
+            {"rsid": "rs2104286", "risk_allele": "T", "log_or": 0.131, "gene": "IL2RA", "eur_freq": 0.250},
+            {"rsid": "rs4810485", "risk_allele": "T", "log_or": 0.095, "gene": "CD40", "eur_freq": 0.260},
+            {"rsid": "rs2228145", "risk_allele": "C", "log_or": 0.113, "gene": "IL6R", "eur_freq": 0.390},
+            {"rsid": "rs874040", "risk_allele": "C", "log_or": 0.131, "gene": "RBPJ", "eur_freq": 0.380},
+            {"rsid": "rs10488631", "risk_allele": "C", "log_or": 0.148, "gene": "IRF5", "eur_freq": 0.100},
+            {"rsid": "rs3087243", "risk_allele": "G", "log_or": 0.148, "gene": "CTLA4", "eur_freq": 0.540},
+            {"rsid": "rs7574865", "risk_allele": "T", "log_or": 0.182, "gene": "STAT4", "eur_freq": 0.230},
+            {"rsid": "rs13031237", "risk_allele": "G", "log_or": 0.095, "gene": "REL", "eur_freq": 0.440},
+            {"rsid": "rs2736340", "risk_allele": "T", "log_or": 0.105, "gene": "BLK", "eur_freq": 0.260},
+            {"rsid": "rs6920220", "risk_allele": "A", "log_or": 0.131, "gene": "TNFAIP3", "eur_freq": 0.210},
+        ],
+    },
+
+    "celiac_disease": {
+        "name": "Celiac Disease",
+        "reference": "Trynka et al. 2011 (Nature Genetics); Dubois et al. 2010",
+        "snps": [
+            {"rsid": "rs2187668", "risk_allele": "T", "log_or": 0.916, "gene": "HLA-DQ2.5 tag", "eur_freq": 0.130},
+            {"rsid": "rs7454108", "risk_allele": "C", "log_or": 0.693, "gene": "HLA-DQ8 tag", "eur_freq": 0.090},
+            {"rsid": "rs2476601", "risk_allele": "A", "log_or": 0.182, "gene": "PTPN22", "eur_freq": 0.100},
+            {"rsid": "rs3184504", "risk_allele": "T", "log_or": 0.131, "gene": "SH2B3", "eur_freq": 0.480},
+            {"rsid": "rs1990760", "risk_allele": "T", "log_or": 0.113, "gene": "IFIH1", "eur_freq": 0.610},
+            {"rsid": "rs917997", "risk_allele": "A", "log_or": 0.131, "gene": "IL18RAP", "eur_freq": 0.240},
+            {"rsid": "rs2816316", "risk_allele": "C", "log_or": 0.131, "gene": "RGS1", "eur_freq": 0.820},
+            {"rsid": "rs13010713", "risk_allele": "A", "log_or": 0.113, "gene": "IL2/IL21", "eur_freq": 0.260},
+            {"rsid": "rs1738074", "risk_allele": "T", "log_or": 0.095, "gene": "TAGAP", "eur_freq": 0.540},
+            {"rsid": "rs3087243", "risk_allele": "G", "log_or": 0.113, "gene": "CTLA4", "eur_freq": 0.540},
+            {"rsid": "rs6441961", "risk_allele": "C", "log_or": 0.148, "gene": "CCR3/CCR5", "eur_freq": 0.200},
+            {"rsid": "rs802734", "risk_allele": "T", "log_or": 0.095, "gene": "CIITA/SOCS1", "eur_freq": 0.470},
+        ],
+    },
 }
 
 

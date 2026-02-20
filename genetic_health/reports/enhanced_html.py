@@ -538,6 +538,14 @@ ELI5_GENES = {
     "MC1R": "The 'red hair gene'. Variants affect hair color, skin type, and sun sensitivity.",
     "HERC2": "The main gene controlling eye color. Variants here are the biggest predictor of blue vs. brown eyes.",
     "ABCC11": "Controls earwax type (wet vs. dry) and body odor. The dry type is common in East Asian populations.",
+    "CYP3A5": "This gene helps break down tacrolimus, cyclosporine, and some statins. 'Expressers' (mostly in African descent) clear these drugs faster.",
+    "CYP3A4": "The busiest drug-processing gene in your liver — it handles about 30% of all medicines including statins, calcium channel blockers, and many antibiotics.",
+    "CYP1A2": "This gene controls caffeine breakdown. Slow metabolizers feel coffee effects longer and may have higher heart risk from excess caffeine.",
+    "SLCO1B1": "This gene transports statins into liver cells. A variant raises your risk of statin muscle pain (myopathy), especially with simvastatin.",
+    "TAS2R38": "The bitter taste gene. 'Supertasters' strongly taste bitter compounds — broccoli, coffee, and tonic water may taste more intense.",
+    "OR6A2": "An olfactory receptor that detects aldehydes in cilantro. Some people perceive these as soapy rather than herbal.",
+    "MCM6": "Controls whether you keep making lactase (the dairy-digesting enzyme) as an adult. If not, you're lactose intolerant.",
+    "NAT2": "Controls how fast you 'acetylate' certain drugs like isoniazid (TB treatment). Slow acetylators need pyridoxine supplementation.",
 }
 
 ELI5_CONDITIONS = {
@@ -825,7 +833,7 @@ def build_key_findings(findings, recommendations_data, apoe_data, acmg_data,
 # SECTION 2: YOUR ACTION PLAN
 # =============================================================================
 
-def build_action_plan(recommendations_data, insights_data):
+def build_action_plan(recommendations_data, insights_data, preventive_care_data=None):
     """Build consolidated action plan: supplements, diet, lifestyle, tests, doctors."""
     if not recommendations_data:
         return "<p>No personalized recommendations available.</p>"
@@ -949,6 +957,36 @@ def build_action_plan(recommendations_data, insights_data):
                 f'{ref.get("urgency", "routine")}</span></div>'
             )
 
+    # Preventive care timeline
+    if preventive_care_data and preventive_care_data.get("timeline"):
+        timeline = preventive_care_data["timeline"]
+        modified = [t for t in timeline if t.get("priority") not in ("standard", "ongoing")]
+        if modified:
+            parts.append("<h3>Preventive Screening Timeline</h3>")
+            parts.append(
+                '<p style="font-size:.9em;color:var(--accent2)">'
+                f'{preventive_care_data.get("summary", "")}</p>'
+            )
+            priority_colors = {"urgent": C["red"], "high": C["orange"],
+                               "elevated": C["amber"], "ongoing": C["blue"],
+                               "standard": C["green"]}
+            parts.append(
+                '<table><tr><th>Test</th><th>Start Age</th>'
+                '<th>Frequency</th><th>Why</th></tr>'
+            )
+            for t in modified:
+                color = priority_colors.get(t["priority"], "var(--border)")
+                basis = f' <span class="badge" style="background:{color};color:#fff">' \
+                        f'{_esc(t.get("genetic_basis", t["priority"]))}</span>' \
+                        if t.get("genetic_basis") else ""
+                parts.append(
+                    f'<tr><td><strong>{_esc(t["test"])}</strong></td>'
+                    f'<td>{t["start_age"]}</td>'
+                    f'<td>{_esc(t["frequency"])}</td>'
+                    f'<td>{_esc(t["reason"])}{basis}</td></tr>'
+                )
+            parts.append("</table>")
+
     # Good news
     good_news = recommendations_data.get("good_news", [])
     if good_news:
@@ -973,8 +1011,9 @@ def build_action_plan(recommendations_data, insights_data):
 # SECTION 3: DRUG & MEDICATION GUIDE
 # =============================================================================
 
-def build_drug_guide(star_alleles_data, findings, pharmgkb_findings, polypharmacy_data):
-    """Unified drug/medication section: star alleles + PharmGKB + polypharmacy."""
+def build_drug_guide(star_alleles_data, findings, pharmgkb_findings, polypharmacy_data,
+                     drug_dosing_data=None):
+    """Unified drug/medication section: star alleles + PharmGKB + polypharmacy + dosing."""
     parts = []
     parts.append(
         '<p style="font-size:.9em;color:var(--accent2)">'
@@ -1061,8 +1100,34 @@ def build_drug_guide(star_alleles_data, findings, pharmgkb_findings, polypharmac
             parts.append(f'<p><strong>Clinical action:</strong> {_esc(w["action"])}</p>')
             parts.append("</details>")
 
-    # Drug card for doctor
-    drug_card = (recommendations_data if isinstance(recommendations_data, dict) else {}).get("drug_card", []) if False else []
+    # Drug-specific dosing recommendations
+    if drug_dosing_data and drug_dosing_data.get("recommendations"):
+        parts.append("<h3>Drug-Specific Dosing Guide</h3>")
+        parts.append(
+            '<p style="font-size:.9em;color:var(--accent2)">'
+            'CPIC/DPWG guideline-based dosing adjustments for your genotype.</p>'
+        )
+        severity_order = {"chemotherapy": 0, "anticoagulant": 1, "antiplatelet": 2,
+                          "analgesic": 3, "immunosuppressant": 4, "statin": 5,
+                          "antibiotic": 6, "dietary": 7}
+        sorted_recs = sorted(drug_dosing_data["recommendations"],
+                             key=lambda r: severity_order.get(r["category"], 99))
+        for rec in sorted_recs:
+            is_warning = rec in drug_dosing_data.get("warnings", [])
+            color = C["red"] if is_warning else C["amber"]
+            badge = "CRITICAL" if is_warning else rec["category"].upper()
+            parts.append(
+                f'<details open class="rec-card" style="border-left:4px solid {color}">'
+                f'<summary><span class="mag-badge" style="background:{color};color:#fff">'
+                f'{badge}</span> '
+                f'<strong>{_esc(rec["drug"])}</strong></summary>'
+                f'<p><strong>Genes:</strong> {", ".join(rec["genes"])}</p>'
+                f'<p>{_esc(rec["action"])}</p>'
+                f'<p><strong>Dose guidance:</strong> {_esc(rec["dose_guidance"])}</p>'
+                f'<p class="paper-refs">Source: {_esc(rec["source"])}</p>'
+                f'</details>'
+            )
+
     parts.append(
         '<div class="doctor-callout">Share this entire drug section with '
         'every prescribing physician. Print it or save as PDF.</div>'
@@ -1270,6 +1335,9 @@ def build_body_profile(traits_data, blood_type_data, sleep_data, longevity_data,
         trait_labels = {
             "eye_color": "Eye Color", "hair_color": "Hair Color",
             "earwax_type": "Earwax Type", "freckling": "Freckling / Sun Sensitivity",
+            "lactose_tolerance": "Lactose Tolerance", "bitter_taste": "Bitter Taste (PTC)",
+            "cilantro_taste": "Cilantro Taste", "asparagus_smell": "Asparagus Smell Detection",
+            "muscle_fiber_type": "Muscle Fiber Type (ACTN3)",
         }
         parts.append('<table><tr><th>Trait</th><th>Prediction</th>'
                      '<th>Confidence</th><th>What It Means</th></tr>')
@@ -1628,6 +1696,20 @@ def build_ancestry_section(ancestry_results, mt_haplogroup_data=None):
         parts.append("</table>")
         parts.append("</div>")
         parts.append("</div>")
+
+    # Sub-ancestry
+    sub = ancestry_results.get("sub_ancestry") if ancestry_results else None
+    if sub and sub.get("sub_proportions"):
+        parts.append("<h3>Sub-Population Estimate</h3>")
+        parts.append(
+            f'<p style="font-size:.9em;color:var(--accent2)">'
+            f'Finer-grained ancestry estimate within {ancestry_results.get("top_ancestry", "top population")}. '
+            f'{sub["confidence"].title()} confidence ({sub["markers_used"]} markers).</p>'
+        )
+        parts.append('<table><tr><th>Sub-Population</th><th>Proportion</th></tr>')
+        for sp, prop in sorted(sub["sub_proportions"].items(), key=lambda x: -x[1]):
+            parts.append(f'<tr><td>{sp}</td><td>{prop:.1%}</td></tr>')
+        parts.append("</table>")
 
     # MT Haplogroup
     if mt_haplogroup_data and mt_haplogroup_data.get("haplogroup") != "Unknown":
@@ -2737,6 +2819,8 @@ def main():
     sleep_data = data.get("sleep_profile", {})
     nutrigenomics_data = data.get("nutrigenomics", {})
     mental_health_data = data.get("mental_health", {})
+    drug_dosing_data = data.get("drug_dosing", {})
+    preventive_care_data = data.get("preventive_care", {})
 
     subject_name = data.get("subject_name", "")
 
@@ -2751,11 +2835,13 @@ def main():
         disease_findings_data=disease_findings_data)
 
     print(">>> Building action plan")
-    action_plan = build_action_plan(recommendations_data, insights_data)
+    action_plan = build_action_plan(recommendations_data, insights_data,
+                                    preventive_care_data)
 
     print(">>> Building drug guide")
     drug_guide = build_drug_guide(
-        star_alleles_data, findings, pharmgkb_findings, polypharmacy_data)
+        star_alleles_data, findings, pharmgkb_findings, polypharmacy_data,
+        drug_dosing_data)
 
     print(">>> Building disease risk overview")
     disease_risk = build_disease_risk_overview(prs_data, disease_findings_data, acmg_data)

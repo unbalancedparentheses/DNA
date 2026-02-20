@@ -26,6 +26,8 @@ from .longevity import profile_longevity
 from .sleep_profile import profile_sleep
 from .nutrigenomics import profile_nutrigenomics
 from .mental_health import profile_mental_health
+from .drug_dosing import generate_drug_dosing
+from .preventive_care import generate_preventive_timeline
 from .reports import generate_html_report
 
 
@@ -248,6 +250,27 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     else:
         print("    No elevated mental health genetic signals")
 
+    # Drug-specific dosing recommendations
+    print_step("Generating drug-specific dosing recommendations")
+    drug_dosing = generate_drug_dosing(
+        star_alleles, lifestyle_findings=health_results['findings'])
+    n_recs = len(drug_dosing['recommendations'])
+    n_warn = len(drug_dosing['warnings'])
+    if n_warn:
+        print(f"    {n_recs} dosing recommendations, {n_warn} critical warning(s)")
+    elif n_recs:
+        print(f"    {n_recs} dosing recommendations")
+    else:
+        print("    No drug dosing adjustments needed")
+
+    # Preventive care timeline
+    print_step("Generating preventive care timeline")
+    preventive_care = generate_preventive_timeline(
+        prs_results=prs_results, apoe=apoe, acmg=acmg,
+        star_alleles=star_alleles, carrier_screen=carrier_screen)
+    print(f"    {len(preventive_care['timeline'])} screening recommendations "
+          f"({preventive_care['early_screenings']} genetically modified)")
+
     # Save intermediate results for HTML report generator
     results_json = {
         'findings': health_results['findings'],
@@ -275,6 +298,8 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'sleep_profile': sleep,
         'nutrigenomics': nutrigenomics,
         'mental_health': mental_health,
+        'drug_dosing': drug_dosing,
+        'preventive_care': preventive_care,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
@@ -349,6 +374,8 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'sleep_profile': sleep,
         'nutrigenomics': nutrigenomics,
         'mental_health': mental_health,
+        'drug_dosing': drug_dosing,
+        'preventive_care': preventive_care,
     }
 
 
