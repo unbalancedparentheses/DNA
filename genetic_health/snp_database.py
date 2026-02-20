@@ -2480,6 +2480,249 @@ COMPREHENSIVE_SNPS = {
         },
         "note": "APOL1 risk variants are common in African-descent populations (~13% carry two risk alleles) and protective against trypanosomiasis."
     },
+
+    # =========================================================================
+    # PUSH TO 300+: DISEASE, LIFESTYLE, ACTIONABLE SNPS
+    # =========================================================================
+
+    # --- DIABETES EXPANDED ---
+    "rs4402960": {
+        "gene": "IGF2BP2", "category": "Metabolic",
+        "variants": {
+            "TT": {"status": "risk", "desc": "IGF2BP2 TT — insulin-like growth factor binding, T2D susceptibility", "magnitude": 2},
+            "TG": {"status": "intermediate", "desc": "IGF2BP2 heterozygous", "magnitude": 1},
+            "GT": {"status": "intermediate", "desc": "IGF2BP2 heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "IGF2BP2 GG — normal insulin signaling", "magnitude": 0},
+        }
+    },
+    "rs10830963": {
+        "gene": "MTNR1B", "category": "Metabolic",
+        "variants": {
+            "GG": {"status": "risk", "desc": "MTNR1B GG — melatonin receptor, impaired glucose-stimulated insulin secretion, T2D and gestational diabetes", "magnitude": 2},
+            "GC": {"status": "intermediate", "desc": "MTNR1B heterozygous — moderate insulin effect", "magnitude": 1},
+            "CG": {"status": "intermediate", "desc": "MTNR1B heterozygous — moderate insulin effect", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "MTNR1B CC — normal melatonin-insulin axis", "magnitude": 0},
+        },
+        "note": "Night eating and late-night meals are particularly harmful for MTNR1B risk carriers."
+    },
+    "rs780094": {
+        "gene": "GCKR", "category": "Metabolic",
+        "variants": {
+            "CC": {"status": "risk", "desc": "GCKR CC — glucokinase regulator, elevated triglycerides and fasting glucose", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "GCKR heterozygous", "magnitude": 0},
+            "TC": {"status": "intermediate", "desc": "GCKR heterozygous", "magnitude": 0},
+            "TT": {"status": "normal", "desc": "GCKR TT — normal glucokinase regulation", "magnitude": 0},
+        }
+    },
+
+    # --- HYPERTENSION EXPANDED ---
+    "rs4961": {
+        "gene": "ADD1", "category": "Cardiovascular",
+        "variants": {
+            "TT": {"status": "salt_sensitive", "desc": "ADD1 Gly460Trp TT — alpha-adducin variant, salt-sensitive hypertension", "magnitude": 3},
+            "TG": {"status": "intermediate", "desc": "ADD1 heterozygous — moderate salt sensitivity", "magnitude": 2},
+            "GT": {"status": "intermediate", "desc": "ADD1 heterozygous — moderate salt sensitivity", "magnitude": 2},
+            "GG": {"status": "normal", "desc": "ADD1 GG — normal sodium handling", "magnitude": 0},
+        },
+        "note": "Salt restriction (<2300mg/day) is particularly important for carriers."
+    },
+
+    # --- LIPIDS / CHOLESTEROL ---
+    "rs12916": {
+        "gene": "HMGCR", "category": "Cardiovascular",
+        "variants": {
+            "TT": {"status": "higher_ldl", "desc": "HMGCR TT — higher LDL cholesterol, but better statin response", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "HMGCR heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "HMGCR heterozygous", "magnitude": 1},
+            "CC": {"status": "lower_ldl", "desc": "HMGCR CC — naturally lower LDL (mimics statin effect)", "magnitude": 1},
+        }
+    },
+    "rs1800588": {
+        "gene": "LIPC", "category": "Cardiovascular",
+        "variants": {
+            "TT": {"status": "high_hdl", "desc": "LIPC TT — hepatic lipase variant, higher HDL cholesterol", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "LIPC heterozygous", "magnitude": 0},
+            "CT": {"status": "intermediate", "desc": "LIPC heterozygous", "magnitude": 0},
+            "CC": {"status": "normal", "desc": "LIPC CC — normal hepatic lipase activity", "magnitude": 0},
+        }
+    },
+    "rs964184": {
+        "gene": "ZPR1/APOA5", "category": "Cardiovascular",
+        "variants": {
+            "GG": {"status": "high_risk", "desc": "APOA5 region GG — strongly elevated triglycerides, pancreatitis risk if very high", "magnitude": 3},
+            "GC": {"status": "risk", "desc": "APOA5 heterozygous — elevated triglycerides", "magnitude": 2},
+            "CG": {"status": "risk", "desc": "APOA5 heterozygous — elevated triglycerides", "magnitude": 2},
+            "CC": {"status": "normal", "desc": "APOA5 CC — normal triglyceride levels", "magnitude": 0},
+        },
+        "note": "Omega-3 fatty acids and limiting refined carbs/alcohol particularly effective for carriers."
+    },
+
+    # --- OSTEOARTHRITIS ---
+    "rs143383": {
+        "gene": "GDF5", "category": "Bone Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "GDF5 TT — reduced growth differentiation factor 5, osteoarthritis susceptibility (knee, hip)", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "GDF5 heterozygous — moderate OA risk", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "GDF5 heterozygous — moderate OA risk", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "GDF5 CC — normal joint cartilage maintenance", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED LONGEVITY / AGING ---
+    "rs4977574": {
+        "gene": "CDKN2B-AS1", "category": "Longevity",
+        "variants": {
+            "GG": {"status": "risk", "desc": "9p21 GG — strongest common CVD/aging locus, accelerated vascular aging and cellular senescence", "magnitude": 3},
+            "GA": {"status": "intermediate", "desc": "9p21 heterozygous — moderate vascular aging", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "9p21 heterozygous — moderate vascular aging", "magnitude": 2},
+            "AA": {"status": "protective", "desc": "9p21 AA — slower vascular aging, reduced CVD risk", "magnitude": 1},
+        },
+        "note": "9p21 is the most replicated CVD locus worldwide. Exercise and not smoking are the strongest modifiers."
+    },
+
+    # --- EXPANDED CANCER RISK ---
+    "rs3803662": {
+        "gene": "TOX3", "category": "Cancer Risk",
+        "variants": {
+            "AA": {"status": "risk", "desc": "TOX3 AA — 2nd strongest breast cancer locus after FGFR2", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "TOX3 heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "TOX3 heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "TOX3 GG — lower breast cancer risk", "magnitude": 0},
+        }
+    },
+    "rs4430796": {
+        "gene": "HNF1B", "category": "Cancer Risk",
+        "variants": {
+            "AA": {"status": "risk", "desc": "HNF1B AA — prostate cancer susceptibility, hepatocyte nuclear factor", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "HNF1B heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "HNF1B heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "HNF1B GG — lower prostate cancer risk", "magnitude": 0},
+        }
+    },
+    "rs889312": {
+        "gene": "MAP3K1", "category": "Cancer Risk",
+        "variants": {
+            "CC": {"status": "risk", "desc": "MAP3K1 CC — mitogen-activated protein kinase, breast cancer susceptibility", "magnitude": 2},
+            "CA": {"status": "intermediate", "desc": "MAP3K1 heterozygous", "magnitude": 1},
+            "AC": {"status": "intermediate", "desc": "MAP3K1 heterozygous", "magnitude": 1},
+            "AA": {"status": "normal", "desc": "MAP3K1 AA — lower breast cancer risk", "magnitude": 0},
+        }
+    },
+    "rs4939827": {
+        "gene": "SMAD7", "category": "Cancer Risk",
+        "variants": {
+            "TT": {"status": "risk", "desc": "SMAD7 TT — TGF-beta signaling, colorectal cancer susceptibility", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "SMAD7 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "SMAD7 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "SMAD7 CC — normal TGF-beta pathway", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED MENTAL HEALTH ---
+    "rs2030324": {
+        "gene": "SLC6A3", "category": "Mental Health",
+        "variants": {
+            "CC": {"status": "risk", "desc": "DAT1 CC — dopamine transporter variant, ADHD and reward sensitivity", "magnitude": 2},
+            "CT": {"status": "intermediate", "desc": "DAT1 heterozygous", "magnitude": 1},
+            "TC": {"status": "intermediate", "desc": "DAT1 heterozygous", "magnitude": 1},
+            "TT": {"status": "normal", "desc": "DAT1 TT — normal dopamine reuptake", "magnitude": 0},
+        }
+    },
+    "rs4713916": {
+        "gene": "FKBP5", "category": "Mental Health",
+        "variants": {
+            "AA": {"status": "risk", "desc": "FKBP5 AA — altered glucocorticoid sensitivity, depression/PTSD vulnerability", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "FKBP5 heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "FKBP5 heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "FKBP5 GG — normal stress hormone regulation", "magnitude": 0},
+        }
+    },
+    "rs6277": {
+        "gene": "DRD2", "category": "Mental Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "DRD2 C957T TT — reduced D2 receptor binding, reward processing, addiction vulnerability", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "DRD2 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "DRD2 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "DRD2 CC — normal dopamine D2 receptor binding", "magnitude": 0},
+        }
+    },
+    "rs1800955": {
+        "gene": "DRD4", "category": "Mental Health",
+        "variants": {
+            "TT": {"status": "risk", "desc": "DRD4 -521C>T TT — reduced D4 receptor expression, novelty seeking and ADHD association", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "DRD4 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "DRD4 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "DRD4 CC — typical D4 receptor expression", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED RESPIRATORY ---
+    "rs28929474_serpina": {
+        "gene": "SERPINA1", "category": "Respiratory",
+        "variants": {
+            "TT": {"status": "pi_z", "desc": "SERPINA1 Z allele TT — severe alpha-1 antitrypsin deficiency, emphysema/COPD risk", "magnitude": 5},
+            "TC": {"status": "carrier", "desc": "SERPINA1 Z carrier — mild AAT reduction, increased COPD risk with smoking", "magnitude": 3},
+            "CT": {"status": "carrier", "desc": "SERPINA1 Z carrier — mild AAT reduction, increased COPD risk with smoking", "magnitude": 3},
+            "CC": {"status": "normal", "desc": "SERPINA1 CC — normal alpha-1 antitrypsin", "magnitude": 0},
+        },
+        "note": "Smoking is absolutely contraindicated for Z allele carriers. Get AAT levels tested."
+    },
+
+    # --- EXPANDED IRON ---
+
+    "rs10741657": {
+        "gene": "CYP2R1", "category": "Nutrition",
+        "variants": {
+            "AA": {"status": "reduced", "desc": "CYP2R1 AA — reduced vitamin D 25-hydroxylation, need more sun/supplementation", "magnitude": 2},
+            "AG": {"status": "intermediate", "desc": "CYP2R1 heterozygous", "magnitude": 1},
+            "GA": {"status": "intermediate", "desc": "CYP2R1 heterozygous", "magnitude": 1},
+            "GG": {"status": "normal", "desc": "CYP2R1 GG — normal vitamin D activation", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED DETOX ---
+    "rs1056827": {
+        "gene": "CYP1B1", "category": "Detoxification",
+        "variants": {
+            "TT": {"status": "fast", "desc": "CYP1B1 Ala119Ser TT — faster estrogen metabolism, more 4-OH catechol estrogens", "magnitude": 2},
+            "TC": {"status": "intermediate", "desc": "CYP1B1 heterozygous", "magnitude": 1},
+            "CT": {"status": "intermediate", "desc": "CYP1B1 heterozygous", "magnitude": 1},
+            "CC": {"status": "normal", "desc": "CYP1B1 CC — normal estrogen metabolism", "magnitude": 0},
+        }
+    },
+
+    # --- EXPANDED SLEEP ---
+
+    "rs698": {
+        "gene": "ADH1C", "category": "Alcohol",
+        "variants": {
+            "AA": {"status": "fast", "desc": "ADH1C*1 AA — fast alcohol dehydrogenase, rapid ethanol→acetaldehyde conversion", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "ADH1C heterozygous", "magnitude": 0},
+            "GA": {"status": "intermediate", "desc": "ADH1C heterozygous", "magnitude": 0},
+            "GG": {"status": "slow", "desc": "ADH1C*2 GG — slower alcohol metabolism", "magnitude": 1},
+        }
+    },
+
+    # --- EXPANDED FITNESS ---
+
+    "rs4481887": {
+        "gene": "FGF21", "category": "Taste",
+        "variants": {
+            "AA": {"status": "sweet_tooth", "desc": "FGF21 AA — stronger sweet taste preference, higher sugar consumption tendency", "magnitude": 1},
+            "AG": {"status": "intermediate", "desc": "FGF21 heterozygous", "magnitude": 0},
+            "GA": {"status": "intermediate", "desc": "FGF21 heterozygous", "magnitude": 0},
+            "GG": {"status": "normal", "desc": "FGF21 GG — typical sweet taste preference", "magnitude": 0},
+        }
+    },
+    "rs236918": {
+        "gene": "PCSK7", "category": "Taste",
+        "variants": {
+            "GG": {"status": "fat_preference", "desc": "PCSK7 GG — higher dietary fat preference and consumption", "magnitude": 1},
+            "GC": {"status": "intermediate", "desc": "PCSK7 heterozygous", "magnitude": 0},
+            "CG": {"status": "intermediate", "desc": "PCSK7 heterozygous", "magnitude": 0},
+            "CC": {"status": "normal", "desc": "PCSK7 CC — typical fat taste sensitivity", "magnitude": 0},
+        }
+    },
 }
 
 
