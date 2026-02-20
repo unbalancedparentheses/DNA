@@ -445,6 +445,94 @@ def _predict_muscle_fiber(genome_by_rsid):
         }
 
 
+def _predict_secretor_status(genome_by_rsid):
+    """Predict FUT2 secretor status (rs601338)."""
+    fut2 = _get_genotype(genome_by_rsid, "rs601338")
+    snps_used = [f"rs601338 (FUT2): {fut2}"] if fut2 else []
+    if not fut2:
+        return {"prediction": "Unknown", "confidence": "low", "snps_used": snps_used,
+                "description": "FUT2 SNP (rs601338) not available."}
+    a_count = fut2.count("A")
+    if a_count == 2:
+        return {"prediction": "Non-secretor", "confidence": "high", "snps_used": snps_used,
+                "description": "AA genotype — non-secretor. You don't secrete ABO blood group antigens in saliva/mucus. Higher B12 deficiency risk but resistant to norovirus. Altered gut microbiome composition (~20% of Europeans)."}
+    elif a_count == 1:
+        return {"prediction": "Secretor (carrier)", "confidence": "high", "snps_used": snps_used,
+                "description": "GA genotype — secretor (one non-secretor allele). Normal ABO antigen secretion. Carrier of non-secretor variant."}
+    else:
+        return {"prediction": "Secretor", "confidence": "high", "snps_used": snps_used,
+                "description": "GG genotype — secretor. Normal ABO antigen secretion in saliva and mucus. Typical gut microbiome composition."}
+
+
+def _predict_photic_sneeze(genome_by_rsid):
+    """Predict photic sneeze reflex (rs10427255)."""
+    snp = _get_genotype(genome_by_rsid, "rs10427255")
+    snps_used = [f"rs10427255 (near ZEB2): {snp}"] if snp else []
+    if not snp:
+        return {"prediction": "Unknown", "confidence": "low", "snps_used": snps_used,
+                "description": "Photic sneeze SNP not available."}
+    c_count = snp.count("C")
+    if c_count >= 1:
+        return {"prediction": "Likely sun sneezer", "confidence": "moderate", "snps_used": snps_used,
+                "description": f"{'CC' if c_count == 2 else 'CT'} genotype — associated with the photic sneeze reflex (ACHOO syndrome). Bright light triggers sneezing. Affects ~25% of people."}
+    return {"prediction": "Unlikely sun sneezer", "confidence": "moderate", "snps_used": snps_used,
+            "description": "TT genotype — not associated with photic sneeze reflex. Bright light unlikely to trigger sneezing."}
+
+
+def _predict_hair_curl(genome_by_rsid):
+    """Predict hair curliness from TCHH (rs11803731)."""
+    tchh = _get_genotype(genome_by_rsid, "rs11803731")
+    snps_used = [f"rs11803731 (TCHH): {tchh}"] if tchh else []
+    if not tchh:
+        return {"prediction": "Unknown", "confidence": "low", "snps_used": snps_used,
+                "description": "TCHH hair texture SNP not available."}
+    a_count = tchh.count("A")
+    if a_count == 2:
+        return {"prediction": "Likely straight hair", "confidence": "moderate", "snps_used": snps_used,
+                "description": "AA genotype — associated with straighter hair texture. Hair curliness is polygenic; this is one contributor."}
+    elif a_count == 1:
+        return {"prediction": "Intermediate hair texture", "confidence": "low", "snps_used": snps_used,
+                "description": "AT genotype — intermediate effect on hair curliness."}
+    return {"prediction": "Likely wavy or curly hair", "confidence": "moderate", "snps_used": snps_used,
+            "description": "TT genotype — associated with curlier hair texture in Europeans. Many other genes also contribute."}
+
+
+def _predict_male_pattern_baldness(genome_by_rsid):
+    """Predict male pattern baldness susceptibility (rs2180439 on 20p11)."""
+    snp = _get_genotype(genome_by_rsid, "rs2180439")
+    snps_used = [f"rs2180439 (20p11): {snp}"] if snp else []
+    if not snp:
+        return {"prediction": "Unknown", "confidence": "low", "snps_used": snps_used,
+                "description": "Baldness susceptibility SNP not available."}
+    c_count = snp.count("C")
+    if c_count == 2:
+        return {"prediction": "Higher baldness risk", "confidence": "moderate", "snps_used": snps_used,
+                "description": "CC genotype — associated with increased risk of androgenetic alopecia (male pattern baldness). This is one of many contributing loci; AR/Xq12 is a stronger predictor."}
+    elif c_count == 1:
+        return {"prediction": "Average baldness risk", "confidence": "low", "snps_used": snps_used,
+                "description": "CT genotype — average genetic susceptibility to male pattern baldness at this locus."}
+    return {"prediction": "Lower baldness risk", "confidence": "moderate", "snps_used": snps_used,
+            "description": "TT genotype — lower genetic susceptibility to male pattern baldness at this locus. Other genes still contribute."}
+
+
+def _predict_unibrow(genome_by_rsid):
+    """Predict unibrow tendency from PAX3 (rs12651896)."""
+    pax3 = _get_genotype(genome_by_rsid, "rs12651896")
+    snps_used = [f"rs12651896 (PAX3): {pax3}"] if pax3 else []
+    if not pax3:
+        return {"prediction": "Unknown", "confidence": "low", "snps_used": snps_used,
+                "description": "PAX3 eyebrow SNP not available."}
+    c_count = pax3.count("C")
+    if c_count == 2:
+        return {"prediction": "Higher unibrow tendency", "confidence": "moderate", "snps_used": snps_used,
+                "description": "CC genotype at PAX3 — associated with thicker eyebrow growth and higher tendency for connected eyebrows (synophrys). Found in GWAS of facial hair traits."}
+    elif c_count == 1:
+        return {"prediction": "Average eyebrow connectivity", "confidence": "low", "snps_used": snps_used,
+                "description": "CT genotype — intermediate effect on eyebrow connectivity."}
+    return {"prediction": "Lower unibrow tendency", "confidence": "moderate", "snps_used": snps_used,
+            "description": "TT genotype — associated with more separated eyebrows and finer brow hair."}
+
+
 def predict_traits(genome_by_rsid):
     """Predict visible traits from well-established SNP associations.
 
@@ -468,4 +556,9 @@ def predict_traits(genome_by_rsid):
         "cilantro_taste": _predict_cilantro(genome_by_rsid),
         "asparagus_smell": _predict_asparagus_smell(genome_by_rsid),
         "muscle_fiber_type": _predict_muscle_fiber(genome_by_rsid),
+        "secretor_status": _predict_secretor_status(genome_by_rsid),
+        "photic_sneeze": _predict_photic_sneeze(genome_by_rsid),
+        "hair_curl": _predict_hair_curl(genome_by_rsid),
+        "baldness_risk": _predict_male_pattern_baldness(genome_by_rsid),
+        "unibrow_tendency": _predict_unibrow(genome_by_rsid),
     }

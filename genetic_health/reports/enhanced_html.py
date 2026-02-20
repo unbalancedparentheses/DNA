@@ -387,6 +387,52 @@ def svg_metabolism_gauge(label, level, color):
     )
 
 
+def svg_risk_heatmap(prs_results):
+    """SVG heatmap showing all PRS conditions as a colored grid."""
+    if not prs_results:
+        return ""
+    items = sorted(prs_results.values(), key=lambda r: -r["percentile"])
+    cols = min(5, len(items))
+    rows = math.ceil(len(items) / cols)
+    cell_w, cell_h = 80, 60
+    pad = 4
+    w = cols * (cell_w + pad) + pad
+    h = rows * (cell_h + pad) + pad
+
+    cells = []
+    for idx, r in enumerate(items):
+        col = idx % cols
+        row = idx // cols
+        x = pad + col * (cell_w + pad)
+        y = pad + row * (cell_h + pad)
+        cat = r["risk_category"]
+        color = {
+            "low": C["green"], "average": C["blue"],
+            "elevated": C["amber"], "high": C["red"],
+        }.get(cat, C["slate"])
+        name = r["name"].replace("Age-Related ", "").replace("Macular Degeneration", "AMD")
+        name = name.replace("(Bone Mineral Density)", "BMD").replace("(Cholelithiasis)", "")
+        name = name.replace("Systemic Lupus Erythematosus", "Lupus (SLE)")
+        name = name.replace("Hashimoto's Thyroiditis", "Hashimoto's")
+        if len(name) > 16:
+            name = name[:15] + "…"
+        cells.append(
+            f'<rect x="{x}" y="{y}" width="{cell_w}" height="{cell_h}" rx="4" '
+            f'fill="{color}" opacity="0.8"/>'
+            f'<text x="{x + cell_w//2}" y="{y + 24}" text-anchor="middle" '
+            f'fill="#fff" font-size="9" font-weight="bold">{name}</text>'
+            f'<text x="{x + cell_w//2}" y="{y + 42}" text-anchor="middle" '
+            f'fill="#fff" font-size="14" font-weight="bold">{r["percentile"]:.0f}%</text>'
+        )
+
+    return (
+        f'<svg viewBox="0 0 {w} {h}" class="chart" role="img" '
+        f'aria-label="PRS risk heatmap">'
+        f'<title>Polygenic Risk Score Heatmap</title>'
+        f'{"".join(cells)}</svg>'
+    )
+
+
 def svg_ancestry_donut(ancestry_results):
     """Donut chart showing ancestry proportions."""
     if not ancestry_results or not ancestry_results.get("proportions"):
@@ -1128,6 +1174,19 @@ def build_drug_guide(star_alleles_data, findings, pharmgkb_findings, polypharmac
                 f'</details>'
             )
 
+    # Interactive drug checker
+    parts.append('<h3>Drug Interaction Checker</h3>')
+    parts.append(
+        '<p style="font-size:.9em;color:var(--accent2)">'
+        'Type a drug name to see if your genotype affects it.</p>'
+    )
+    parts.append(
+        '<input type="text" id="drug-checker" placeholder="Search for a drug (e.g., warfarin, codeine, simvastatin)..." '
+        'style="width:100%;padding:.5em .75em;border:2px solid var(--border);border-radius:6px;'
+        'background:var(--bg);color:var(--fg);font-size:.92em;font-family:var(--body-font);margin:.5em 0">'
+        '<div id="drug-checker-results"></div>'
+    )
+
     parts.append(
         '<div class="doctor-callout">Share this entire drug section with '
         'every prescribing physician. Print it or save as PDF.</div>'
@@ -1151,6 +1210,11 @@ def build_disease_risk_overview(prs_results, disease_findings_data, acmg_data):
         'Genetic risk estimates from polygenic scores and ClinVar variants. '
         'Lifestyle and environment also affect risk significantly.</p>'
     )
+
+    # Risk heatmap overview
+    if prs_results:
+        parts.append("<h3>Risk Heatmap</h3>")
+        parts.append(svg_risk_heatmap(prs_results))
 
     # PRS gauges
     if prs_results:
@@ -1321,8 +1385,10 @@ def build_disease_risk_overview(prs_results, disease_findings_data, acmg_data):
 # SECTION 5: YOUR BODY PROFILE
 # =============================================================================
 
-def build_body_profile(traits_data, blood_type_data, sleep_data, longevity_data, findings):
-    """Fun traits, blood type, chronotype, longevity, athletic profile."""
+def build_body_profile(traits_data, blood_type_data, sleep_data, longevity_data, findings,
+                       pain_data=None, histamine_data=None, thyroid_data=None,
+                       hormone_data=None, eye_data=None, alcohol_data=None):
+    """Fun traits, blood type, chronotype, longevity, athletic profile, and health profiles."""
     parts = []
     parts.append(
         '<p style="font-size:.9em;color:var(--accent2)">'
@@ -1338,6 +1404,9 @@ def build_body_profile(traits_data, blood_type_data, sleep_data, longevity_data,
             "lactose_tolerance": "Lactose Tolerance", "bitter_taste": "Bitter Taste (PTC)",
             "cilantro_taste": "Cilantro Taste", "asparagus_smell": "Asparagus Smell Detection",
             "muscle_fiber_type": "Muscle Fiber Type (ACTN3)",
+            "secretor_status": "FUT2 Secretor Status", "photic_sneeze": "Photic Sneeze Reflex",
+            "hair_curl": "Hair Curl / Texture", "baldness_risk": "Baldness Susceptibility",
+            "unibrow_tendency": "Unibrow Tendency (PAX3)",
         }
         parts.append('<table><tr><th>Trait</th><th>Prediction</th>'
                      '<th>Confidence</th><th>What It Means</th></tr>')
@@ -1441,6 +1510,85 @@ def build_body_profile(traits_data, blood_type_data, sleep_data, longevity_data,
             parts.append(f'<p><strong>ACTN3</strong>: {status} — {f.get("description", "")}</p>')
             parts.append(paper_refs_html("rs1815739"))
             break
+
+    # Pain sensitivity
+    if pain_data and pain_data.get("markers_found", 0) > 0:
+        score = pain_data.get("pain_sensitivity_score", 50)
+        score_color = C["red"] if score >= 70 else C["amber"] if score >= 40 else C["green"]
+        parts.append("<h3>Pain Sensitivity Profile</h3>")
+        parts.append(
+            f'<div style="text-align:center;margin:1em 0">'
+            f'<span style="font-size:2em;font-weight:bold;color:{score_color}">{score}</span>'
+            f'<span style="color:var(--accent2)">/100</span>'
+            f'<p style="color:var(--accent2)">Pain Sensitivity Score (higher = more sensitive)</p></div>'
+        )
+        parts.append(f'<p>{_esc(pain_data.get("summary", ""))}</p>')
+        recs = pain_data.get("recommendations", [])
+        if recs:
+            parts.append("<ul>")
+            for r in recs:
+                parts.append(f"<li>{_esc(r)}</li>")
+            parts.append("</ul>")
+
+    # Histamine intolerance
+    if histamine_data and histamine_data.get("markers_found", 0) > 0:
+        level = histamine_data.get("risk_level", "low")
+        level_colors = {"elevated": C["red"], "moderate": C["amber"], "low": C["green"]}
+        color = level_colors.get(level, "var(--border)")
+        parts.append("<h3>Histamine Intolerance Risk</h3>")
+        parts.append(
+            f'<p><span class="mag-badge" style="background:{color};color:#fff">'
+            f'{level.upper()}</span> {_esc(histamine_data.get("summary", ""))}</p>'
+        )
+        foods = histamine_data.get("foods_to_watch", [])
+        if foods and level != "low":
+            parts.append(f'<p><strong>Foods to watch:</strong> {", ".join(_esc(f) for f in foods[:8])}</p>')
+
+    # Alcohol profile
+    if alcohol_data and alcohol_data.get("markers_found", 0) > 0:
+        parts.append("<h3>Alcohol Metabolism</h3>")
+        parts.append(f'<p>{_esc(alcohol_data.get("summary", ""))}</p>')
+        parts.append(
+            f'<table>'
+            f'<tr><td><strong>Metabolism Speed</strong></td><td>{_esc(alcohol_data.get("metabolism_speed", "Unknown"))}</td></tr>'
+            f'<tr><td><strong>Flush Risk</strong></td><td>{_esc(alcohol_data.get("flush_risk", "Unknown"))}</td></tr>'
+            f'<tr><td><strong>Cancer Risk from Alcohol</strong></td><td>{_esc(alcohol_data.get("cancer_risk", "Unknown"))}</td></tr>'
+            f'</table>'
+        )
+
+    # Eye health
+    if eye_data and eye_data.get("markers_found", 0) > 0:
+        parts.append("<h3>Eye Health Genetics</h3>")
+        parts.append(f'<p>{_esc(eye_data.get("summary", ""))}</p>')
+        conditions = eye_data.get("conditions", {})
+        if conditions:
+            for cond, info in conditions.items():
+                level = info.get("risk_level", "average")
+                color = {"elevated": C["amber"], "high": C["red"]}.get(level, C["green"])
+                parts.append(
+                    f'<p><span class="mag-badge" style="background:{color};color:#fff">'
+                    f'{level.upper()}</span> <strong>{cond.replace("_", " ").title()}</strong>: '
+                    f'{_esc(info.get("detail", ""))}</p>'
+                )
+
+    # Thyroid genetics
+    if thyroid_data and thyroid_data.get("markers_found", 0) > 0:
+        parts.append("<h3>Thyroid Genetics</h3>")
+        parts.append(f'<p>{_esc(thyroid_data.get("summary", ""))}</p>')
+        rp = thyroid_data.get("risk_profile", {})
+        if rp:
+            for domain, info in rp.items():
+                level = info.get("risk_level", "average")
+                color = {"elevated": C["amber"], "high": C["red"]}.get(level, C["green"])
+                parts.append(
+                    f'<p><span class="mag-badge" style="background:{color};color:#fff">'
+                    f'{level.upper()}</span> <strong>{domain.replace("_", " ").title()}</strong></p>'
+                )
+
+    # Hormone metabolism
+    if hormone_data and hormone_data.get("markers_found", 0) > 0:
+        parts.append("<h3>Hormone Metabolism</h3>")
+        parts.append(f'<p>{_esc(hormone_data.get("summary", ""))}</p>')
 
     return "\n".join(parts)
 
@@ -2737,6 +2885,39 @@ document.querySelectorAll('.toc a').forEach(function(a) {{
   }});
 }})();
 
+// --- Drug Interaction Checker ---
+(function() {{
+  var input = document.getElementById('drug-checker');
+  var results = document.getElementById('drug-checker-results');
+  if (!input || !results) return;
+  input.addEventListener('input', function() {{
+    var q = this.value.toLowerCase().trim();
+    if (!q || q.length < 2) {{ results.innerHTML = ''; return; }}
+    var found = [];
+    // Search in drug dosing cards
+    document.querySelectorAll('#drug-guide .rec-card').forEach(function(card) {{
+      if (card.textContent.toLowerCase().indexOf(q) !== -1) {{
+        found.push(card.outerHTML);
+      }}
+    }});
+    // Search in PharmGKB table
+    var tables = document.querySelectorAll('#drug-guide table');
+    tables.forEach(function(table) {{
+      var rows = table.querySelectorAll('tr');
+      for (var i = 1; i < rows.length; i++) {{
+        if (rows[i].textContent.toLowerCase().indexOf(q) !== -1) {{
+          found.push('<div class="finding-card" style="font-size:.9em">' + rows[i].textContent + '</div>');
+        }}
+      }}
+    }});
+    if (found.length > 0) {{
+      results.innerHTML = '<p style="font-size:.85em;color:var(--accent2)">' + found.length + ' match(es):</p>' + found.slice(0, 10).join('');
+    }} else {{
+      results.innerHTML = '<p style="font-size:.85em;color:var(--accent2)">No interactions found for "' + q + '" in your genotype data.</p>';
+    }}
+  }});
+}})();
+
 // --- CSV Export ---
 (function() {{
   var btn = document.getElementById('export-csv');
@@ -2821,6 +3002,12 @@ def main():
     mental_health_data = data.get("mental_health", {})
     drug_dosing_data = data.get("drug_dosing", {})
     preventive_care_data = data.get("preventive_care", {})
+    pain_data = data.get("pain_sensitivity", {})
+    histamine_data = data.get("histamine", {})
+    thyroid_data = data.get("thyroid", {})
+    hormone_data = data.get("hormone_metabolism", {})
+    eye_data = data.get("eye_health", {})
+    alcohol_data = data.get("alcohol_profile", {})
 
     subject_name = data.get("subject_name", "")
 
@@ -2848,7 +3035,10 @@ def main():
 
     print(">>> Building body profile")
     body_profile = build_body_profile(
-        traits_data, blood_type_data, sleep_data, longevity_data, findings)
+        traits_data, blood_type_data, sleep_data, longevity_data, findings,
+        pain_data=pain_data, histamine_data=histamine_data,
+        thyroid_data=thyroid_data, hormone_data=hormone_data,
+        eye_data=eye_data, alcohol_data=alcohol_data)
 
     print(">>> Building mental health section")
     mental_health_html = build_mental_health_section(mental_health_data)

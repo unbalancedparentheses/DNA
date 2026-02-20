@@ -28,6 +28,12 @@ from .nutrigenomics import profile_nutrigenomics
 from .mental_health import profile_mental_health
 from .drug_dosing import generate_drug_dosing
 from .preventive_care import generate_preventive_timeline
+from .pain_sensitivity import profile_pain_sensitivity
+from .histamine import profile_histamine
+from .thyroid import profile_thyroid
+from .hormone_metabolism import profile_hormone_metabolism
+from .eye_health import profile_eye_health
+from .alcohol_profile import profile_alcohol
 from .reports import generate_html_report
 
 
@@ -263,6 +269,39 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
     else:
         print("    No drug dosing adjustments needed")
 
+    # Pain sensitivity profiling
+    print_step("Profiling pain sensitivity")
+    pain_profile = profile_pain_sensitivity(genome_by_rsid)
+    print(f"    Pain sensitivity score: {pain_profile['pain_sensitivity_score']}/100 "
+          f"({pain_profile['markers_found']} markers)")
+
+    # Histamine intolerance profiling
+    print_step("Profiling histamine metabolism")
+    histamine_profile = profile_histamine(genome_by_rsid)
+    print(f"    Histamine risk: {histamine_profile['risk_level']} "
+          f"({histamine_profile['markers_found']}/{histamine_profile['markers_tested']} markers)")
+
+    # Thyroid genetics profiling
+    print_step("Profiling thyroid genetics")
+    thyroid_profile = profile_thyroid(genome_by_rsid)
+    print(f"    {thyroid_profile['summary']}")
+
+    # Hormone metabolism profiling
+    print_step("Profiling hormone metabolism")
+    hormone_profile = profile_hormone_metabolism(genome_by_rsid)
+    print(f"    {hormone_profile['summary']}")
+
+    # Eye health profiling
+    print_step("Profiling eye health genetics")
+    eye_profile = profile_eye_health(genome_by_rsid)
+    print(f"    {eye_profile['summary']}")
+
+    # Alcohol metabolism profiling
+    print_step("Profiling alcohol metabolism")
+    alcohol_prof = profile_alcohol(genome_by_rsid)
+    print(f"    Metabolism: {alcohol_prof['metabolism_speed']}, "
+          f"flush risk: {alcohol_prof['flush_risk']}")
+
     # Preventive care timeline
     print_step("Generating preventive care timeline")
     preventive_care = generate_preventive_timeline(
@@ -300,6 +339,12 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'mental_health': mental_health,
         'drug_dosing': drug_dosing,
         'preventive_care': preventive_care,
+        'pain_sensitivity': pain_profile,
+        'histamine': histamine_profile,
+        'thyroid': thyroid_profile,
+        'hormone_metabolism': hormone_profile,
+        'eye_health': eye_profile,
+        'alcohol_profile': alcohol_prof,
     }
     intermediate_path = REPORTS_DIR / "comprehensive_results.json"
     with open(intermediate_path, 'w') as f:
@@ -376,6 +421,12 @@ def run_full_analysis(genome_path: Path = None, subject_name: str = None,
         'mental_health': mental_health,
         'drug_dosing': drug_dosing,
         'preventive_care': preventive_care,
+        'pain_sensitivity': pain_profile,
+        'histamine': histamine_profile,
+        'thyroid': thyroid_profile,
+        'hormone_metabolism': hormone_profile,
+        'eye_health': eye_profile,
+        'alcohol_profile': alcohol_prof,
     }
 
 
